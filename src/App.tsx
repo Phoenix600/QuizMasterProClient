@@ -346,36 +346,6 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const renameCourse = async (courseId: string, newName: string, description: string) => {
-    if (!newName) return;
-    try {
-      await api.updateCourse(courseId, newName, description);
-      await fetchInitialData();
-    } catch (error) {
-      console.error('Failed to rename course:', error);
-    }
-  };
-
-  const renameChapter = async (chapterId: string, newName: string, description: string) => {
-    if (!newName || !adminSelectedCourse) return;
-    try {
-      await api.updateChapter(chapterId, newName, description);
-      await fetchChaptersForCourse(adminSelectedCourse._id);
-    } catch (error) {
-      console.error('Failed to rename chapter:', error);
-    }
-  };
-
-  const renameQuiz = async (quizId: string, newName: string, description: string, passingScore: number, timeLimit: number) => {
-    if (!newName || !adminSelectedChapter) return;
-    try {
-      await api.updateQuiz(quizId, newName, description, passingScore, timeLimit);
-      await fetchQuizzesForChapter(adminSelectedChapter._id);
-    } catch (error) {
-      console.error('Failed to rename quiz:', error);
-    }
-  };
-
   const handleDeleteQuestion = async (id: string) => {
     if (!adminSelectedQuiz) return;
     try {
@@ -469,8 +439,8 @@ function AppContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const toggleChapter = (subjectName: string, chapterName: string) => {
-    const key = `${subjectName}-${chapterName}`;
+  const toggleChapter = (subjectName: string, title: string) => {
+    const key = `${subjectName}-${title}`;
     setExpandedChapters(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -645,7 +615,7 @@ function AppContent() {
                     </button>
                   )}
                   <h2 className="text-4xl font-bold text-white">
-                    {!selectedCourse ? 'Select Subject' : selectedCourse.courseName}
+                    {!selectedCourse ? 'Select Subject' : selectedCourse.title}
                   </h2>
                 </div>
                 <p className="text-gray-400">
@@ -671,7 +641,7 @@ function AppContent() {
                         <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
                           <Code size={24} />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-2 relative z-10">{course.courseName}</h3>
+                        <h3 className="text-2xl font-bold text-white mb-2 relative z-10">{course.title}</h3>
                         <p className="text-gray-500 text-sm relative z-10">{course.description}</p>
                       </button>
                     ))}
@@ -689,7 +659,7 @@ function AppContent() {
                               <Layers size={20} />
                             </div>
                             <div className="text-left">
-                              <h3 className="text-xl font-bold text-white">{chapter.chapterName}</h3>
+                              <h3 className="text-xl font-bold text-white">{chapter.title}</h3>
                               <p className="text-gray-500 text-sm">{chapter.description}</p>
                             </div>
                           </div>
@@ -718,7 +688,7 @@ function AppContent() {
                                         <Trophy size={18} />
                                       </div>
                                       <div className="text-left">
-                                        <h4 className="font-bold text-white">{quiz.quizTitle}</h4>
+                                        <h4 className="font-bold text-white">{quiz.title}</h4>
                                         <p className="text-xs text-gray-500">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
                                       </div>
                                     </div>
@@ -794,15 +764,15 @@ function AppContent() {
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                       <span className="px-3 py-1 bg-orange-500/10 text-orange-500 text-xs font-bold rounded-full uppercase tracking-widest">
-                        {selectedCourse?.courseName}
+                        {selectedCourse?.title}
                       </span>
                       <span className="text-gray-600">/</span>
                       <span className="text-gray-400 text-sm font-medium">
-                        {selectedChapter?.chapterName}
+                        {selectedChapter?.title}
                       </span>
                       <span className="text-gray-600">/</span>
                       <span className="text-gray-400 text-sm font-medium">
-                        {selectedQuiz?.quizTitle}
+                        {selectedQuiz?.title}
                       </span>
                     </div>
                     <span className="px-3 py-1 bg-white/5 text-gray-400 text-xs font-bold rounded-full uppercase tracking-widest">
@@ -830,12 +800,12 @@ function AppContent() {
                       <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
                         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
                           <Code size={14} />
-                          {selectedCourse?.courseName} Snippet
+                          {selectedCourse?.title} Snippet
                         </div>
                       </div>
                       <div className="p-2">
                         <SyntaxHighlighter 
-                          language={getLanguage(selectedCourse?.courseName || null)} 
+                          language={getLanguage(selectedCourse?.title || null)} 
                           style={atomDark}
                           customStyle={{ background: 'transparent', padding: '1rem', margin: 0, fontSize: '0.875rem' }}
                         >
@@ -1118,7 +1088,7 @@ function AppContent() {
                   <p className="text-gray-400">
                     {adminView === 'hierarchy' 
                       ? 'Manage your courses, chapters, and quizzes.' 
-                      : `Editing questions for ${adminSelectedQuiz?.quizTitle}`}
+                      : `Editing questions for ${adminSelectedQuiz?.title}`}
                   </p>
                 </div>
                 {adminView === 'questions' && (
@@ -1162,19 +1132,8 @@ function AppContent() {
                           </div>
                           
                           <div className="space-y-2">
-                            <input 
-                              type="text" 
-                              defaultValue={course.courseName}
-                              onBlur={(e) => renameCourse(course._id, e.target.value, course.description)}
-                              className="w-full bg-transparent border-none text-2xl font-bold text-white focus:outline-none focus:ring-0 p-0"
-                              placeholder="Course Name"
-                            />
-                            <textarea 
-                              defaultValue={course.description}
-                              onBlur={(e) => renameCourse(course._id, course.courseName, e.target.value)}
-                              className="w-full bg-transparent border-none text-sm text-gray-500 focus:outline-none focus:ring-0 p-0 resize-none h-12"
-                              placeholder="Course Description"
-                            />
+                            <h4 className="text-2xl font-bold text-white">{course.title}</h4>
+                            <p className="text-sm text-gray-500 line-clamp-2">{course.description}</p>
                           </div>
 
                           <button
@@ -1218,7 +1177,7 @@ function AppContent() {
                         <div className="h-px flex-1 bg-white/5"></div>
                         <h3 className="text-xl font-bold text-white flex items-center gap-3">
                           <Layers className="text-blue-500" size={20} />
-                          Chapters in {adminSelectedCourse.courseName}
+                          Chapters in {adminSelectedCourse.title}
                         </h3>
                         <div className="h-px flex-1 bg-white/5"></div>
                       </div>
@@ -1233,12 +1192,7 @@ function AppContent() {
                                     <Layers size={24} />
                                   </div>
                                   <div className="space-y-1">
-                                    <input 
-                                      type="text" 
-                                      defaultValue={chapter.chapterName}
-                                      onBlur={(e) => renameChapter(chapter._id, e.target.value, chapter.description)}
-                                      className="bg-transparent border-none text-xl font-bold text-white focus:outline-none focus:ring-0 p-0"
-                                    />
+                                    <h4 className="text-xl font-bold text-white">{chapter.title}</h4>
                                     <p className="text-xs text-gray-500">Chapter</p>
                                   </div>
                                 </div>
@@ -1288,13 +1242,9 @@ function AppContent() {
                                             <Trophy size={14} />
                                           </div>
                                           <div className="flex-1">
-                                            <input 
-                                              type="text" 
-                                              defaultValue={quiz.quizTitle}
-                                              onClick={(e) => e.stopPropagation()}
-                                              onBlur={(e) => renameQuiz(quiz._id, e.target.value, quiz.description, quiz.passingScore, quiz.timeLimit)}
-                                              className="w-full bg-transparent border-none text-sm text-gray-300 focus:text-white focus:outline-none focus:ring-0 p-0"
-                                            />
+                                            <p className="w-full bg-transparent border-none text-sm text-gray-300 focus:text-white focus:outline-none focus:ring-0 p-0">
+                                              {quiz.title}
+                                            </p>
                                             <p className="text-[10px] text-gray-500">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
                                           </div>
                                           <div className="flex items-center gap-1 opacity-0 group-hover/quiz:opacity-100 transition-opacity">
@@ -1316,7 +1266,7 @@ function AppContent() {
                                       onClick={async () => {
                                         const title = prompt('Enter quiz title:');
                                         if (title) {
-                                          await api.createQuiz(chapter._id, title, `Description for ${title}`, 70, 15);
+                                          await api.createQuiz(chapter._id, adminSelectedCourse._id, title, `Description for ${title}`, 70, 15);
                                           fetchQuizzesForChapter(chapter._id);
                                         }
                                       }}
@@ -1358,7 +1308,7 @@ function AppContent() {
                       </h3>
                       {adminSelectedQuiz && (
                         <div className="px-4 py-2 bg-orange-500/10 text-orange-500 rounded-xl text-sm font-bold">
-                          Quiz: {adminSelectedQuiz.quizTitle}
+                          Quiz: {adminSelectedQuiz.title}
                         </div>
                       )}
                     </div>

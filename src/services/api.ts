@@ -5,139 +5,130 @@ const instance = axios.create({
   baseURL: '/api',
 });
 
+// Add a request interceptor to include the JWT token
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Authentication
 export const login = async (email: string, password: string): Promise<{ user: User; token: string }> => {
-  const response = await instance.post('/login', { email, password });
+  const response = await instance.post('/auth/login', { email, password });
   return response.data;
 };
 
 export const register = async (name: string, email: string, password: string): Promise<{ user: User; token: string }> => {
-  const response = await instance.post('/register', { name, email, password });
+  const response = await instance.post('/auth/register', { name, email, password, role: 'student' });
   return response.data;
 };
 
 // Admin - Courses
 export const getCourses = async (): Promise<Course[]> => {
-  const response = await instance.get('/courses');
+  const response = await instance.get('/admin/courses');
   return response.data;
 };
 
-export const createCourse = async (courseName: string, description: string): Promise<Course> => {
-  const response = await instance.post('/courses', { courseName, description });
+export const createCourse = async (title: string, description: string): Promise<Course> => {
+  const response = await instance.post('/admin/courses', { title, description });
   return response.data;
 };
 
 export const deleteCourse = async (courseId: string): Promise<void> => {
-  await instance.delete(`/courses/${courseId}`);
-};
-
-export const updateCourse = async (courseId: string, courseName: string, description: string): Promise<Course> => {
-  const response = await instance.put(`/courses/${courseId}`, { courseName, description });
-  return response.data;
+  await instance.delete(`/admin/courses/${courseId}`);
 };
 
 // Admin - Chapters
 export const getChapters = async (courseId: string): Promise<Chapter[]> => {
-  const response = await instance.get('/chapters', { params: { courseId } });
+  const response = await instance.get(`/admin/chapters/${courseId}`);
   return response.data;
 };
 
-export const createChapter = async (courseId: string, chapterName: string, description: string): Promise<Chapter> => {
-  const response = await instance.post('/chapters', { courseId, chapterName, description });
+export const createChapter = async (courseId: string, title: string, description: string, order: number = 1): Promise<Chapter> => {
+  const response = await instance.post('/admin/chapters', { courseId, title, description, order });
   return response.data;
 };
 
 export const deleteChapter = async (chapterId: string): Promise<void> => {
-  await instance.delete(`/chapters/${chapterId}`);
-};
-
-export const updateChapter = async (chapterId: string, chapterName: string, description: string): Promise<void> => {
-  await instance.put(`/chapters/${chapterId}`, { chapterName, description });
+  await instance.delete(`/admin/chapters/${chapterId}`);
 };
 
 // Admin - Quizzes
 export const getQuizzes = async (chapterId: string): Promise<Quiz[]> => {
-  const response = await instance.get('/quizzes', { params: { chapterId } });
+  const response = await instance.get(`/admin/quizzes/${chapterId}`);
   return response.data;
 };
 
-export const createQuiz = async (chapterId: string, quizTitle: string, description: string, passingScore: number, timeLimit: number): Promise<Quiz> => {
-  const response = await instance.post('/quizzes', { chapterId, quizTitle, description, passingScore, timeLimit });
+export const createQuiz = async (chapterId: string, courseId: string, title: string, description: string, passingScore: number, timeLimit: number): Promise<Quiz> => {
+  const response = await instance.post('/admin/quizzes', { chapterId, courseId, title, description, passingScore, timeLimit });
   return response.data;
 };
 
 export const publishQuiz = async (quizId: string): Promise<void> => {
-  await instance.put(`/quizzes/${quizId}`, { isPublished: true });
+  await instance.patch(`/admin/quizzes/${quizId}/publish`);
 };
 
 export const deleteQuiz = async (quizId: string): Promise<void> => {
-  await instance.delete(`/quizzes/${quizId}`);
-};
-
-export const updateQuiz = async (quizId: string, quizTitle: string, description: string, passingScore: number, timeLimit: number): Promise<void> => {
-  await instance.put(`/quizzes/${quizId}`, { quizTitle, description, passingScore, timeLimit });
+  await instance.delete(`/admin/quizzes/${quizId}`);
 };
 
 // Admin - Questions
 export const getQuestions = async (quizId: string): Promise<Question[]> => {
-  const response = await instance.get('/questions', { params: { quizId } });
+  const response = await instance.get(`/admin/questions/${quizId}`);
   return response.data;
 };
 
 export const createQuestion = async (questionData: Partial<Question>): Promise<Question> => {
-  const response = await instance.post('/questions', questionData);
+  const response = await instance.post('/admin/questions', questionData);
   return response.data;
 };
 
 export const updateQuestion = async (questionId: string, questionData: Partial<Question>): Promise<void> => {
-  await instance.put(`/questions/${questionId}`, questionData);
+  await instance.patch(`/admin/questions/${questionId}`, questionData);
 };
 
 export const deleteQuestion = async (questionId: string): Promise<void> => {
-  await instance.delete(`/questions/${questionId}`);
+  await instance.delete(`/admin/questions/${questionId}`);
 };
 
 // Admin - Leaderboard
 export const getLeaderboard = async (quizId: string): Promise<LeaderboardEntry[]> => {
-  // Mock for now or implement on server
-  return [];
+  const response = await instance.get(`/admin/leaderboard/${quizId}`);
+  return response.data;
 };
 
 // Student - Quiz
 export const getAllPublishedQuizzes = async (): Promise<Quiz[]> => {
-  const response = await instance.get('/quizzes/published');
+  const response = await instance.get('/quiz/all');
   return response.data;
 };
 
 export const getQuizWithQuestions = async (quizId: string): Promise<{ quiz: Quiz; questions: Question[] }> => {
-  const quizResponse = await instance.get(`/quizzes/${quizId}`);
-  const questionsResponse = await instance.get('/questions', { params: { quizId } });
-  return { quiz: quizResponse.data, questions: questionsResponse.data };
-};
-
-export const submitQuiz = async (quizId: string, answers: { questionId: string; selectedOptions: number[] }[], timeTaken: number): Promise<QuizResult> => {
-  // Logic to calculate score should ideally be on server, but for now we'll do it on client or mock
-  // Let's assume the server handles it or we pass the calculated score
-  // For simplicity, let's just send the data
-  const userId = JSON.parse(localStorage.getItem('user') || '{}')._id;
-  const response = await instance.post('/results', { 
-    userId, 
-    quizId, 
-    score: 0, // Placeholder
-    totalQuestions: answers.length, 
-    percentage: 0, 
-    isPassed: false, 
-    timeTaken 
-  });
+  const response = await instance.get(`/quiz/${quizId}`);
   return response.data;
 };
 
+export const submitQuiz = async (quizId: string, answers: { questionId: string; selectedOptions: number[] }[], timeTaken: number): Promise<QuizResult> => {
+  const response = await instance.post('/quiz/submit', { 
+    quizId, 
+    answers,
+    timeTaken 
+  });
+  return response.data.result;
+};
+
 export const getMyResults = async (): Promise<QuizResult[]> => {
-  const userId = JSON.parse(localStorage.getItem('user') || '{}')._id;
-  const response = await instance.get('/results/me', { params: { userId } });
+  const response = await instance.get('/results/my-results');
   return response.data;
 };
 
 export const testConnection = async () => {
-  // No-op for axios
+  // No-op
 };

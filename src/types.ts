@@ -7,21 +7,23 @@ export interface User {
 
 export interface Course {
   _id: string;
-  courseName: string;
+  title: string;
   description: string;
 }
 
 export interface Chapter {
   _id: string;
   courseId: string;
-  chapterName: string;
+  title: string;
   description: string;
+  order: number;
 }
 
 export interface Quiz {
   _id: string;
   chapterId: string;
-  quizTitle: string;
+  courseId: string;
+  title: string;
   description: string;
   passingScore: number;
   timeLimit: number; // in minutes
