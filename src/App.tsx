@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import Editor from '@monaco-editor/react';
 import { 
   Plus, 
   Trash2, 
@@ -20,124 +21,89 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
-  Layers
+  Layers,
+  LogOut,
+  User as UserIcon,
+  Search,
+  Filter,
+  MoreVertical,
+  PlusCircle,
+  AlertCircle
 } from 'lucide-react';
-
-interface Question {
-  id: number;
-  subject: string;
-  chapter: string;
-  topic: string;
-  question: string;
-  code?: string;
-  option1: string;
-  option2: string;
-  option3: string;
-  option4: string;
-  correct_option: number;
-  image?: string;
-}
-
-interface Chapter {
-  name: string;
-  topics: string[];
-}
-
-interface Subject {
-  name: string;
-  chapters: Chapter[];
-}
+import * as api from './services/api';
+import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry } from './types';
 
 type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-  const [availableChapters, setAvailableChapters] = useState<string[]>([]);
-  const [availableTopics, setAvailableTopics] = useState<{name: string, questionCount: number}[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const [adminSelectedSubject, setAdminSelectedSubject] = useState<string | null>(null);
-  const [adminSelectedChapter, setAdminSelectedChapter] = useState<string | null>(null);
-  const [adminSelectedTopic, setAdminSelectedTopic] = useState<string | null>(null);
-  const [adminAvailableChapters, setAdminAvailableChapters] = useState<string[]>([]);
-  const [adminAvailableTopics, setAdminAvailableTopics] = useState<{name: string, questionCount: number}[]>([]);
-
-  const fetchAdminChapters = async (subject: string) => {
-    try {
-      const res = await fetch(`/api/chapters?subject=${encodeURIComponent(subject)}`);
-      const data = await res.json();
-      setAdminAvailableChapters(data);
-      setAdminSelectedChapter(null);
-      setAdminSelectedTopic(null);
-      setAdminAvailableTopics([]);
-    } catch (error) {
-      console.error('Failed to fetch admin chapters:', error);
-    }
-  };
-
-  const fetchAdminTopics = async (subject: string, chapter: string) => {
-    try {
-      const res = await fetch(`/api/topics?subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`);
-      const data = await res.json();
-      setAdminAvailableTopics(data);
-      setAdminSelectedTopic(null);
-    } catch (error) {
-      console.error('Failed to fetch admin topics:', error);
-    }
-  };
+  
+  // Hierarchy state
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseChapters, setCourseChapters] = useState<Record<string, Chapter[]>>({});
+  const [chapterQuizzes, setChapterQuizzes] = useState<Record<string, Quiz[]>>({});
+  
+  // Selection state
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  
+  // Admin selection state
+  const [adminSelectedCourse, setAdminSelectedCourse] = useState<Course | null>(null);
+  const [adminSelectedChapter, setAdminSelectedChapter] = useState<Chapter | null>(null);
+  const [adminSelectedQuiz, setAdminSelectedQuiz] = useState<Quiz | null>(null);
+  const [adminView, setAdminView] = useState<'hierarchy' | 'questions'>('hierarchy');
+  
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<string, number[]>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
   const [quizDuration, setQuizDuration] = useState(0);
+  const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
-  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   // Admin form state
-  const [newQuestion, setNewQuestion] = useState({
-    subject: '',
-    chapter: '',
-    topic: '',
-    question: '',
-    code: '',
-    option1: '',
-    option2: '',
-    option3: '',
-    option4: '',
-    correct_option: 1,
-    image: ''
+  const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
+    quizId: '',
+    questionText: '',
+    image: '',
+    codeSnippet: '',
+    programmingLanguage: 'javascript',
+    options: [
+      { text: '', isCorrect: true },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false }
+    ],
+    numberOfCorrectAnswers: 1,
+    order: 1
   });
 
   useEffect(() => {
-    fetchHierarchy();
-    fetchAvailableSubjects();
+    const init = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setCurrentUser(user);
+          setIsAdmin(user.role === 'admin');
+        }
+      }
+      await fetchInitialData();
+      setIsLoading(false);
+    };
+    init();
   }, []);
-
-  useEffect(() => {
-    if (view === 'home') {
-      fetchQuestions();
-    }
-  }, [view]);
-
-  useEffect(() => {
-    if (adminSelectedSubject && adminSelectedChapter && adminSelectedTopic) {
-      setNewQuestion(prev => ({
-        ...prev,
-        subject: adminSelectedSubject,
-        chapter: adminSelectedChapter,
-        topic: adminSelectedTopic
-      }));
-    }
-  }, [adminSelectedSubject, adminSelectedChapter, adminSelectedTopic]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -146,92 +112,68 @@ export default function App() {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (view === 'quiz' && timeLeft === 0 && !isSubmitted) {
-      setIsSubmitted(true);
-      setView('results');
+      submitQuiz();
     }
     return () => clearInterval(timer);
   }, [view, timeLeft, isSubmitted]);
 
-  const fetchHierarchy = async () => {
+  const fetchInitialData = async () => {
     try {
-      const res = await fetch('/api/hierarchy');
-      const data = await res.json();
-      setSubjects(data);
+      const coursesData = await api.getCourses();
+      setCourses(coursesData);
     } catch (error) {
-      console.error('Failed to fetch hierarchy:', error);
+      console.error('Failed to fetch initial data:', error);
     }
   };
 
-  const fetchAvailableSubjects = async () => {
+  const fetchChaptersForCourse = async (courseId: string) => {
     try {
-      const res = await fetch('/api/subjects');
-      const data = await res.json();
-      setAvailableSubjects(data);
-    } catch (error) {
-      console.error('Failed to fetch subjects:', error);
-    }
-  };
-
-  const fetchChapters = async (subject: string) => {
-    try {
-      const res = await fetch(`/api/chapters?subject=${encodeURIComponent(subject)}`);
-      const data = await res.json();
-      setAvailableChapters(data);
-      setSelectedChapter(null);
-      setSelectedTopic(null);
-      setAvailableTopics([]);
+      const chaptersData = await api.getChapters(courseId);
+      setCourseChapters(prev => ({ ...prev, [courseId]: chaptersData }));
+      return chaptersData;
     } catch (error) {
       console.error('Failed to fetch chapters:', error);
+      return [];
     }
   };
 
-  const fetchTopics = async (subject: string, chapter: string) => {
+  const fetchQuizzesForChapter = async (chapterId: string) => {
     try {
-      const res = await fetch(`/api/topics?subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`);
-      const data = await res.json();
-      setAvailableTopics(data);
-      setSelectedTopic(null);
+      const quizzesData = await api.getQuizzes(chapterId);
+      setChapterQuizzes(prev => ({ ...prev, [chapterId]: quizzesData }));
+      return quizzesData;
     } catch (error) {
-      console.error('Failed to fetch topics:', error);
+      console.error('Failed to fetch quizzes:', error);
+      return [];
     }
   };
 
-  const fetchQuestions = async (subject?: string, chapter?: string, topic?: string) => {
-    try {
-      let url = '/api/questions';
-      const params = new URLSearchParams();
-      if (subject) params.append('subject', subject);
-      if (chapter) params.append('chapter', chapter);
-      if (topic) params.append('topic', topic);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const res = await fetch(url);
-      const data = await res.json();
-      setQuestions(data);
-    } catch (error) {
-      console.error('Failed to fetch questions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const startQuiz = async (subject: string, chapter: string, topic: string) => {
-    setSelectedSubject(subject);
-    setSelectedChapter(chapter);
-    setSelectedTopic(topic);
+  const toggleCourseExpansion = async (courseId: string) => {
+    const isExpanding = !expandedCourses[courseId];
+    setExpandedCourses(prev => ({ ...prev, [courseId]: isExpanding }));
     
-    // Fetch questions first to know the count for timing
+    if (isExpanding && !courseChapters[courseId]) {
+      await fetchChaptersForCourse(courseId);
+    }
+  };
+
+  const toggleChapterExpansion = async (chapterId: string) => {
+    const isExpanding = !expandedChapters[chapterId];
+    setExpandedChapters(prev => ({ ...prev, [chapterId]: isExpanding }));
+    
+    if (isExpanding && !chapterQuizzes[chapterId]) {
+      await fetchQuizzesForChapter(chapterId);
+    }
+  };
+
+  const startQuiz = async (quizId: string) => {
     try {
-      let url = `/api/questions?subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&topic=${encodeURIComponent(topic)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setQuestions(data);
+      setIsLoading(true);
+      const { quiz, questions: quizQuestions } = await api.getQuizWithQuestions(quizId);
+      setQuestions(quizQuestions);
+      setSelectedQuiz(quiz);
       
-      // Set time: 60 seconds per question
-      const duration = data.length * 60;
+      const duration = quiz.timeLimit * 60;
       setTimeLeft(duration);
       setQuizDuration(duration);
       
@@ -241,187 +183,182 @@ export default function App() {
       setView('quiz');
     } catch (error) {
       console.error('Failed to start quiz:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitQuiz = async () => {
+    if (!selectedQuiz) return;
+    try {
+      setIsLoading(true);
+      const formattedAnswers = Object.entries(answers).map(([questionId, selectedOptions]) => ({
+        questionId,
+        selectedOptions
+      }));
+      
+      const result = await api.submitQuiz(selectedQuiz._id, formattedAnswers, quizDuration - timeLeft);
+      setQuizResult(result);
+      setIsSubmitted(true);
+      setView('results');
+    } catch (error) {
+      console.error('Failed to submit quiz:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!adminSelectedQuiz) return;
+    
     if (editingQuestionId) {
       handleUpdateQuestion(e);
       return;
     }
+    
     try {
-      const res = await fetch('/api/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newQuestion)
+      setIsLoading(true);
+      await api.createQuestion({
+        ...newQuestion,
+        quizId: adminSelectedQuiz._id
       });
-      if (res.ok) {
-        setNewQuestion({
-          subject: adminSelectedSubject || '',
-          chapter: adminSelectedChapter || '',
-          topic: adminSelectedTopic || '',
-          question: '',
-          code: '',
-          option1: '',
-          option2: '',
-          option3: '',
-          option4: '',
-          correct_option: 1,
-          image: ''
-        });
-        fetchHierarchy();
-        fetchAvailableSubjects();
-        if (adminSelectedTopic) {
-          fetchQuestions(adminSelectedSubject!, adminSelectedChapter!, adminSelectedTopic);
-          fetchAdminTopics(adminSelectedSubject!, adminSelectedChapter!);
-        } else {
-          fetchQuestions();
-        }
-      }
+      
+      setNewQuestion({
+        questionText: '',
+        codeSnippet: '',
+        programmingLanguage: 'javascript',
+        options: [
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false }
+        ],
+        numberOfCorrectAnswers: 1,
+        order: (questions.length + 1)
+      });
+      
+      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      setQuestions(questionsData);
     } catch (error) {
       console.error('Failed to add question:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleUpdateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingQuestionId) return;
+    if (!editingQuestionId || !adminSelectedQuiz) return;
+    
     try {
-      const res = await fetch(`/api/questions/${editingQuestionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newQuestion)
+      setIsLoading(true);
+      await api.updateQuestion(editingQuestionId, newQuestion);
+      setEditingQuestionId(null);
+      
+      setNewQuestion({
+        questionText: '',
+        codeSnippet: '',
+        programmingLanguage: 'javascript',
+        options: [
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false }
+        ],
+        numberOfCorrectAnswers: 1,
+        order: 1
       });
-      if (res.ok) {
-        setEditingQuestionId(null);
-        setNewQuestion({
-          subject: adminSelectedSubject || '',
-          chapter: adminSelectedChapter || '',
-          topic: adminSelectedTopic || '',
-          question: '',
-          code: '',
-          option1: '',
-          option2: '',
-          option3: '',
-          option4: '',
-          correct_option: 1,
-          image: ''
-        });
-        fetchHierarchy();
-        fetchAvailableSubjects();
-        if (adminSelectedTopic) {
-          fetchQuestions(adminSelectedSubject!, adminSelectedChapter!, adminSelectedTopic);
-          fetchAdminTopics(adminSelectedSubject!, adminSelectedChapter!);
-        } else {
-          fetchQuestions();
-        }
-      }
+      
+      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      setQuestions(questionsData);
     } catch (error) {
       console.error('Failed to update question:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEditClick = (q: Question) => {
-    setEditingQuestionId(q.id);
+    setEditingQuestionId(q._id);
     setNewQuestion({
-      subject: q.subject,
-      chapter: q.chapter,
-      topic: q.topic,
-      question: q.question,
-      code: q.code || '',
-      option1: q.option1,
-      option2: q.option2,
-      option3: q.option3,
-      option4: q.option4,
-      correct_option: q.correct_option,
+      questionText: q.questionText,
+      codeSnippet: q.codeSnippet || '',
+      programmingLanguage: q.programmingLanguage || 'javascript',
+      options: q.options.map(o => ({ ...o })),
+      numberOfCorrectAnswers: q.numberOfCorrectAnswers,
+      order: q.order,
       image: q.image || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const renameSubject = async (oldName: string, newName: string) => {
-    if (!newName || oldName === newName) return;
+  const renameCourse = async (courseId: string, newName: string, description: string) => {
+    if (!newName) return;
     try {
-      await fetch('/api/subjects/rename', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldName, newName })
-      });
-      if (adminSelectedSubject === oldName) setAdminSelectedSubject(newName);
-      fetchHierarchy();
-      fetchAvailableSubjects();
-      if (adminSelectedTopic) {
-        fetchQuestions(adminSelectedSubject === oldName ? newName : adminSelectedSubject!, adminSelectedChapter!, adminSelectedTopic);
-      } else {
-        fetchQuestions();
-      }
+      await api.updateCourse(courseId, newName, description);
+      await fetchInitialData();
     } catch (error) {
-      console.error('Failed to rename subject:', error);
+      console.error('Failed to rename course:', error);
     }
   };
 
-  const renameChapter = async (subject: string, oldName: string, newName: string) => {
-    if (!newName || oldName === newName) return;
+  const renameChapter = async (chapterId: string, newName: string, description: string) => {
+    if (!newName || !adminSelectedCourse) return;
     try {
-      await fetch('/api/chapters/rename', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, oldName, newName })
-      });
-      if (adminSelectedChapter === oldName) setAdminSelectedChapter(newName);
-      fetchHierarchy();
-      fetchAvailableSubjects();
-      if (adminSelectedTopic) {
-        fetchQuestions(adminSelectedSubject!, adminSelectedChapter === oldName ? newName : adminSelectedChapter!, adminSelectedTopic);
-      } else {
-        fetchQuestions();
-      }
+      await api.updateChapter(chapterId, newName, description);
+      await fetchChaptersForCourse(adminSelectedCourse._id);
     } catch (error) {
       console.error('Failed to rename chapter:', error);
     }
   };
 
-  const renameTopic = async (subject: string, chapter: string, oldName: string, newName: string) => {
-    if (!newName || oldName === newName) return;
+  const renameQuiz = async (quizId: string, newName: string, description: string, passingScore: number, timeLimit: number) => {
+    if (!newName || !adminSelectedChapter) return;
     try {
-      await fetch('/api/topics/rename', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, chapter, oldName, newName })
-      });
-      if (adminSelectedTopic === oldName) setAdminSelectedTopic(newName);
-      fetchHierarchy();
-      fetchAvailableSubjects();
-      if (adminSelectedTopic === oldName || adminSelectedTopic) {
-        fetchQuestions(adminSelectedSubject!, adminSelectedChapter!, adminSelectedTopic === oldName ? newName : adminSelectedTopic!);
-      } else {
-        fetchQuestions();
-      }
+      await api.updateQuiz(quizId, newName, description, passingScore, timeLimit);
+      await fetchQuizzesForChapter(adminSelectedChapter._id);
     } catch (error) {
-      console.error('Failed to rename topic:', error);
+      console.error('Failed to rename quiz:', error);
     }
   };
 
-  const handleDeleteQuestion = async (id: number) => {
+  const handleDeleteQuestion = async (id: string) => {
+    if (!adminSelectedQuiz) return;
     try {
-      await fetch('/api/questions/' + id, { method: 'DELETE' });
-      if (adminSelectedTopic) {
-        fetchQuestions(adminSelectedSubject!, adminSelectedChapter!, adminSelectedTopic);
-        fetchAdminTopics(adminSelectedSubject!, adminSelectedChapter!);
-      } else {
-        fetchQuestions();
-      }
+      setIsLoading(true);
+      await api.deleteQuestion(id);
+      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      setQuestions(questionsData);
     } catch (error) {
       console.error('Failed to delete question:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAnswer = (optionIndex: number) => {
     if (isSubmitted) return;
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionId = currentQuestion._id;
+    const currentAnswers = answers[questionId] || [];
+    
+    let newAnswers: number[];
+    if (currentQuestion.numberOfCorrectAnswers > 1) {
+      // Multiple choice
+      if (currentAnswers.includes(optionIndex)) {
+        newAnswers = currentAnswers.filter(idx => idx !== optionIndex);
+      } else {
+        newAnswers = [...currentAnswers, optionIndex];
+      }
+    } else {
+      // Single choice
+      newAnswers = [optionIndex];
+    }
+    
     setAnswers(prev => ({
       ...prev,
-      [questions[currentQuestionIndex].id]: optionIndex
+      [questionId]: newAnswers
     }));
   };
 
@@ -429,26 +366,33 @@ export default function App() {
     setAnswers({});
     setCurrentQuestionIndex(0);
     setIsSubmitted(false);
-    setSelectedSubject(null);
+    setSelectedCourse(null);
     setSelectedChapter(null);
-    setSelectedTopic(null);
+    setSelectedQuiz(null);
     setView('home');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loginEmail === 'admin@gmail.com' && loginPassword === 'admin@123') {
-      setIsAdmin(true);
-      setView('admin');
+    try {
+      const { user, token } = await api.login(loginEmail, loginPassword);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setCurrentUser(user);
+      setIsAdmin(user.role === 'admin');
+      setView(user.role === 'admin' ? 'admin' : 'home');
       setLoginError('');
       setLoginEmail('');
       setLoginPassword('');
-    } else {
-      setLoginError('Invalid credentials. Please try again.');
+    } catch (error: any) {
+      setLoginError(error.response?.data?.message || 'Invalid credentials. Please try again.');
     }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
     setIsAdmin(false);
     setView('home');
   };
@@ -477,18 +421,13 @@ export default function App() {
   };
 
   const calculateScore = () => {
-    let score = 0;
-    questions.forEach(q => {
-      if (answers[q.id] === q.correct_option) {
-        score++;
-      }
-    });
-    return score;
+    if (!quizResult) return 0;
+    return quizResult.score;
   };
 
   const getAccuracy = () => {
-    if (questions.length === 0) return 0;
-    return Math.round((calculateScore() / questions.length) * 100);
+    if (!quizResult) return 0;
+    return quizResult.percentage;
   };
 
   const getResultGif = (accuracy: number) => {
@@ -603,10 +542,10 @@ export default function App() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12">
                 {[
-                  { label: 'Active Quizzes', value: questions.length },
-                  { label: 'Subjects', value: subjects.length },
-                  { label: 'Chapters', value: subjects.reduce((acc, s) => acc + s.chapters.length, 0) },
-                  { label: 'Topics', value: subjects.reduce((acc, s) => acc + s.chapters.reduce((a, c) => a + c.topics.length, 0), 0) }
+                  { label: 'Courses', value: courses.length },
+                  { label: 'Chapters', value: Object.values(courseChapters).reduce((acc, c) => acc + c.length, 0) },
+                  { label: 'Quizzes', value: Object.values(chapterQuizzes).reduce((acc, q) => acc + q.length, 0) },
+                  { label: 'Questions', value: questions.length }
                 ].map((stat, i) => (
                   <div key={i} className="space-y-1">
                     <p className="text-3xl font-bold text-white">{stat.value}</p>
@@ -627,93 +566,113 @@ export default function App() {
             >
               <div className="text-center space-y-4">
                 <div className="flex items-center justify-center gap-4 mb-4">
-                  {selectedSubject && (
+                  {selectedCourse && (
                     <button 
                       onClick={() => {
-                        setSelectedSubject(null);
+                        setSelectedCourse(null);
                         setSelectedChapter(null);
-                        setSelectedTopic(null);
+                        setSelectedQuiz(null);
                       }}
                       className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-all"
                     >
-                      <RotateCcw size={20} />
+                      <ChevronLeft size={24} />
                     </button>
                   )}
                   <h2 className="text-4xl font-bold text-white">
-                    {!selectedSubject ? 'Select Subject' : !selectedChapter ? 'Select Chapter' : 'Select Topic'}
+                    {!selectedCourse ? 'Select Subject' : selectedCourse.courseName}
                   </h2>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className={`px-3 py-1 rounded-full ${!selectedSubject ? 'bg-orange-500 text-white' : 'bg-white/5 text-gray-500'}`}>1. Subject</span>
-                  <ChevronRight size={14} className="text-gray-700" />
-                  <span className={`px-3 py-1 rounded-full ${selectedSubject && !selectedChapter ? 'bg-orange-500 text-white' : 'bg-white/5 text-gray-500'}`}>2. Chapter</span>
-                  <ChevronRight size={14} className="text-gray-700" />
-                  <span className={`px-3 py-1 rounded-full ${selectedChapter ? 'bg-orange-500 text-white' : 'bg-white/5 text-gray-500'}`}>3. Topic</span>
-                </div>
+                <p className="text-gray-400">
+                  {!selectedCourse 
+                    ? 'Choose a subject to start your learning journey' 
+                    : 'Select a chapter and quiz to test your knowledge'}
+                </p>
               </div>
 
               <div className="max-w-5xl mx-auto">
-                {!selectedSubject ? (
+                {!selectedCourse ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableSubjects.map((subjectName) => (
+                    {courses.map((course) => (
                       <button
-                        key={subjectName}
+                        key={course._id}
                         onClick={() => {
-                          setSelectedSubject(subjectName);
-                          fetchChapters(subjectName);
+                          setSelectedCourse(course);
+                          fetchChaptersForCourse(course._id);
                         }}
-                        className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl hover:border-orange-500/30 transition-all group text-left"
+                        className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl hover:border-orange-500/30 transition-all group text-left relative overflow-hidden"
                       >
-                        <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -mr-16 -mt-16 rounded-full"></div>
+                        <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
                           <Code size={24} />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">{subjectName}</h3>
-                        <p className="text-gray-500 text-sm">Explore chapters and topics in {subjectName}</p>
+                        <h3 className="text-2xl font-bold text-white mb-2 relative z-10">{course.courseName}</h3>
+                        <p className="text-gray-500 text-sm relative z-10">{course.description}</p>
                       </button>
                     ))}
-                  </div>
-                ) : !selectedChapter ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableChapters.map((chapterName) => (
-                      <button
-                        key={chapterName}
-                        onClick={() => {
-                          setSelectedChapter(chapterName);
-                          fetchTopics(selectedSubject, chapterName);
-                        }}
-                        className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl hover:border-orange-500/30 transition-all group text-left"
-                      >
-                        <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Settings size={24} />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2">{chapterName}</h3>
-                        <p className="text-gray-500 text-sm">View available topics</p>
-                      </button>
-                    ))}
-                    {availableChapters.length === 0 && (
-                      <div className="col-span-full py-20 text-center text-gray-500">
-                        No chapters found for this subject.
-                      </div>
-                    )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableTopics.map((topic) => (
-                      <button
-                        key={topic.name}
-                        onClick={() => startQuiz(selectedSubject, selectedChapter, topic.name)}
-                        className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl hover:border-orange-500/30 transition-all group text-left"
-                      >
-                        <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Trophy size={24} />
-                        </div>
-                        <h3 className="text-lg font-bold text-white mb-2">{topic.name}</h3>
-                        <p className="text-gray-500 text-sm">{topic.questionCount} Questions available</p>
-                      </button>
+                  <div className="space-y-4">
+                    {courseChapters[selectedCourse._id]?.map((chapter) => (
+                      <div key={chapter._id} className="bg-[#1a1a1a] border border-white/5 rounded-2xl overflow-hidden">
+                        <button
+                          onClick={() => toggleChapterExpansion(chapter._id)}
+                          className="w-full px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
+                              <Layers size={20} />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="text-xl font-bold text-white">{chapter.chapterName}</h3>
+                              <p className="text-gray-500 text-sm">{chapter.description}</p>
+                            </div>
+                          </div>
+                          <div className={`transition-transform duration-300 ${expandedChapters[chapter._id] ? 'rotate-180' : ''}`}>
+                            <ChevronDown size={20} className="text-gray-500" />
+                          </div>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {expandedChapters[chapter._id] && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden border-t border-white/5"
+                            >
+                              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {chapterQuizzes[chapter._id]?.map((quiz) => (
+                                  <button
+                                    key={quiz._id}
+                                    onClick={() => startQuiz(quiz._id)}
+                                    className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-xl hover:border-orange-500/30 hover:bg-white/[0.08] transition-all group"
+                                  >
+                                    <div className="flex items-center gap-4">
+                                      <div className="w-10 h-10 bg-orange-500/10 text-orange-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Trophy size={18} />
+                                      </div>
+                                      <div className="text-left">
+                                        <h4 className="font-bold text-white">{quiz.quizTitle}</h4>
+                                        <p className="text-xs text-gray-500">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
+                                      </div>
+                                    </div>
+                                    <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
+                                  </button>
+                                ))}
+                                {(!chapterQuizzes[chapter._id] || chapterQuizzes[chapter._id].length === 0) && (
+                                  <div className="col-span-full py-8 text-center text-gray-600 italic">
+                                    No quizzes available for this chapter yet.
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     ))}
-                    {availableTopics.length === 0 && (
-                      <div className="col-span-full py-20 text-center text-gray-500">
-                        No topics found for this chapter.
+                    {(!courseChapters[selectedCourse._id] || courseChapters[selectedCourse._id].length === 0) && (
+                      <div className="py-20 text-center text-gray-500">
+                        No chapters found for this subject.
                       </div>
                     )}
                   </div>
@@ -769,15 +728,15 @@ export default function App() {
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                       <span className="px-3 py-1 bg-orange-500/10 text-orange-500 text-xs font-bold rounded-full uppercase tracking-widest">
-                        {selectedSubject}
+                        {selectedCourse?.courseName}
                       </span>
                       <span className="text-gray-600">/</span>
                       <span className="text-gray-400 text-sm font-medium">
-                        {selectedChapter}
+                        {selectedChapter?.chapterName}
                       </span>
                       <span className="text-gray-600">/</span>
                       <span className="text-gray-400 text-sm font-medium">
-                        {selectedTopic}
+                        {selectedQuiz?.quizTitle}
                       </span>
                     </div>
                     <span className="px-3 py-1 bg-white/5 text-gray-400 text-xs font-bold rounded-full uppercase tracking-widest">
@@ -786,7 +745,7 @@ export default function App() {
                   </div>
 
                   <h3 className="text-2xl font-medium text-white mb-8 leading-relaxed">
-                    {questions[currentQuestionIndex].question}
+                    {questions[currentQuestionIndex].questionText}
                   </h3>
 
                   {questions[currentQuestionIndex].image && (
@@ -800,30 +759,29 @@ export default function App() {
                     </div>
                   )}
 
-                  {questions[currentQuestionIndex].code && (
+                  {questions[currentQuestionIndex].codeSnippet && (
                     <div className="mb-8 rounded-2xl overflow-hidden border border-white/10 bg-[#0d0d0d]">
                       <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
                         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
                           <Code size={14} />
-                          {selectedSubject} Snippet
+                          {selectedCourse?.courseName} Snippet
                         </div>
                       </div>
                       <div className="p-2">
                         <SyntaxHighlighter 
-                          language={getLanguage(selectedSubject)} 
+                          language={getLanguage(selectedCourse?.courseName || null)} 
                           style={atomDark}
                           customStyle={{ background: 'transparent', padding: '1rem', margin: 0, fontSize: '0.875rem' }}
                         >
-                          {questions[currentQuestionIndex].code}
+                          {questions[currentQuestionIndex].codeSnippet}
                         </SyntaxHighlighter>
                       </div>
                     </div>
                   )}
 
                   <div className="space-y-4">
-                    {[1, 2, 3, 4].map((idx) => {
-                      const optionKey = `option${idx}` as keyof Question;
-                      const isSelected = answers[questions[currentQuestionIndex].id] === idx;
+                    {questions[currentQuestionIndex].options.map((option, idx) => {
+                      const isSelected = answers[questions[currentQuestionIndex]._id]?.includes(idx);
                       
                       return (
                         <button
@@ -841,7 +799,7 @@ export default function App() {
                             }`}>
                               {String.fromCharCode(64 + idx)}
                             </div>
-                            <span className="text-lg">{questions[currentQuestionIndex][optionKey] as string}</span>
+                            <span className="text-lg">{option.text}</span>
                           </div>
                           {isSelected && <CheckCircle2 className="text-orange-500" size={20} />}
                         </button>
@@ -888,12 +846,12 @@ export default function App() {
                   <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-6">Question palette</h4>
                   <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-4 gap-3">
                     {questions.map((q, idx) => {
-                      const isAnswered = answers[q.id] !== undefined;
+                      const isAnswered = answers[q._id] && answers[q._id].length > 0;
                       const isCurrent = currentQuestionIndex === idx;
                       
                       return (
                         <button
-                          key={q.id}
+                          key={q._id}
                           onClick={() => setCurrentQuestionIndex(idx)}
                           className={`aspect-square rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
                             isCurrent 
@@ -973,11 +931,11 @@ export default function App() {
                       Retake Quiz
                     </button>
                     <button 
-                      onClick={() => setView('admin')}
+                      onClick={() => setView('home')}
                       className="w-full sm:w-auto px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
                     >
                       <LayoutDashboard size={20} />
-                      Manage Questions
+                      Back to Home
                     </button>
                   </div>
                 </div>
@@ -1056,166 +1014,441 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-12"
             >
-              <div className="text-center space-y-4">
-                <h2 className="text-5xl font-black text-white tracking-tight">Hierarchy Management</h2>
-                <p className="text-gray-400 max-w-2xl mx-auto text-lg">Organize your curriculum by managing subjects, chapters, and topics.</p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-4xl font-black text-white tracking-tight">
+                    {adminView === 'hierarchy' ? 'Manage Hierarchy' : 'Manage Questions'}
+                  </h2>
+                  <p className="text-gray-400">
+                    {adminView === 'hierarchy' 
+                      ? 'Manage your courses, chapters, and quizzes.' 
+                      : `Editing questions for ${adminSelectedQuiz?.quizTitle}`}
+                  </p>
+                </div>
+                {adminView === 'questions' && (
+                  <button 
+                    onClick={() => setAdminView('hierarchy')}
+                    className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                  >
+                    <ChevronLeft size={18} />
+                    Back to Hierarchy
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 gap-12">
-                {subjects.map(subject => (
-                  <div key={subject.name} className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-10 space-y-10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] -mr-32 -mt-32 rounded-full"></div>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                      <div className="flex items-center gap-6 flex-1">
-                        <div className="w-16 h-16 bg-orange-500/10 text-orange-500 rounded-3xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
-                          <Code size={32} />
-                        </div>
-                        <div className="flex-1 max-w-xl">
-                          <label className="text-[10px] font-black text-orange-500/50 uppercase tracking-[0.3em] mb-2 block">Subject Identity</label>
-                          <input 
-                            type="text" 
-                            defaultValue={subject.name}
-                            onBlur={(e) => renameSubject(subject.name, e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-2xl font-bold text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none"
-                            placeholder="Enter Subject Name"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 relative z-10">
-                      {subject.chapters.map(chapter => (
-                        <div key={chapter.name} className="bg-white/[0.03] rounded-[2rem] p-8 border border-white/5 space-y-8 hover:bg-white/[0.05] transition-colors group/chapter">
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="w-8 h-8 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
-                                <Settings size={16} />
-                              </div>
-                              <label className="text-[10px] font-black text-blue-500/50 uppercase tracking-[0.3em] block">Chapter</label>
+              {adminView === 'hierarchy' ? (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {courses.map((course) => (
+                      <div 
+                        key={course._id} 
+                        className={`bg-[#1a1a1a] border rounded-3xl transition-all relative overflow-hidden group ${adminSelectedCourse?._id === course._id ? 'border-orange-500/50 ring-4 ring-orange-500/10' : 'border-white/5 hover:border-white/10'}`}
+                      >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -mr-16 -mt-16 rounded-full"></div>
+                        <div className="p-8 space-y-6 relative z-10">
+                          <div className="flex items-center justify-between">
+                            <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Code size={24} />
                             </div>
-                            <input 
-                              type="text" 
-                              defaultValue={chapter.name}
-                              onBlur={(e) => renameChapter(subject.name, chapter.name, e.target.value)}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-lg font-bold text-white focus:border-blue-500 transition-all outline-none"
-                              placeholder="Enter Chapter Name"
-                            />
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Topics</label>
-                              <span className="text-[10px] font-bold text-gray-600 bg-white/5 px-2 py-1 rounded-md">{chapter.topics.length} Total</span>
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
-                              {chapter.topics.map(topic => (
-                                <div key={topic} className="group/topic relative">
-                                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500/30 group-hover/topic:bg-green-500 transition-colors"></div>
-                                  <input 
-                                    type="text" 
-                                    defaultValue={topic}
-                                    onBlur={(e) => renameTopic(subject.name, chapter.name, topic, e.target.value)}
-                                    className="w-full bg-white/5 border border-white/5 rounded-xl pl-8 pr-4 py-2.5 text-sm text-gray-300 focus:text-white focus:border-green-500 transition-all outline-none"
-                                  />
-                                </div>
-                              ))}
-                              <button
-                                onClick={() => {
-                                  const newTopicName = prompt('Enter new topic name:');
-                                  if (newTopicName) {
-                                    setNewQuestion({
-                                      ...newQuestion,
-                                      subject: subject.name,
-                                      chapter: chapter.name,
-                                      topic: newTopicName,
-                                      question: `Placeholder question for ${newTopicName}`,
-                                      option1: 'Option 1',
-                                      option2: 'Option 2',
-                                      option3: 'Option 3',
-                                      option4: 'Option 4',
-                                      correct_option: 1
-                                    });
-                                    alert('Topic creation initiated.');
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={async () => {
+                                  if (confirm('Are you sure you want to delete this course?')) {
+                                    await api.deleteCourse(course._id);
+                                    fetchInitialData();
                                   }
                                 }}
-                                className="w-full py-3 border border-dashed border-white/10 rounded-xl text-[10px] font-bold text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                                className="p-2 text-gray-600 hover:text-red-500 transition-colors"
                               >
-                                <Plus size={14} />
-                                Add New Topic
+                                <Trash2 size={18} />
                               </button>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                      
-                      <button
-                        onClick={() => {
-                          const newChapterName = prompt('Enter new chapter name:');
-                          if (newChapterName) {
-                            setNewQuestion({
-                              ...newQuestion,
-                              subject: subject.name,
-                              chapter: newChapterName,
-                              topic: 'General',
-                              question: `Placeholder question for ${newChapterName}`,
-                              option1: 'Option 1',
-                              option2: 'Option 2',
-                              option3: 'Option 3',
-                              option4: 'Option 4',
-                              correct_option: 1
-                            });
-                            alert('Chapter creation initiated.');
-                          }
-                        }}
-                        className="bg-white/[0.02] rounded-[2rem] p-8 border-2 border-dashed border-white/5 flex flex-col items-center justify-center gap-6 text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all min-h-[300px] group/add"
-                      >
-                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center group-hover/add:scale-110 transition-transform duration-500">
-                          <Plus size={32} />
-                        </div>
-                        <div className="text-center">
-                          <span className="block text-xl font-bold mb-1">Add New Chapter</span>
-                          <span className="text-xs text-gray-600 uppercase tracking-widest">Expand {subject.name}</span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                          
+                          <div className="space-y-2">
+                            <input 
+                              type="text" 
+                              defaultValue={course.courseName}
+                              onBlur={(e) => renameCourse(course._id, e.target.value, course.description)}
+                              className="w-full bg-transparent border-none text-2xl font-bold text-white focus:outline-none focus:ring-0 p-0"
+                              placeholder="Course Name"
+                            />
+                            <textarea 
+                              defaultValue={course.description}
+                              onBlur={(e) => renameCourse(course._id, course.courseName, e.target.value)}
+                              className="w-full bg-transparent border-none text-sm text-gray-500 focus:outline-none focus:ring-0 p-0 resize-none h-12"
+                              placeholder="Course Description"
+                            />
+                          </div>
 
-              <div className="flex justify-center pt-12">
-                <button
-                  onClick={() => {
-                    const newSubjectName = prompt('Enter new subject name:');
-                    if (newSubjectName) {
-                      setNewQuestion({
-                        ...newQuestion,
-                        subject: newSubjectName,
-                        chapter: 'General',
-                        topic: 'General',
-                        question: `Placeholder question for ${newSubjectName}`,
-                        code: '',
-                        option1: 'Option 1',
-                        option2: 'Option 2',
-                        option3: 'Option 3',
-                        option4: 'Option 4',
-                        correct_option: 1,
-                        image: ''
-                      });
-                      alert('Subject creation initiated.');
-                    }
-                  }}
-                  className="px-16 py-8 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-[2.5rem] shadow-[0_20px_50px_rgba(249,115,22,0.3)] hover:shadow-[0_20px_60px_rgba(249,115,22,0.4)] transition-all flex items-center gap-6 group"
-                >
-                  <div className="w-14 h-14 bg-white/20 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <Plus size={32} />
+                          <button
+                            onClick={() => {
+                              setAdminSelectedCourse(course);
+                              toggleCourseExpansion(course._id);
+                            }}
+                            className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${adminSelectedCourse?._id === course._id ? 'bg-orange-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                          >
+                            {adminSelectedCourse?._id === course._id ? 'Hide Chapters' : 'View Chapters'}
+                            <ChevronDown size={16} className={`transition-transform ${expandedCourses[course._id] ? 'rotate-180' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      onClick={async () => {
+                        const name = prompt('Enter course name:');
+                        if (name) {
+                          await api.createCourse(name, `Description for ${name}`);
+                          fetchInitialData();
+                        }
+                      }}
+                      className="bg-white/[0.02] border-2 border-dashed border-white/5 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all min-h-[250px] group"
+                    >
+                      <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Plus size={24} />
+                      </div>
+                      <span className="font-bold">Add New Course</span>
+                    </button>
                   </div>
-                  <div className="text-left">
-                    <span className="block text-2xl uppercase tracking-tighter">Create New Subject</span>
-                    <span className="text-xs text-white/60 font-bold uppercase tracking-[0.2em]">Add to Curriculum</span>
+
+                  {adminSelectedCourse && expandedCourses[adminSelectedCourse._id] && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-6"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-px flex-1 bg-white/5"></div>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                          <Layers className="text-blue-500" size={20} />
+                          Chapters in {adminSelectedCourse.courseName}
+                        </h3>
+                        <div className="h-px flex-1 bg-white/5"></div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {courseChapters[adminSelectedCourse._id]?.map((chapter) => (
+                          <div key={chapter._id} className="bg-[#1a1a1a] border border-white/5 rounded-3xl overflow-hidden group/chapter hover:border-blue-500/30 transition-all">
+                            <div className="p-8 space-y-6">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center group-hover/chapter:scale-110 transition-transform">
+                                    <Layers size={24} />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <input 
+                                      type="text" 
+                                      defaultValue={chapter.chapterName}
+                                      onBlur={(e) => renameChapter(chapter._id, e.target.value, chapter.description)}
+                                      className="bg-transparent border-none text-xl font-bold text-white focus:outline-none focus:ring-0 p-0"
+                                    />
+                                    <p className="text-xs text-gray-500">Chapter</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this chapter?')) {
+                                      await api.deleteChapter(chapter._id);
+                                      fetchChaptersForCourse(adminSelectedCourse._id);
+                                    }
+                                  }}
+                                  className="p-2 text-gray-600 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                              
+                              <button
+                                onClick={() => {
+                                  setAdminSelectedChapter(chapter);
+                                  toggleChapterExpansion(chapter._id);
+                                }}
+                                className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${adminSelectedChapter?._id === chapter._id ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                              >
+                                {adminSelectedChapter?._id === chapter._id ? 'Hide Quizzes' : 'View Quizzes'}
+                                <ChevronDown size={16} className={`transition-transform ${expandedChapters[chapter._id] ? 'rotate-180' : ''}`} />
+                              </button>
+
+                              <AnimatePresence>
+                                {expandedChapters[chapter._id] && adminSelectedChapter?._id === chapter._id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden space-y-3 pt-4"
+                                  >
+                                    {chapterQuizzes[chapter._id]?.map((quiz) => (
+                                        <div 
+                                          key={quiz._id} 
+                                          onClick={() => {
+                                            setAdminSelectedQuiz(quiz);
+                                            setAdminView('questions');
+                                            api.getQuestions(quiz._id).then(setQuestions);
+                                          }}
+                                          className="flex items-center gap-2 p-3 bg-white/5 border border-white/5 rounded-xl group/quiz cursor-pointer hover:border-orange-500/30 hover:bg-white/[0.08] transition-all"
+                                        >
+                                          <div className="w-8 h-8 bg-orange-500/10 text-orange-500 rounded-lg flex items-center justify-center">
+                                            <Trophy size={14} />
+                                          </div>
+                                          <div className="flex-1">
+                                            <input 
+                                              type="text" 
+                                              defaultValue={quiz.quizTitle}
+                                              onClick={(e) => e.stopPropagation()}
+                                              onBlur={(e) => renameQuiz(quiz._id, e.target.value, quiz.description, quiz.passingScore, quiz.timeLimit)}
+                                              className="w-full bg-transparent border-none text-sm text-gray-300 focus:text-white focus:outline-none focus:ring-0 p-0"
+                                            />
+                                            <p className="text-[10px] text-gray-500">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
+                                          </div>
+                                          <div className="flex items-center gap-1 opacity-0 group-hover/quiz:opacity-100 transition-opacity">
+                                            <button 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Are you sure you want to delete this quiz?')) {
+                                                  api.deleteQuiz(quiz._id).then(() => fetchQuizzesForChapter(chapter._id));
+                                                }
+                                              }}
+                                              className="p-2 bg-white/5 text-gray-500 hover:text-red-500 rounded-lg transition-all"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                      onClick={async () => {
+                                        const title = prompt('Enter quiz title:');
+                                        if (title) {
+                                          await api.createQuiz(chapter._id, title, `Description for ${title}`, 70, 15);
+                                          fetchQuizzesForChapter(chapter._id);
+                                        }
+                                      }}
+                                      className="w-full py-2.5 border border-dashed border-white/10 rounded-xl text-[10px] font-bold text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                                    >
+                                      <Plus size={14} />
+                                      Add New Quiz
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        <button
+                          onClick={async () => {
+                            const name = prompt('Enter chapter name:');
+                            if (name) {
+                              await api.createChapter(adminSelectedCourse._id, name, `Description for ${name}`);
+                              fetchChaptersForCourse(adminSelectedCourse._id);
+                            }
+                          }}
+                          className="bg-white/[0.02] border-2 border-dashed border-white/5 rounded-2xl p-6 flex items-center justify-center gap-3 text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all min-h-[100px] group"
+                        >
+                          <Plus size={20} />
+                          <span className="font-bold">Add New Chapter</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-12">
+                  <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-10 space-y-8">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-bold text-white">
+                        {editingQuestionId ? 'Edit Question' : 'Add New Question'}
+                      </h3>
+                      {adminSelectedQuiz && (
+                        <div className="px-4 py-2 bg-orange-500/10 text-orange-500 rounded-xl text-sm font-bold">
+                          Quiz: {adminSelectedQuiz.quizTitle}
+                        </div>
+                      )}
+                    </div>
+
+                    {!adminSelectedQuiz ? (
+                      <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                        <AlertCircle className="mx-auto text-gray-600 mb-4" size={48} />
+                        <p className="text-gray-400">Please select a quiz from the Hierarchy tab first.</p>
+                        <button 
+                          onClick={() => setAdminView('hierarchy')}
+                          className="mt-6 px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all"
+                        >
+                          Go to Hierarchy
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleAddQuestion} className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Question Text</label>
+                            <textarea
+                              required
+                              value={newQuestion.questionText}
+                              onChange={(e) => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white focus:outline-none focus:border-orange-500 transition-all min-h-[150px]"
+                              placeholder="Enter your question here..."
+                            />
+                          </div>
+                          <div className="space-y-4">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Code Snippet (Optional)</label>
+                            <div className="border border-white/10 rounded-2xl overflow-hidden h-[150px]">
+                              <Editor
+                                height="100%"
+                                defaultLanguage="javascript"
+                                theme="vs-dark"
+                                value={newQuestion.codeSnippet}
+                                onChange={(value) => setNewQuestion({ ...newQuestion, codeSnippet: value })}
+                                options={{
+                                  minimap: { enabled: false },
+                                  fontSize: 14,
+                                  lineNumbers: 'on',
+                                  scrollBeyondLastLine: false,
+                                }}
+                              />
+                            </div>
+                            <div className="flex gap-4">
+                              <select
+                                value={newQuestion.programmingLanguage}
+                                onChange={(e) => setNewQuestion({ ...newQuestion, programmingLanguage: e.target.value })}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              >
+                                <option value="javascript">JavaScript</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="java">Java</option>
+                                <option value="python">Python</option>
+                                <option value="sql">SQL</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {newQuestion.options?.map((option, idx) => (
+                            <div key={idx} className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Option {idx + 1}</label>
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                  <input
+                                    type="checkbox"
+                                    checked={option.isCorrect}
+                                    onChange={(e) => {
+                                      const updatedOptions = [...(newQuestion.options || [])];
+                                      updatedOptions[idx].isCorrect = e.target.checked;
+                                      setNewQuestion({ 
+                                        ...newQuestion, 
+                                        options: updatedOptions,
+                                        numberOfCorrectAnswers: updatedOptions.filter(o => o.isCorrect).length
+                                      });
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <div className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${option.isCorrect ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 group-hover:border-white/40'}`}>
+                                    {option.isCorrect && <CheckCircle2 size={14} className="text-white" />}
+                                  </div>
+                                  <span className={`text-[10px] font-bold uppercase tracking-widest ${option.isCorrect ? 'text-emerald-500' : 'text-gray-500'}`}>
+                                    Correct Answer
+                                  </span>
+                                </label>
+                              </div>
+                              <input
+                                type="text"
+                                required
+                                value={option.text}
+                                onChange={(e) => {
+                                  const updatedOptions = [...(newQuestion.options || [])];
+                                  updatedOptions[idx].text = e.target.value;
+                                  setNewQuestion({ ...newQuestion, options: updatedOptions });
+                                }}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-orange-500 transition-all"
+                                placeholder={`Enter option ${idx + 1}...`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-4 pt-4">
+                          <button
+                            type="submit"
+                            className="px-10 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2"
+                          >
+                            {editingQuestionId ? <Save size={20} /> : <PlusCircle size={20} />}
+                            {editingQuestionId ? 'Update Question' : 'Add Question'}
+                          </button>
+                          {editingQuestionId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingQuestionId(null);
+                                setNewQuestion({
+                                  questionText: '',
+                                  codeSnippet: '',
+                                  programmingLanguage: 'javascript',
+                                  options: [
+                                    { text: '', isCorrect: true },
+                                    { text: '', isCorrect: false },
+                                    { text: '', isCorrect: false },
+                                    { text: '', isCorrect: false }
+                                  ],
+                                  numberOfCorrectAnswers: 1,
+                                  order: 1
+                                });
+                              }}
+                              className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
+                            >
+                              Cancel Edit
+                            </button>
+                          )}
+                        </div>
+                      </form>
+                    )}
                   </div>
-                </button>
-              </div>
+
+                  {adminSelectedQuiz && questions.length > 0 && (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-2xl font-bold text-white">Existing Questions ({questions.length})</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {questions.map((q, idx) => (
+                          <div key={q._id} className="bg-[#1a1a1a] border border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-white/10 transition-all">
+                            <div className="flex items-center gap-6">
+                              <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-500 font-bold">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className="text-white font-medium line-clamp-1 max-w-xl">{q.questionText}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{q.options.length} Options</span>
+                                  <span className="w-1 h-1 rounded-full bg-gray-700"></span>
+                                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+                                    {q.numberOfCorrectAnswers} Correct
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => handleEditClick(q)}
+                                className="p-3 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                              >
+                                <Edit size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteQuestion(q._id)}
+                                className="p-3 bg-white/5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
