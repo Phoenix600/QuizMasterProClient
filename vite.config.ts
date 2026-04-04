@@ -19,13 +19,6 @@ export default defineConfig(({ mode }) => {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      proxy: {
-        // Forward all /api requests to the Node.js backend during local development
-        '/api': {
-          target: 'https://quizmasterproserver-1.onrender.com/',
-          changeOrigin: true,
-        },
-      },
     },
   };
 });
