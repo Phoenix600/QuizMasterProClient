@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { User as UserIcon, UserPlus, XCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface LoginViewProps {
   isRegistering: boolean;
@@ -15,6 +16,7 @@ interface LoginViewProps {
   setRegisterName: (val: string) => void;
   isLoading: boolean;
   handleLogin: (e: React.FormEvent) => void;
+  handleGoogleLogin: (credentialResponse: any) => void;
   setView: (view: 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login') => void;
 }
 
@@ -31,6 +33,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   setRegisterName,
   isLoading,
   handleLogin,
+  handleGoogleLogin,
   setView
 }) => {
   return (
@@ -101,8 +104,24 @@ export const LoginView: React.FC<LoginViewProps> = ({
           >
             {isLoading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Login')}
           </button>
+
+          <div className="relative flex items-center py-4">
+            <div className="flex-grow border-t border-white/10"></div>
+            <span className="flex-shrink mx-4 text-gray-500 text-xs font-bold uppercase">OR</span>
+            <div className="flex-grow border-t border-white/10"></div>
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => setLoginError('Google Login Failed')}
+              theme="filled_black"
+              shape="pill"
+              width="360"
+            />
+          </div>
           
-          <div className="text-center">
+          <div className="text-center mt-6">
             <button
               type="button"
               onClick={() => {

@@ -1,3 +1,5 @@
+export type QuizMode = 'training' | 'test';
+
 export interface User {
   _id: string;
   name: string;
@@ -44,6 +46,7 @@ export interface Question {
   image?: string;
   codeSnippet?: string;
   programmingLanguage?: string;
+  explanation?: string;
   options: Option[];
   numberOfCorrectAnswers: number;
   order: number;
@@ -70,6 +73,7 @@ export interface LeaderboardEntry {
 }
 
 export interface GlobalLeaderboardEntry {
+  resultId: string;
   userName: string;
   userEmail: string;
   quizTitle: string;
@@ -79,5 +83,6 @@ export interface GlobalLeaderboardEntry {
   percentage: number;
   isPassed: boolean;
   timeTaken: number;
+  mode: QuizMode;
   createdAt: string;
 }

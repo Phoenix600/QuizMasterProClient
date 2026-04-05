@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Code, Layers, ChevronDown, Trophy, PlayCircle } from 'lucide-react';
-import { Course, Chapter, Quiz } from '../../types';
+import { ChevronLeft, Code, Layers, ChevronDown, Trophy, PlayCircle, BookOpen, FlaskConical, X } from 'lucide-react';
+import { Course, Chapter, Quiz, QuizMode } from '../../types';
 
 interface SelectionViewProps {
   courses: Course[];
@@ -15,7 +15,7 @@ interface SelectionViewProps {
   setSelectedQuiz: (quiz: Quiz | null) => void;
   expandedChapters: Record<string, boolean>;
   toggleChapterExpansion: (chapterId: string) => void;
-  startQuiz: (quizId: string) => void;
+  startQuiz: (quizId: string, course?: Course | null, chapter?: Chapter | null, mode?: QuizMode) => void;
   fetchChaptersForCourse: (courseId: string) => void;
 }
 
@@ -34,7 +34,16 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
   startQuiz,
   fetchChaptersForCourse
 }) => {
+  const [pendingQuiz, setPendingQuiz] = useState<{ quiz: Quiz; chapter: Chapter } | null>(null);
+
+  const handleModeSelect = (mode: QuizMode) => {
+    if (!pendingQuiz) return;
+    startQuiz(pendingQuiz.quiz._id, selectedCourse, pendingQuiz.chapter, mode);
+    setPendingQuiz(null);
+  };
+
   return (
+    <>
     <motion.div
       key="selection"
       initial={{ opacity: 0, y: 20 }}
@@ -122,7 +131,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                         {chapterQuizzes[chapter._id]?.map((quiz) => (
                           <button
                             key={quiz._id}
-                            onClick={() => startQuiz(quiz._id)}
+                            onClick={() => setPendingQuiz({ quiz, chapter })}
                             className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-xl hover:border-orange-500/30 hover:bg-white/[0.08] transition-all group"
                           >
                             <div className="flex items-center gap-4">
@@ -157,5 +166,67 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
         )}
       </div>
     </motion.div>
+
+      {/* Mode picker modal */}
+      <AnimatePresence>
+        {pendingQuiz && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="w-full max-w-md bg-[#1a1a1a] border border-white/10 rounded-3xl p-8 space-y-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-orange-500 font-bold uppercase tracking-widest mb-1">Choose Mode</p>
+                  <h3 className="text-xl font-bold text-white">{pendingQuiz.quiz.title}</h3>
+                </div>
+                <button onClick={() => setPendingQuiz(null)} className="p-2 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Training Mode */}
+                <button
+                  id="mode-training-btn"
+                  onClick={() => handleModeSelect('training')}
+                  className="flex flex-col items-center gap-3 p-6 rounded-2xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/60 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <BookOpen className="text-blue-400" size={22} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-bold text-sm">Training</p>
+                    <p className="text-gray-500 text-xs mt-1">See answers & explanations after each question</p>
+                  </div>
+                </button>
+
+                {/* Test Mode */}
+                <button
+                  id="mode-test-btn"
+                  onClick={() => handleModeSelect('test')}
+                  className="flex flex-col items-center gap-3 p-6 rounded-2xl border border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10 hover:border-orange-500/60 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FlaskConical className="text-orange-400" size={22} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-bold text-sm">Test</p>
+                    <p className="text-gray-500 text-xs mt-1">Get scored at the end — like a real exam</p>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };

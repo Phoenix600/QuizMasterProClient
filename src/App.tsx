@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { motion, AnimatePresence } from 'motion/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -38,9 +39,11 @@ import { QuizView } from './components/views/QuizView';
 import { ResultsView } from './components/views/ResultsView';
 import { LoginView } from './components/views/LoginView';
 import { AdminView } from './components/views/AdminView';
-import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry } from './types';
+import { DashboardView } from './components/views/DashboardView';
+import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry, QuizMode } from './types';
 
-type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login';
+type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard';
+type AdminTab = 'hierarchy' | 'questions' | 'leaderboard' | 'logs';
 type ToastType = 'success' | 'error' | 'loading';
 
 interface ToastMessage {
@@ -128,12 +131,13 @@ function AppContent() {
   const [adminSelectedCourse, setAdminSelectedCourse] = useState<Course | null>(null);
   const [adminSelectedChapter, setAdminSelectedChapter] = useState<Chapter | null>(null);
   const [adminSelectedQuiz, setAdminSelectedQuiz] = useState<Quiz | null>(null);
-  const [adminView, setAdminView] = useState<'hierarchy' | 'questions' | 'leaderboard'>('hierarchy');
+  const [adminView, setAdminView] = useState<AdminTab>('hierarchy');
   
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [quizMode, setQuizMode] = useState<QuizMode>('test');
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
   const [quizDuration, setQuizDuration] = useState(0);
@@ -143,6 +147,7 @@ function AppContent() {
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [quizQuestionCounts, setQuizQuestionCounts] = useState<Record<string, number>>({});
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [userStats, setUserStats] = useState<any>(null);
 
   // New Admin Form States
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -226,7 +231,16 @@ function AppContent() {
     
     setIsAuthReady(true);
     fetchInitialData();
+    if (localStorage.getItem('token')) {
+      fetchUserStats();
+    }
   }, []);
+
+  useEffect(() => {
+    if (view === 'dashboard') {
+      fetchUserStats();
+    }
+  }, [view]);
 
   useEffect(() => {
     if (isAuthReady) {
@@ -250,6 +264,13 @@ function AppContent() {
     return () => clearInterval(timer);
   }, [view, timeLeft, isSubmitted]);
 
+  useEffect(() => {
+    if (isAuthReady && !currentUser && ['selection', 'quiz', 'admin', 'results'].includes(view)) {
+      setView('login');
+      pushToast('Please login to access this area', 'error', 3000);
+    }
+  }, [isAuthReady, currentUser, view]);
+
   const fetchInitialData = async () => {
     try {
       // Fetch stats summary (public-ish)
@@ -265,6 +286,15 @@ function AppContent() {
     } catch (error) {
       console.error('Failed to fetch initial data:', error);
       setCourses([]);
+    }
+  };
+
+  const fetchUserStats = async () => {
+    try {
+      const stats = await api.getMyStats();
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Failed to fetch user stats:', error);
     }
   };
 
@@ -323,7 +353,7 @@ function AppContent() {
     }
   };
 
-  const startQuiz = async (quizId: string) => {
+  const startQuiz = async (quizId: string, course?: Course | null, chapter?: Chapter | null, mode: QuizMode = 'test') => {
     // Check if user is authenticated before attempting to load
     const token = localStorage.getItem('token');
     if (!token) {
@@ -336,6 +366,8 @@ function AppContent() {
       const { quiz, questions: quizQuestions } = await api.getQuizWithQuestions(quizId);
       setQuestions(quizQuestions);
       setSelectedQuiz(quiz);
+      if (course) setSelectedCourse(course);
+      if (chapter) setSelectedChapter(chapter);
       
       const duration = (quiz.timeLimit || 10) * 60;
       setTimeLeft(duration);
@@ -344,6 +376,7 @@ function AppContent() {
       setCurrentQuestionIndex(0);
       setAnswers({});
       setIsSubmitted(false);
+      setQuizMode(mode);
       setView('quiz');
     } catch (error: any) {
       console.error('Failed to start quiz:', error);
@@ -378,7 +411,7 @@ function AppContent() {
         selectedOptions
       }));
       
-      const result = await api.submitQuiz(selectedQuiz._id, formattedAnswers, quizDuration - timeLeft);
+      const result = await api.submitQuiz(selectedQuiz._id, formattedAnswers, quizDuration - timeLeft, quizMode);
       setQuizResult(result);
       setIsSubmitted(true);
       updateToast(toastId, 'Quiz submitted successfully', 'success', 2300);
@@ -528,6 +561,14 @@ function AppContent() {
     setView('home');
   };
 
+  const retakeQuestion = (questionId: string) => {
+    setAnswers(prev => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -548,12 +589,35 @@ function AppContent() {
       setCurrentUser(user);
       setIsAdmin(user.role === 'admin');
       await fetchInitialData();
-      setView(user.role === 'admin' ? 'admin' : 'home');
+      await fetchUserStats();
+      setView(user.role === 'admin' ? 'admin' : 'dashboard');
       setLoginEmail('');
       setLoginPassword('');
       setRegisterName('');
     } catch (error: any) {
       setLoginError(error.response?.data?.message || error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credentialResponse: any) => {
+    try {
+      setIsLoading(true);
+      setLoginError('');
+      
+      const { user, token } = await api.googleLogin(credentialResponse.credential);
+      
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+      
+      setCurrentUser(user);
+      setIsAdmin(user.role === 'admin');
+      await fetchInitialData();
+      await fetchUserStats();
+      setView(user.role === 'admin' ? 'admin' : 'dashboard');
+    } catch (error: any) {
+      setLoginError(error.response?.data?.message || error.message || 'Google authentication failed.');
     } finally {
       setIsLoading(false);
     }
@@ -606,7 +670,7 @@ function AppContent() {
   };
 
   const getResultGif = (accuracy: number) => {
-    if (accuracy >= 80) return "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif"; // High score
+    if (accuracy >= 80) return "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlHFRbmaZtBRhXG/giphy.gif"; // High score
     if (accuracy >= 50) return "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif"; // Medium score
     return "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJmZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/26ufcVAp3AiJJsrIs/giphy.gif"; // Low score
   };
@@ -620,7 +684,8 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#141414] text-gray-200 font-sans selection:bg-orange-500/30">
+    <GoogleOAuthProvider clientId="127828047574-ke1mb05rc6sjqusondg2jca1l513jpkc.apps.googleusercontent.com">
+      <div className="min-h-screen bg-[#141414] text-gray-200 font-sans selection:bg-orange-500/30">
       {/* Header */}
       <header className="border-b border-white/5 bg-[#1a1a1a]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -639,20 +704,37 @@ function AppContent() {
               <PlayCircle size={18} />
               <span className="hidden sm:inline">Quiz</span>
             </button>
-            {isAdmin ? (
+            {currentUser && !isAdmin && (
+              <button 
+                onClick={() => setView('dashboard')}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'dashboard' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+              >
+                <LayoutDashboard size={18} />
+                <span className="hidden sm:inline">Dashboard</span>
+              </button>
+            )}
+            {currentUser ? (
               <>
-                <button 
-                  onClick={() => setView('admin')}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
-                >
-                  <Settings size={18} />
-                  <span className="hidden sm:inline">Admin</span>
-                </button>
+                {isAdmin && (
+                  <button 
+                    onClick={() => setView('admin')}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                  >
+                    <Settings size={18} />
+                    <span className="hidden sm:inline">Admin</span>
+                  </button>
+                )}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                  <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-white/90 hidden sm:inline">{currentUser.name}</span>
+                </div>
                 <button 
                   onClick={handleLogout}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:bg-red-500/10 text-red-500"
+                  className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:bg-red-500/10 text-red-400"
                 >
-                  <XCircle size={18} />
+                  <LogOut size={18} />
                   <span className="hidden sm:inline">Logout</span>
                 </button>
               </>
@@ -665,7 +747,7 @@ function AppContent() {
                 <span className="hidden sm:inline">Login</span>
               </button>
             )}
-            {view !== 'home' && (
+            {view === 'quiz' && (
               <button 
                 onClick={resetQuiz}
                 className="ml-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-orange-500/20"
@@ -688,6 +770,15 @@ function AppContent() {
               chapterQuizzes={chapterQuizzes}
               questions={questions}
               summaryStats={summaryStats}
+              currentUser={currentUser}
+            />
+          )}
+
+          {view === 'dashboard' && currentUser && (
+            <DashboardView 
+              stats={userStats} 
+              userName={currentUser.name} 
+              setView={setView} 
             />
           )}
 
@@ -727,6 +818,8 @@ function AppContent() {
               formatTime={formatTime}
               getLanguage={getLanguage}
               submitQuiz={submitQuiz}
+              quizMode={quizMode}
+              retakeQuestion={retakeQuestion}
             />
           )}
 
@@ -758,6 +851,7 @@ function AppContent() {
               setRegisterName={setRegisterName}
               isLoading={isLoading}
               handleLogin={handleLogin}
+              handleGoogleLogin={handleGoogleLogin}
               setView={setView}
             />
           )}
@@ -850,5 +944,6 @@ function AppContent() {
         </div>
       </footer>
     </div>
+    </GoogleOAuthProvider>
   );
 }

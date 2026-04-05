@@ -80,7 +80,17 @@ export const getLeaderboard = async (quizId) => {
   return response.data;
 };
 
-export const getAllLeaderboard = async () => {
-  const response = await apiClient.get(ENDPOINTS.ADMIN.LEADERBOARD_ALL);
+export const getAllLeaderboard = async (mode = '') => {
+  const url = mode ? `${ENDPOINTS.ADMIN.LEADERBOARD_ALL}?mode=${mode}` : ENDPOINTS.ADMIN.LEADERBOARD_ALL;
+  const response = await apiClient.get(url);
+  return response.data;
+};
+
+export const deleteLeaderboardRecord = async (resultId) => {
+  await apiClient.delete(`${ENDPOINTS.ADMIN.LEADERBOARD_ALL}/${resultId}`);
+};
+
+export const deleteLeaderboardBulk = async (ids = []) => {
+  const response = await apiClient.post(`${ENDPOINTS.ADMIN.LEADERBOARD_ALL}/bulk-delete`, { ids });
   return response.data;
 };

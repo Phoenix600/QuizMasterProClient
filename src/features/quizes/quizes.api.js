@@ -11,11 +11,12 @@ export const getQuizWithQuestions = async (quizId) => {
   return response.data;
 };
 
-export const submitQuiz = async (quizId, answers, timeTaken) => {
+export const submitQuiz = async (quizId, answers, timeTaken, mode) => {
   const response = await apiClient.post(ENDPOINTS.QUIZ.SUBMIT, { 
     quizId, 
     answers,
-    timeTaken 
+    timeTaken,
+    mode
   });
   return response.data.result;
 };

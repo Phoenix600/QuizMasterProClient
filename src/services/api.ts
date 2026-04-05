@@ -9,7 +9,7 @@ import * as adminApi from '../features/admin/admin.api';
 import * as authApi from '../features/auth/auth.api';
 import * as quizesApi from '../features/quizes/quizes.api';
 import * as resultsApi from '../features/results/results.api';
-import type { User, Course, Chapter, Quiz, Question, QuizResult, LeaderboardEntry, GlobalLeaderboardEntry } from '../types';
+import type { User, Course, Chapter, Quiz, Question, QuizResult, LeaderboardEntry, GlobalLeaderboardEntry, QuizMode } from '../types';
 
 export const getStatsSummary = () =>
   apiClient.get('/stats/summary').then((r) => r.data as { courses: number; chapters: number; quizzes: number; questions: number });
@@ -23,6 +23,9 @@ export const login = (email: string, password: string) =>
 
 export const register = (name: string, email: string, password: string) =>
   (authApi as any).register(name, email, password) as Promise<{ user: User; token: string }>;
+
+export const googleLogin = (idToken: string) =>
+  (authApi as any).googleLogin(idToken) as Promise<{ user: User; token: string }>;
 
 /* ------------------------------------------------------------------ */
 /* Browsing (courses / chapters / quizzes) — shared auth-only routes   */
@@ -91,8 +94,23 @@ export const deleteQuiz = (quizId: string) =>
 export const getLeaderboard = (quizId: string) =>
   (adminApi as any).getLeaderboard(quizId) as Promise<LeaderboardEntry[]>;
 
-export const getAllLeaderboard = () =>
-  (adminApi as any).getAllLeaderboard() as Promise<GlobalLeaderboardEntry[]>;
+export const getAllLeaderboard = (mode: string = '') =>
+  (adminApi as any).getAllLeaderboard(mode) as Promise<GlobalLeaderboardEntry[]>;
+
+export const deleteLeaderboardRecord = (resultId: string) =>
+  (adminApi as any).deleteLeaderboardRecord(resultId) as Promise<void>;
+
+export const deleteLeaderboardBulk = (ids: string[] = []) =>
+  (adminApi as any).deleteLeaderboardBulk(ids) as Promise<{ message: string; deletedCount: number }>;
+
+export const getLoginLogs = (page: number = 1, limit: number = 10, search: string = '') =>
+  apiClient.get(`/admin/logs?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`).then((r) => r.data as { logs: any[]; total: number; page: number; pages: number });
+
+export const deleteLoginLog = (id: string) =>
+  apiClient.delete(`/admin/logs/${id}`).then((r) => r.data);
+
+export const deleteLoginLogsBulk = (ids: string[] = [], search: string = '') =>
+  apiClient.post(`/admin/logs/bulk-delete`, { ids, search }).then((r) => r.data);
 
 /* ------------------------------------------------------------------ */
 /* Questions (managed via App.tsx admin question view)                 */
@@ -125,8 +143,9 @@ export const getQuizWithQuestions = (
 export const submitQuiz = (
   quizId: string,
   answers: { questionId: string; selectedOptions: number[] }[],
-  timeTaken: number
-): Promise<QuizResult> => (quizesApi as any).submitQuiz(quizId, answers, timeTaken);
+  timeTaken: number,
+  mode: QuizMode
+): Promise<QuizResult> => (quizesApi as any).submitQuiz(quizId, answers, timeTaken, mode);
 
 /* ------------------------------------------------------------------ */
 /* Results                                                              */
@@ -134,6 +153,9 @@ export const submitQuiz = (
 
 export const getMyResults = (): Promise<QuizResult[]> =>
   (resultsApi as any).getMyResults();
+
+export const getMyStats = (): Promise<any> =>
+  (resultsApi as any).getMyStats();
 
 /* ------------------------------------------------------------------ */
 /* No-op kept for backward compatibility with any call sites            */

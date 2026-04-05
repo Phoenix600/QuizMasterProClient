@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Editor from '@monaco-editor/react';
 import { 
-  ChevronLeft, Plus, Search, Code, Trash2, Layers, ChevronDown, Trophy, 
+  ChevronLeft, ChevronRight, Plus, Search, Code, Trash2, Layers, ChevronDown, Trophy, 
   AlertCircle, CheckCircle2, Save, PlusCircle, Edit, Users, Clock, Medal,
-  RefreshCw, Filter, BookOpen
+  RefreshCw, Filter, BookOpen, Laptop, Smartphone, Tablet
 } from 'lucide-react';
 import * as api from '../../services/api';
 import { Course, Chapter, Quiz, Question, GlobalLeaderboardEntry } from '../../types';
 
 interface AdminViewProps {
-  adminView: 'hierarchy' | 'questions' | 'leaderboard';
-  setAdminView: (val: 'hierarchy' | 'questions' | 'leaderboard') => void;
+  adminView: 'hierarchy' | 'questions' | 'leaderboard' | 'logs';
+  setAdminView: (val: 'hierarchy' | 'questions' | 'leaderboard' | 'logs') => void;
   courses: Course[];
   courseChapters: Record<string, Chapter[]>;
   chapterQuizzes: Record<string, Quiz[]>;
@@ -105,6 +105,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [lbLoading, setLbLoading] = useState(false);
   const [lbSearch, setLbSearch] = useState('');
   const [lbQuizFilter, setLbQuizFilter] = useState('');
+  const [lbModeFilter, setLbModeFilter] = useState<string>(''); // 'test', 'training', or ''
   const [lbDateFrom, setLbDateFrom] = useState('');
   const [lbDateTo, setLbDateTo] = useState('');
   const [lbSort, setLbSort] = useState<'merit' | 'date'>('merit');
@@ -123,7 +124,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const loadLeaderboard = async () => {
     setLbLoading(true);
     try {
-      const data = await api.getAllLeaderboard();
+      const data = await api.getAllLeaderboard(lbModeFilter);
       setLbEntries(data);
     } catch {
       // silent
@@ -136,11 +137,128 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if (adminView === 'leaderboard') {
       loadLeaderboard();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminView]);
+  }, [adminView, lbModeFilter]);
+
+  const handleDeleteRecord = async (resultId: string) => {
+    if (!window.confirm('Delete this record?')) return;
+    try {
+      await api.deleteLeaderboardRecord(resultId);
+      setLbEntries(prev => prev.filter(e => e.resultId !== resultId));
+    } catch (e) {
+      alert('Delete failed');
+    }
+  };
 
   // Reset to page 1 whenever any filter or sort changes
   useEffect(() => { setLbPage(1); }, [lbSearch, lbQuizFilter, lbDateFrom, lbDateTo, lbSort]);
+
+  const filteredLBEntries = React.useMemo(() => {
+    return lbEntries.filter(e => {
+      const matchSearch = e.userName.toLowerCase().includes(lbSearch.toLowerCase()) ||
+        e.userEmail.toLowerCase().includes(lbSearch.toLowerCase());
+      const matchQuiz = !lbQuizFilter || e.quizTitle === lbQuizFilter;
+      const entryDate = new Date(e.createdAt);
+      const matchFrom = !lbDateFrom || entryDate >= new Date(lbDateFrom);
+      const matchTo = !lbDateTo || entryDate <= new Date(lbDateTo + 'T23:59:59');
+      return matchSearch && matchQuiz && matchFrom && matchTo;
+    }).sort((a, b) => {
+      if (lbSort === 'merit') {
+        if (b.percentage !== a.percentage) return b.percentage - a.percentage;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [lbEntries, lbSearch, lbQuizFilter, lbDateFrom, lbDateTo, lbSort]);
+
+  const handleDeleteAllRecords = async () => {
+    const isFiltered = lbSearch || lbQuizFilter || lbDateFrom || lbDateTo;
+    const targetCount = filteredLBEntries.length;
+    
+    if (targetCount === 0) return;
+
+    const msg = isFiltered 
+      ? `Delete ALL ${targetCount} filtered records? This CANNOT be undone.`
+      : `Delete ALL ${lbEntries.length} records in the system? THIS WILL CLEAR THE ENTIRE LEADERBOARD.`;
+
+    if (!window.confirm(msg)) return;
+
+    try {
+      const idsToDelete = isFiltered ? filteredLBEntries.map(e => e.resultId) : [];
+      const res = await api.deleteLeaderboardBulk(idsToDelete);
+      
+      if (isFiltered) {
+        setLbEntries(prev => prev.filter(e => !idsToDelete.includes(e.resultId)));
+      } else {
+        setLbEntries([]);
+      }
+      
+      alert(res.message);
+    } catch (e) {
+      alert('Delete failed');
+    }
+  };
+
+  // User Logs State
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsTotalPages, setLogsTotalPages] = useState(1);
+  const [logsSearch, setLogsSearch] = useState('');
+  const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+
+  const loadLogs = async (page = 1) => {
+    setLogsLoading(true);
+    try {
+      const data = await api.getLoginLogs(page, 10, logsSearch);
+      setLogs(data.logs);
+      setLogsTotalPages(data.pages);
+      setLogsPage(data.page);
+    } catch (e) {
+      pushToast('Failed to load logs', 'error');
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (adminView === 'logs') {
+      loadLogs(1); // Reset to page 1 on search
+    }
+  }, [adminView, logsSearch]);
+
+  const handleDeleteLog = async (id: string) => {
+    if (!window.confirm('Delete this login log?')) return;
+    try {
+      await api.deleteLoginLog(id);
+      loadLogs(logsPage);
+      pushToast('Log deleted', 'success');
+    } catch (e) {
+      pushToast('Delete failed', 'error');
+    }
+  };
+
+  const handleDeleteSelectedLogs = async () => {
+    const isFiltered = logsSearch.trim() !== '';
+    const msg = isFiltered 
+      ? `Delete ALL logs matching "${logsSearch}"?`
+      : `Delete ALL logs in the system?`;
+    
+    if (!window.confirm(msg)) return;
+    try {
+      await api.deleteLoginLogsBulk([], logsSearch);
+      setLogsSearch('');
+      loadLogs(1);
+      pushToast('Logs cleared successfully', 'success');
+    } catch (e) {
+      pushToast('Bulk delete failed', 'error');
+    }
+  };
+
+  const toggleLogSelection = (id: string) => {
+    setSelectedLogs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const closeEditCourseModal = () => setEditingCourseData(null);
 
   const closeEditQuizModal = () => {
     setEditingQuizData(null);
@@ -163,13 +281,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <h2 className="text-4xl font-black text-white tracking-tight">
-            {adminView === 'hierarchy' ? 'Manage Hierarchy' : adminView === 'leaderboard' ? 'Leaderboard' : 'Manage Questions'}
+            {adminView === 'hierarchy' ? 'Manage Hierarchy' : adminView === 'leaderboard' ? 'Leaderboard' : adminView === 'logs' ? 'User Login Logs' : 'Manage Questions'}
           </h2>
           <p className="text-gray-400">
             {adminView === 'hierarchy' 
               ? 'Manage your courses, chapters, and quizzes.'
               : adminView === 'leaderboard'
               ? 'View all student quiz submissions and rankings.'
+              : adminView === 'logs'
+              ? 'Trace user login history, IP addresses, and devices.'
               : `Editing questions for ${adminSelectedQuiz?.title}`}
           </p>
         </div>
@@ -201,6 +321,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             >
               <Trophy size={14} />
               Leaderboard
+            </button>
+            <button
+              onClick={() => setAdminView('logs')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                adminView === 'logs' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Clock size={14} />
+              User Logs
             </button>
           </div>
         </div>
@@ -681,7 +810,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition-all"
               />
             </div>
-            <div className="relative min-w-[200px]">
+            <div className="relative min-w-[150px]">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={15} />
               <select
                 value={lbQuizFilter}
@@ -692,6 +821,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 {[...new Map(lbEntries.map(e => [e.quizTitle, e.quizTitle])).values()].map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
+              </select>
+            </div>
+            <div className="relative min-w-[150px]">
+              <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={15} />
+              <select
+                value={lbModeFilter}
+                onChange={(e) => setLbModeFilter(e.target.value)}
+                className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition-all"
+              >
+                <option value="">All Modes</option>
+                <option value="test">Test Mode</option>
+                <option value="training">Training Mode</option>
               </select>
             </div>
             <input
@@ -734,6 +875,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <RefreshCw size={14} className={lbLoading ? 'animate-spin' : ''} />
               Refresh
             </button>
+            {lbEntries.length > 0 && adminView === 'leaderboard' && (
+              <button
+                onClick={handleDeleteAllRecords}
+                className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              >
+                <Trash2 size={14} />
+                {(lbSearch || lbQuizFilter || lbDateFrom || lbDateTo) ? `Delete Filtered (${filteredLBEntries.length})` : 'Clear All'}
+              </button>
+            )}
           </div>
 
           {/* Sort mode */}
@@ -769,25 +919,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <span className="text-sm">Loading...</span>
               </div>
             ) : (() => {
-              const filtered = lbEntries.filter(e => {
-                const matchSearch = e.userName.toLowerCase().includes(lbSearch.toLowerCase()) ||
-                  e.userEmail.toLowerCase().includes(lbSearch.toLowerCase());
-                const matchQuiz = !lbQuizFilter || e.quizTitle === lbQuizFilter;
-                const entryDate = new Date(e.createdAt);
-                const matchFrom = !lbDateFrom || entryDate >= new Date(lbDateFrom);
-                const matchTo = !lbDateTo || entryDate <= new Date(lbDateTo + 'T23:59:59');
-                return matchSearch && matchQuiz && matchFrom && matchTo;
-              }).slice().sort((a, b) => {
-                if (lbSort === 'merit') {
-                  // Primary: score desc; tiebreaker: earliest submission (timestamp asc)
-                  if (b.percentage !== a.percentage) return b.percentage - a.percentage;
-                  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-                }
-                // 'date': newest first
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-              });
-
-              if (filtered.length === 0) {
+              if (filteredLBEntries.length === 0) {
                 return (
                   <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
                     <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-gray-600">
@@ -800,9 +932,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 );
               }
 
-              const totalPages = Math.max(1, Math.ceil(filtered.length / LB_PAGE_SIZE));
+              const totalPages = Math.max(1, Math.ceil(filteredLBEntries.length / LB_PAGE_SIZE));
               const safePage = Math.min(lbPage, totalPages);
-              const paginated = filtered.slice((safePage - 1) * LB_PAGE_SIZE, safePage * LB_PAGE_SIZE);
+              const paginated = filteredLBEntries.slice((safePage - 1) * LB_PAGE_SIZE, safePage * LB_PAGE_SIZE);
 
               return (
                 <>
@@ -810,7 +942,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/5">
-                        {['#', 'Student', 'Quiz', 'Score', '% Score', 'Status', 'Time', 'Date'].map(h => (
+                        {['#', 'Student', 'Quiz', 'Score', '% Score', 'Status', 'Mode', 'Time', 'Date', 'Action'].map(h => (
                           <th key={h} className="px-5 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-widest">{h}</th>
                         ))}
                       </tr>
@@ -848,35 +980,36 @@ export const AdminView: React.FC<AdminViewProps> = ({
                               <p className="text-gray-300 font-medium max-w-[180px] truncate">{entry.quizTitle}</p>
                             </td>
                             <td className="px-5 py-4 text-gray-300 font-bold">{entry.score}/{entry.totalQuestions}</td>
+                            <td className="px-5 py-4 font-black text-white">{Math.round(entry.percentage)}%</td>
                             <td className="px-5 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${entry.percentage >= 70 ? 'bg-green-500' : 'bg-red-500'}`}
-                                    style={{ width: `${entry.percentage}%` }}
-                                  />
-                                </div>
-                                <span className="text-gray-300 font-bold">{entry.percentage}%</span>
-                              </div>
+                              {entry.isPassed ? (
+                                <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border border-emerald-500/20">PASSED</span>
+                              ) : (
+                                <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border border-red-500/20">FAILED</span>
+                              )}
                             </td>
                             <td className="px-5 py-4">
-                              <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-                                entry.isPassed
-                                  ? 'bg-green-500/10 text-green-400'
-                                  : 'bg-red-500/10 text-red-400'
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border ${
+                                entry.mode === 'training' 
+                                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                                  : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
                               }`}>
-                                {entry.isPassed ? 'Passed' : 'Failed'}
+                                {entry.mode || 'test'}
                               </span>
                             </td>
+                            <td className="px-5 py-4 text-gray-400 font-medium">{timeStr}</td>
                             <td className="px-5 py-4">
-                              <div className="flex items-center gap-1.5 text-gray-400">
-                                <Clock size={12} />
-                                <span>{timeStr}</span>
-                              </div>
+                              <p className="text-white font-bold">{date}</p>
+                              <p className="text-[10px] text-gray-600 font-medium uppercase tracking-tighter">{time}</p>
                             </td>
                             <td className="px-5 py-4">
-                              <p className="text-gray-400 text-xs font-medium">{date}</p>
-                              <p className="text-gray-600 text-[11px]">{time}</p>
+                              <button
+                                onClick={() => handleDeleteRecord(entry.resultId)}
+                                className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                title="Delete record"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </td>
                           </tr>
                         );
@@ -889,7 +1022,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-5 py-4 border-t border-white/5">
                     <p className="text-xs text-gray-500">
-                      Showing {(safePage - 1) * LB_PAGE_SIZE + 1}–{Math.min(safePage * LB_PAGE_SIZE, filtered.length)} of {filtered.length} results
+                      Showing {(safePage - 1) * LB_PAGE_SIZE + 1}–{Math.min(safePage * LB_PAGE_SIZE, filteredLBEntries.length)} of {filteredLBEntries.length} results
                     </p>
                     <div className="flex items-center gap-1">
                       <button
@@ -940,6 +1073,147 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </>
               );
             })()}
+          </div>
+        </div>
+      ) : adminView === 'logs' ? (
+        <div className="space-y-6">
+          <div className="bg-[#1a1a1a] border border-white/5 rounded-3xl p-6 shadow-2xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500">
+                  <Clock size={28} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white">Login Sessions</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Real-time security auditing</p>
+                </div>
+              </div>
+
+              <div className="flex flex-1 max-w-2xl items-center gap-3">
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-orange-500 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={logsSearch}
+                    onChange={(e) => setLogsSearch(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 hover:border-white/10 focus:border-orange-500/50 rounded-2xl pl-12 pr-6 py-4 text-sm text-white focus:outline-none transition-all"
+                  />
+                  {logsSearch && (
+                    <button 
+                      onClick={() => setLogsSearch('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                    >
+                      <Plus className="rotate-45" size={20} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={handleDeleteSelectedLogs}
+                  className="px-6 py-4 bg-red-500/10 text-red-500 hover:bg-red-500 text-white rounded-2xl text-sm font-black transition-all flex items-center gap-2 border border-red-500/20"
+                >
+                  <Trash2 size={18} />
+                  Clear Results
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-separate border-spacing-y-3">
+                <thead>
+                  <tr className="text-gray-600 text-[11px] font-black uppercase tracking-widest px-5">
+                    <th className="px-6 py-3">Device</th>
+                    <th className="px-6 py-3">User</th>
+                    <th className="px-6 py-3 text-center">Login Method</th>
+                    <th className="px-6 py-3">Location</th>
+                    <th className="px-6 py-3">IP Address</th>
+                    <th className="px-6 py-3 text-right pr-10">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y-0">
+                  {logsLoading ? (
+                    <tr><td colSpan={6} className="text-center py-20 text-gray-500 animate-pulse font-bold">Scanning secure logs...</td></tr>
+                  ) : logs.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-24 text-gray-600 italic font-medium">No sessions found for this search.</td></tr>
+                  ) : logs.map((log, idx) => (
+                    <tr key={log._id} className="group hover:bg-white/[0.03] transition-all">
+                      <td className="px-6 py-5 bg-white/[0.015] rounded-l-2xl border-l border-t border-b border-white/[0.02]">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${idx === 0 ? 'bg-orange-500/10 text-orange-500' : 'bg-gray-500/5 text-gray-500'}`}>
+                            {log.deviceType?.includes('iPad') || log.deviceType?.includes('Tablet') ? <Tablet size={18} /> : 
+                             log.deviceType?.includes('Phone') ? <Smartphone size={18} /> : <Laptop size={18} />}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`text-[13px] font-black ${idx === 0 ? 'text-orange-500' : 'text-gray-200'}`}>{log.deviceType || 'Desktop Device'}</span>
+                            <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{new Date(log.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <div className="flex flex-col">
+                          <span className={`text-[13px] font-black ${idx === 0 ? 'text-orange-500/90' : 'text-white'}`}>{log.userName}</span>
+                          <span className="text-[11px] text-gray-500 font-medium">{log.userEmail}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02] text-center">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${log.loginType === 'Google' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
+                          {log.loginType || 'Email'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] text-gray-300 font-bold">{log.location}</span>
+                          <span className="text-[10px] text-gray-600 font-medium tracking-tight">LAT: {log.coordinates?.split(',')[1]} LON: {log.coordinates?.split(',')[0]}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <span className="text-[13px] text-gray-400 font-mono tracking-tighter">{log.ipAddress}</span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] rounded-r-2xl border-r border-t border-b border-white/[0.02] text-right pr-6">
+                        <button
+                          onClick={() => handleDeleteLog(log._id)}
+                          className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all group-hover:scale-105 active:scale-95"
+                          title="Permanently remove this session log"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Premium Pagination Footer */}
+            {logs.length > 0 && (
+              <div className="flex items-center justify-between mt-12 px-4 py-6 border-t border-white/[0.03]">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                    Showing <span className="text-white">{logs.length}</span> Active Logs
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/[0.02] p-1.5 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => loadLogs(logsPage - 1)}
+                    disabled={logsPage === 1}
+                    className="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-500 rounded-xl hover:bg-orange-500 hover:text-white transition-all disabled:opacity-10"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div className="px-6 py-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                    Page <span className="text-orange-500">{logsPage}</span> <span className="mx-2 opacity-30">|</span> Total {Math.max(1, logsTotalPages)}
+                  </div>
+                  <button
+                    onClick={() => loadLogs(logsPage + 1)}
+                    disabled={logsPage === logsTotalPages || logsTotalPages === 0}
+                    className="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-500 rounded-xl hover:bg-orange-500 hover:text-white transition-all disabled:opacity-10"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -1024,6 +1298,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </select>
                     </div>
                   </div>
+                </div>
+
+                {/* Explanation field */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    Explanation <span className="text-gray-600 normal-case font-normal">(optional — shown in Training mode)</span>
+                  </label>
+                  <textarea
+                    value={newQuestion.explanation || ''}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
+                    placeholder="Explain why the correct answer is correct..."
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-orange-500 placeholder-gray-600 resize-none"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

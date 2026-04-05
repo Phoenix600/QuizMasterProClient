@@ -1,2 +1,2 @@
-const API_BASE_URL = "https://quizmasterproserver-1.onrender.com";
+const API_BASE_URL = "http://localhost:5001";
 export default API_BASE_URL;
