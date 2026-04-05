@@ -684,7 +684,7 @@ function AppContent() {
   }
 
   return (
-    <GoogleOAuthProvider clientId="127828047574-ke1mb05rc6sjqusondg2jca1l513jpkc.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <div className="min-h-screen bg-[#141414] text-gray-200 font-sans selection:bg-orange-500/30">
       {/* Header */}
       <header className="border-b border-white/5 bg-[#1a1a1a]/50 backdrop-blur-md sticky top-0 z-50">
