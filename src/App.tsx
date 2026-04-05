@@ -43,7 +43,7 @@ import { DashboardView } from './components/views/DashboardView';
 import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry, QuizMode } from './types';
 
 type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard';
-type AdminTab = 'hierarchy' | 'questions' | 'leaderboard' | 'logs';
+type AdminTab = 'hierarchy' | 'questions' | 'questionBank' | 'leaderboard' | 'logs';
 type ToastType = 'success' | 'error' | 'loading';
 
 interface ToastMessage {
@@ -160,9 +160,9 @@ function AppContent() {
   const [newQuizData, setNewQuizData] = useState({
     title: '',
     description: '',
-    questionCount: 1,
+    questionCount: 0,
     passingScore: 70,
-    timeLimit: 15,
+    timeLimit: 10
   });
   const [courseSearch, setCourseSearch] = useState('');
 
@@ -199,7 +199,8 @@ function AppContent() {
 
   // Admin form state
   const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
-    quizId: '',
+    chapterId: '',
+    courseId: '',
     questionText: '',
     image: '',
     codeSnippet: '',
@@ -314,16 +315,11 @@ function AppContent() {
       const quizzesData = await api.getQuizzes(chapterId);
       setChapterQuizzes(prev => ({ ...prev, [chapterId]: quizzesData }));
       
-      // Fetch question counts for each quiz
-      const counts = await Promise.all(quizzesData.map(async (quiz) => {
-        const questions = await api.getQuestions(quiz._id);
-        return { id: quiz._id, count: questions.length };
-      }));
-      
+      // Update question counts for each quiz from its internal questions array
       setQuizQuestionCounts(prev => {
         const newCounts = { ...prev };
-        counts.forEach(({ id, count }) => {
-          newCounts[id] = count;
+        quizzesData.forEach((quiz) => {
+          newCounts[quiz._id] = quiz.questions?.length || 0;
         });
         return newCounts;
       });
@@ -388,18 +384,6 @@ function AppContent() {
     }
   };
 
-  const handlePublishQuiz = async (quizId: string, chapterId: string) => {
-    const toastId = pushToast('Publishing quiz...', 'loading', 0);
-    try {
-      await api.publishQuiz(quizId);
-      await fetchQuizzesForChapter(chapterId);
-      updateToast(toastId, 'Quiz is now live', 'success', 2500);
-    } catch (error: any) {
-      console.error('Failed to publish quiz:', error);
-      const msg = error.response?.data?.message || error.message || 'Failed to publish quiz';
-      updateToast(toastId, msg, 'error', 3600);
-    }
-  };
 
   const submitQuiz = async () => {
     if (!selectedQuiz) return;
@@ -427,7 +411,7 @@ function AppContent() {
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminSelectedQuiz) return;
+    if (!adminSelectedChapter || !adminSelectedCourse) return;
     
     if (editingQuestionId) {
       handleUpdateQuestion(e);
@@ -438,7 +422,8 @@ function AppContent() {
       setIsLoading(true);
       await api.createQuestion({
         ...newQuestion,
-        quizId: adminSelectedQuiz._id
+        chapterId: adminSelectedChapter._id,
+        courseId: adminSelectedCourse._id
       });
       
       setNewQuestion({
@@ -455,9 +440,8 @@ function AppContent() {
         order: (questions.length + 1)
       });
       
-      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      const questionsData = await api.getQuestions(adminSelectedChapter._id);
       setQuestions(questionsData);
-      setQuizQuestionCounts(prev => ({ ...prev, [adminSelectedQuiz._id]: questionsData.length }));
     } catch (error) {
       console.error('Failed to add question:', error);
     } finally {
@@ -467,7 +451,7 @@ function AppContent() {
 
   const handleUpdateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingQuestionId || !adminSelectedQuiz) return;
+    if (!editingQuestionId || !adminSelectedChapter) return;
     
     try {
       setIsLoading(true);
@@ -488,7 +472,7 @@ function AppContent() {
         order: 1
       });
       
-      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      const questionsData = await api.getQuestions(adminSelectedChapter._id);
       setQuestions(questionsData);
     } catch (error) {
       console.error('Failed to update question:', error);
@@ -512,17 +496,31 @@ function AppContent() {
   };
 
   const handleDeleteQuestion = async (id: string) => {
-    if (!adminSelectedQuiz) return;
+    if (!adminSelectedChapter) return;
     try {
       setIsLoading(true);
       await api.deleteQuestion(id);
-      const questionsData = await api.getQuestions(adminSelectedQuiz._id);
+      const questionsData = await api.getQuestions(adminSelectedChapter._id);
       setQuestions(questionsData);
-      setQuizQuestionCounts(prev => ({ ...prev, [adminSelectedQuiz._id]: questionsData.length }));
+      fetchQuizzesForChapter(adminSelectedChapter._id);
     } catch (error) {
       console.error('Failed to delete question:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePublishQuiz = async (quizId: string, chapterId: string, isPublished: boolean = true) => {
+    const toastId = pushToast(isPublished ? 'Publishing quiz...' : 'Unpublishing quiz...', 'loading', 0);
+    try {
+      const updated = await api.publishQuiz(quizId, isPublished);
+      fetchQuizzesForChapter(chapterId);
+      if (adminSelectedQuiz?._id === quizId) {
+        setAdminSelectedQuiz(updated);
+      }
+      updateToast(toastId, `Quiz ${isPublished ? 'published' : 'unpublished'} successfully!`, 'success', 2600);
+    } catch (error: any) {
+      updateToast(toastId, error.response?.data?.message || error.message || 'Failed to update quiz status', 'error', 3400);
     }
   };
 

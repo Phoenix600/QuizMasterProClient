@@ -85,8 +85,8 @@ export const createQuiz = (
 export const updateQuiz = (quizId: string, quizData: Partial<Quiz>) =>
   (adminApi as any).updateQuiz(quizId, quizData) as Promise<Quiz>;
 
-export const publishQuiz = (quizId: string) =>
-  (adminApi as any).publishQuiz(quizId) as Promise<void>;
+export const publishQuiz = (quizId: string, isPublished?: boolean) =>
+  (adminApi as any).publishQuiz(quizId, isPublished) as Promise<Quiz>;
 
 export const deleteQuiz = (quizId: string) =>
   (adminApi as any).deleteQuiz(quizId) as Promise<void>;
@@ -116,8 +116,11 @@ export const deleteLoginLogsBulk = (ids: string[] = [], search: string = '') =>
 /* Questions (managed via App.tsx admin question view)                 */
 /* ------------------------------------------------------------------ */
 
-export const getQuestions = (quizId: string): Promise<Question[]> =>
-  (adminApi as any).getQuestions(quizId);
+export const getCourseQuestions = (courseId: string): Promise<Question[]> =>
+  (adminApi as any).getCourseQuestions(courseId);
+
+export const getQuestions = (chapterId: string): Promise<Question[]> =>
+  (adminApi as any).getQuestions(chapterId);
 
 export const createQuestion = (questionData: Partial<Question>) =>
   (adminApi as any).createQuestion(questionData) as Promise<Question>;

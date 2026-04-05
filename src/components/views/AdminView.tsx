@@ -4,14 +4,14 @@ import Editor from '@monaco-editor/react';
 import { 
   ChevronLeft, ChevronRight, Plus, Search, Code, Trash2, Layers, ChevronDown, Trophy, 
   AlertCircle, CheckCircle2, Save, PlusCircle, Edit, Users, Clock, Medal,
-  RefreshCw, Filter, BookOpen, Laptop, Smartphone, Tablet
+  RefreshCw, Filter, BookOpen, Laptop, Smartphone, Tablet, Eye, Maximize2, Minimize2, X
 } from 'lucide-react';
 import * as api from '../../services/api';
 import { Course, Chapter, Quiz, Question, GlobalLeaderboardEntry } from '../../types';
 
 interface AdminViewProps {
-  adminView: 'hierarchy' | 'questions' | 'leaderboard' | 'logs';
-  setAdminView: (val: 'hierarchy' | 'questions' | 'leaderboard' | 'logs') => void;
+  adminView: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs';
+  setAdminView: (val: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs') => void;
   courses: Course[];
   courseChapters: Record<string, Chapter[]>;
   chapterQuizzes: Record<string, Quiz[]>;
@@ -64,7 +64,7 @@ interface AdminViewProps {
   handleAddQuestion: (e: React.FormEvent) => void;
   handleEditClick: (q: Question) => void;
   handleDeleteQuestion: (id: string) => void;
-  publishQuiz: (quizId: string, chapterId: string) => void;
+  publishQuiz: (quizId: string, chapterId: string, isPublished?: boolean) => void;
   pushToast: (text: string, type?: 'success' | 'error' | 'loading', durationMs?: number) => number;
   updateToast: (id: number, text: string, type?: 'success' | 'error' | 'loading', durationMs?: number) => void;
 }
@@ -131,6 +131,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
     onCancel: () => void;
     countdown?: number;
   } | null>(null);
+  const [courseHierarchyTab, setCourseHierarchyTab] = useState<'quizzes' | 'pool'>('quizzes');
+  const [previewQuestion, setPreviewQuestion] = useState<any>(null);
+  const [poolChapterFilter, setPoolChapterFilter] = useState<string>('all');
+  const [poolSearch, setPoolSearch] = useState('');
 
   const openConfirm = (title: string, message: string, onConfirm: () => void, countdown: number = 8) => {
     setConfirmModal({
@@ -293,6 +297,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [expandedIpLogId, setExpandedIpLogId] = useState<string | null>(null);
   const [logsSearch, setLogsSearch] = useState('');
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+  const [isCodeFullscreen, setIsCodeFullscreen] = useState(false);
 
   const loadLogs = async (page = 1) => {
     setLogsLoading(true);
@@ -380,7 +385,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
               ? 'View all student quiz submissions and rankings.'
               : adminView === 'logs'
               ? 'Trace user login history, IP addresses, and devices.'
-              : `Editing questions for ${adminSelectedQuiz?.title}`}
+              : adminView === 'questionBank'
+              ? `Question Pool for Chapter: ${adminSelectedChapter?.title}`
+              : `Select Questions for Quiz: ${adminSelectedQuiz?.title}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -649,7 +656,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           onClick={() => {
                             setAdminSelectedChapter(chapter);
                             setAdminSelectedQuiz(null);
-                            fetchQuizzesForChapter(chapter._id);
+                            if (courseHierarchyTab === 'pool') {
+                              setAdminView('questionBank');
+                              api.getQuestions(chapter._id).then(setQuestions);
+                            } else {
+                              fetchQuizzesForChapter(chapter._id);
+                            }
                           }}
                           className={`relative p-4 rounded-xl border cursor-pointer transition-all group ${
                             adminSelectedChapter?._id === chapter._id
@@ -672,6 +684,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           </div>
 
                           <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAdminSelectedChapter(chapter);
+                                setAdminView('questionBank');
+                                api.getQuestions(chapter._id).then(setQuestions);
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-all border border-orange-500/10"
+                            >
+                              <Code size={10} />
+                              Question Pool
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -723,143 +747,252 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     </button>
                   </div>
 
-                  {/* Right Panel: Quizzes (60%) */}
+                  {/* Right Panel: Quizzes or Questions Pool (60%) */}
                   <div className="lg:col-span-7 bg-[#1a1a1a] border border-white/5 rounded-3xl p-6 flex flex-col h-[600px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-bold text-orange-400 uppercase tracking-widest">
-                        {adminSelectedChapter ? `Quizzes: ${adminSelectedChapter.title}` : 'Quizzes'}
-                      </h4>
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center bg-white/5 border border-white/5 rounded-xl p-1 gap-1">
+                        <button
+                          onClick={() => setCourseHierarchyTab('quizzes')}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                            courseHierarchyTab === 'quizzes' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          <Trophy size={14} />
+                          Quizzes
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCourseHierarchyTab('pool');
+                            api.getCourseQuestions(adminSelectedCourse._id).then(setQuestions);
+                          }}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                            courseHierarchyTab === 'pool' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          <Layers size={14} />
+                          Question Bank
+                        </button>
+                      </div>
+                      
+                      {courseHierarchyTab === 'pool' && (
+                        <button 
+                          onClick={() => {
+                            setAdminSelectedChapter(null);
+                            setAdminView('questionBank');
+                          }}
+                          className="px-4 py-2 bg-orange-500/10 text-orange-400 rounded-xl text-xs font-bold border border-orange-500/10 flex items-center gap-2 hover:bg-orange-500/20 transition-all"
+                        >
+                          <PlusCircle size={14} />
+                          Add Question
+                        </button>
+                      )}
                     </div>
 
-                    {!adminSelectedChapter ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-600 mb-4">
-                          <Trophy size={24} />
-                        </div>
-                        <p className="text-sm text-gray-500 font-medium">Select a chapter from the left to view or create quizzes.</p>
-                      </div>
-                    ) : (
+                    {courseHierarchyTab === 'quizzes' ? (
                       <>
-                        <div className="relative mb-4">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                          <input
-                            type="text"
-                            placeholder="Search quizzes..."
-                            value={quizSearch}
-                            onChange={(e) => setQuizSearch(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500 transition-all"
-                          />
-                        </div>
+                        {!adminSelectedChapter ? (
+                          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-600 mb-4">
+                              <Trophy size={24} />
+                            </div>
+                            <p className="text-sm text-gray-500 font-medium">Select a chapter from the left to view or create quizzes.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="relative mb-4">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                              <input
+                                type="text"
+                                placeholder="Search quizzes..."
+                                value={quizSearch}
+                                onChange={(e) => setQuizSearch(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500 transition-all"
+                              />
+                            </div>
 
-                        <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar mb-4">
-                          {(chapterQuizzes[adminSelectedChapter._id] || [])
-                            .filter(qz => qz.title.toLowerCase().includes(quizSearch.toLowerCase()))
-                            .map((quiz) => (
-                            <div
-                              key={quiz._id}
-                              onClick={() => {
-                                setAdminSelectedQuiz(quiz);
-                                setAdminView('questions');
-                                api.getQuestions(quiz._id).then(setQuestions);
-                              }}
-                              className={`relative p-4 rounded-xl border cursor-pointer transition-all group ${
-                                adminSelectedQuiz?._id === quiz._id
-                                  ? 'bg-amber-500/10 border-amber-500/40'
-                                  : 'bg-white/5 border-white/5 hover:border-white/15 shadow-lg'
-                              }`}
-                            >
-                              <span className={`absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                                quiz.isPublished ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
-                              }`}>
-                                {quiz.isPublished ? 'Live' : 'Draft'}
-                              </span>
-
-                              <div className="flex items-start gap-3 min-w-0 pr-12">
-                                <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
-                                  adminSelectedQuiz?._id === quiz._id
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-white/10 text-gray-500'
-                                }`}>
-                                  <Trophy size={14} />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-bold text-xs text-white truncate">{quiz.title}</p>
-                                  <div className="flex items-center gap-2 mt-0.5 whitespace-nowrap overflow-hidden">
-                                    <span className="text-[10px] text-gray-500">{quiz.timeLimit}m</span>
-                                    <span className="text-[10px] text-gray-600">•</span>
-                                    <span className="text-[10px] text-gray-500">{quiz.passingScore}% pass</span>
-                                    <span className="text-[10px] text-gray-600">•</span>
-                                    <span className={`text-[10px] ${quizQuestionCounts[quiz._id] === quiz.questionCount ? 'text-gray-500' : 'text-red-400 font-bold'}`}>
-                                      {quizQuestionCounts[quiz._id] || 0}/{quiz.questionCount} Qs
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 pt-2.5 border-t border-white/5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingQuizData({
-                                      quizId: quiz._id,
-                                      chapterId: adminSelectedChapter._id,
-                                      title: quiz.title,
-                                      description: quiz.description || '',
-                                      questionCount: quiz.questionCount || quizQuestionCounts[quiz._id] || 1,
-                                      passingScore: quiz.passingScore,
-                                      timeLimit: quiz.timeLimit,
-                                    });
-                                    setFormError('');
+                            <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar mb-4">
+                              {(chapterQuizzes[adminSelectedChapter._id] || [])
+                                .filter(qz => qz.title.toLowerCase().includes(quizSearch.toLowerCase()))
+                                .map((quiz) => (
+                                <div
+                                  key={quiz._id}
+                                  onClick={() => {
+                                    setAdminSelectedQuiz(quiz);
+                                    setAdminView('questions');
+                                    api.getQuestions(adminSelectedChapter._id).then(setQuestions);
                                   }}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400 transition-all"
-                                >
-                                  <Edit size={10} />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    publishQuiz(quiz._id, adminSelectedChapter._id);
-                                  }}
-                                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                                    quiz.isPublished
-                                      ? 'bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:text-red-400'
-                                      : 'bg-yellow-500/10 text-yellow-400 hover:bg-green-500/10 hover:text-green-400'
+                                  className={`relative p-4 rounded-xl border cursor-pointer transition-all group ${
+                                    adminSelectedQuiz?._id === quiz._id
+                                      ? 'bg-amber-500/10 border-amber-500/40'
+                                      : 'bg-white/5 border-white/5 hover:border-white/15 shadow-lg'
                                   }`}
                                 >
-                                  <CheckCircle2 size={10} />
-                                  {quiz.isPublished ? 'Unpublish' : 'Publish'}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openConfirm(
-                                      'Delete Quiz',
-                                      'This quiz and all associated results will be permanently deleted.',
-                                      async () => {
-                                        await api.deleteQuiz(quiz._id);
-                                        fetchQuizzesForChapter(adminSelectedChapter._id);
-                                      }
-                                    );
-                                  }}
-                                  className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-all"
-                                >
-                                  <Trash2 size={10} />
-                                  Delete
-                                </button>
-                              </div>
+                                  <span className={`absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                    quiz.isPublished ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
+                                  }`}>
+                                    {quiz.isPublished ? 'Live' : 'Draft'}
+                                  </span>
+
+                                  <div className="flex items-start gap-3 min-w-0 pr-12">
+                                    <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
+                                      adminSelectedQuiz?._id === quiz._id
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-white/10 text-gray-500'
+                                    }`}>
+                                      <Trophy size={14} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-xs text-white truncate">{quiz.title}</p>
+                                      <div className="flex items-center gap-2 mt-0.5 whitespace-nowrap overflow-hidden">
+                                        <span className="text-[10px] text-gray-500">{quiz.timeLimit}m</span>
+                                        <span className="text-[10px] text-gray-600">•</span>
+                                        <span className="text-[10px] text-gray-500">{quiz.passingScore}% pass</span>
+                                        <span className="text-[10px] text-gray-600">•</span>
+                                        <span className={`text-[10px] ${quizQuestionCounts[quiz._id] === quiz.questionCount ? 'text-gray-500' : 'text-red-400 font-bold'}`}>
+                                          {quizQuestionCounts[quiz._id] || 0}/{quiz.questionCount} Qs
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-4 pt-2.5 border-t border-white/5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingQuizData({
+                                          quizId: quiz._id,
+                                          chapterId: adminSelectedChapter._id,
+                                          title: quiz.title,
+                                          description: quiz.description || '',
+                                          questionCount: quiz.questionCount || quizQuestionCounts[quiz._id] || 1,
+                                          passingScore: quiz.passingScore,
+                                          timeLimit: quiz.timeLimit,
+                                        });
+                                        setFormError('');
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400 transition-all"
+                                    >
+                                      <Edit size={10} />
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        publishQuiz(quiz._id, adminSelectedChapter._id);
+                                      }}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                        quiz.isPublished
+                                          ? 'bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:text-red-400'
+                                          : 'bg-yellow-500/10 text-yellow-400 hover:bg-green-500/10 hover:text-green-400'
+                                      }`}
+                                    >
+                                      <CheckCircle2 size={10} />
+                                      {quiz.isPublished ? 'Unpublish' : 'Publish'}
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openConfirm(
+                                          'Delete Quiz',
+                                          'This quiz and all associated results will be permanently deleted.',
+                                          async () => {
+                                            await api.deleteQuiz(quiz._id);
+                                            fetchQuizzesForChapter(adminSelectedChapter._id);
+                                          }
+                                        );
+                                      }}
+                                      className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-all"
+                                    >
+                                      <Trash2 size={10} />
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+
+                            <button
+                              onClick={() => setShowAddQuiz(true)}
+                              className="w-full p-4 rounded-xl border-2 border-dashed border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-orange-400 group flex-shrink-0"
+                            >
+                              <Plus size={16} />
+                              <span className="text-[10px] font-bold uppercase tracking-wider">New Quiz</span>
+                            </button>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                            <input
+                              type="text"
+                              placeholder="Search pool questions..."
+                              value={poolSearch}
+                              onChange={(e) => setPoolSearch(e.target.value)}
+                              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500 transition-all"
+                            />
+                          </div>
+                          <select
+                            value={poolChapterFilter}
+                            onChange={(e) => setPoolChapterFilter(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold text-gray-400 focus:outline-none focus:border-orange-500"
+                          >
+                            <option value="all">All Chapters</option>
+                            {(courseChapters[adminSelectedCourse._id] || []).map(ch => (
+                              <option key={ch._id} value={ch._id}>{ch.title}</option>
+                            ))}
+                          </select>
                         </div>
 
-                        <button
-                          onClick={() => setShowAddQuiz(true)}
-                          className="p-4 rounded-xl border-2 border-dashed border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-orange-400 group flex-shrink-0"
-                        >
-                          <Plus size={16} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">New Quiz</span>
-                        </button>
-                      </>
+                        <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                          {questions
+                            .filter(q => q.questionText.toLowerCase().includes(poolSearch.toLowerCase()))
+                            .filter(q => poolChapterFilter === 'all' || q.chapterId === poolChapterFilter)
+                            .map((q, idx) => {
+                              const chapterTitle = (courseChapters[adminSelectedCourse._id] || []).find(ch => ch._id === q.chapterId)?.title || 'N/A';
+                              return (
+                                <div key={q._id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:border-white/15 transition-all">
+                                  <div className="flex items-center gap-4 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center text-[10px] font-black">{idx + 1}</div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-white truncate max-w-md">{q.questionText}</p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded">{chapterTitle}</span>
+                                        <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">{q.options.length} Options • {q.numberOfCorrectAnswers} Correct</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                      onClick={() => {
+                                        setAdminSelectedChapter((courseChapters[adminSelectedCourse._id] || []).find(ch => ch._id === q.chapterId) || null);
+                                        handleEditClick(q);
+                                        setAdminView('questionBank');
+                                      }}
+                                      className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                    >
+                                      <Edit size={12} />
+                                    </button>
+                                    <button 
+                                      onClick={() => openConfirm('Delete Question', 'Permanently delete from pool?', () => handleDeleteQuestion(q._id))}
+                                      className="p-2 bg-white/5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          }
+                          {questions.length === 0 && (
+                            <div className="text-center py-12 text-gray-600 text-xs italic">
+                              No questions in the pool for this course.
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1346,233 +1479,474 @@ export const AdminView: React.FC<AdminViewProps> = ({
             )}
           </div>
         </div>
-      ) : (
+      ) : (adminView === 'questionBank' || adminView === 'questions') ? (
         <div className="space-y-12">
-          <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-10 space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-white">
-                {editingQuestionId ? 'Edit Question' : 'Add New Question'}
-              </h3>
-              {adminSelectedQuiz && (
-                <div className="px-4 py-2 bg-orange-500/10 text-orange-500 rounded-xl text-sm font-bold">
-                  Quiz: {adminSelectedQuiz.title}
-                </div>
-              )}
-            </div>
-
-            {!adminSelectedQuiz ? (
-              <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                <AlertCircle className="mx-auto text-gray-600 mb-4" size={48} />
-                <p className="text-gray-400">Please select a quiz from the Hierarchy tab first.</p>
-                <button 
-                  onClick={() => setAdminView('hierarchy')}
-                  className="mt-6 px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all"
-                >
-                  Go to Hierarchy
-                </button>
+          {adminView === 'questionBank' && (
+            <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-10 space-y-8">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-white">
+                  {editingQuestionId ? 'Edit Pool Question' : 'Add New Question to Pool'}
+                </h3>
               </div>
-            ) : (
-              <form onSubmit={handleAddQuestion} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Question Text</label>
+              {!adminSelectedChapter ? (
+                <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                  <AlertCircle className="mx-auto text-gray-600 mb-4" size={48} />
+                  <p className="text-gray-400">Please select a chapter from the Hierarchy tab first.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleAddQuestion} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Question Text</label>
+                      <textarea
+                        required
+                        value={newQuestion.questionText}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white focus:outline-none focus:border-orange-500 transition-all min-h-[150px]"
+                        placeholder="Enter your question here..."
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Code Snippet (Optional)</label>
+                      <div className="border border-white/10 rounded-2xl overflow-hidden h-[250px]">
+                        <Editor
+                          height="100%"
+                          language={newQuestion.programmingLanguage}
+                          theme="vs-dark"
+                          value={newQuestion.codeSnippet}
+                          onChange={(value) => setNewQuestion({ ...newQuestion, codeSnippet: value })}
+                          onMount={(editor, monaco) => {
+                            monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+                              noSemanticValidation: true,
+                              noSyntaxValidation: true,
+                            });
+                            monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+                              noSemanticValidation: true,
+                              noSyntaxValidation: true,
+                            });
+                          }}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            padding: { top: 10, bottom: 10 },
+                            wordWrap: 'on'
+                          }}
+                        />
+                      </div>
+                      <div className="flex gap-4">
+                        <select
+                          value={newQuestion.programmingLanguage}
+                          onChange={(e) => setNewQuestion({ ...newQuestion, programmingLanguage: e.target.value })}
+                          className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                        >
+                          <option value="javascript">JavaScript</option>
+                          <option value="typescript">TypeScript</option>
+                          <option value="java">Java</option>
+                          <option value="python">Python</option>
+                          <option value="sql">SQL</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                      Explanation <span className="text-gray-600 normal-case font-normal">(optional — shown in Training mode)</span>
+                    </label>
                     <textarea
-                      required
-                      value={newQuestion.questionText}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white focus:outline-none focus:border-orange-500 transition-all min-h-[150px]"
-                      placeholder="Enter your question here..."
+                      value={newQuestion.explanation || ''}
+                      onChange={(e) => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
+                      placeholder="Explain why the correct answer is correct..."
+                      rows={3}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-orange-500 placeholder-gray-600 resize-none"
                     />
                   </div>
-                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Code Snippet (Optional)</label>
-                    <div className="border border-white/10 rounded-2xl overflow-hidden h-[250px]">
-                      <Editor
-                        height="100%"
-                        language={newQuestion.programmingLanguage}
-                        theme="vs-dark"
-                        value={newQuestion.codeSnippet}
-                        onChange={(value) => setNewQuestion({ ...newQuestion, codeSnippet: value })}
-                        onMount={(editor, monaco) => {
-                          monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-                            noSemanticValidation: true,
-                            noSyntaxValidation: true,
-                          });
-                          monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-                            noSemanticValidation: true,
-                            noSyntaxValidation: true,
-                          });
-                        }}
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 14,
-                          lineNumbers: 'on',
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true,
-                          padding: { top: 10, bottom: 10 },
-                          wordWrap: 'on'
-                        }}
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <select
-                        value={newQuestion.programmingLanguage}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, programmingLanguage: e.target.value })}
-                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
-                      >
-                        <option value="javascript">JavaScript</option>
-                        <option value="typescript">TypeScript</option>
-                        <option value="java">Java</option>
-                        <option value="python">Python</option>
-                        <option value="sql">SQL</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Explanation field */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                    Explanation <span className="text-gray-600 normal-case font-normal">(optional — shown in Training mode)</span>
-                  </label>
-                  <textarea
-                    value={newQuestion.explanation || ''}
-                    onChange={(e) => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
-                    placeholder="Explain why the correct answer is correct..."
-                    rows={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-orange-500 placeholder-gray-600 resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {newQuestion.options?.map((option, idx) => (
-                    <div key={idx} className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Option {idx + 1}</label>
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={option.isCorrect}
-                            onChange={(e) => {
-                              const updatedOptions = [...(newQuestion.options || [])];
-                              updatedOptions[idx].isCorrect = e.target.checked;
-                              setNewQuestion({ 
-                                ...newQuestion, 
-                                options: updatedOptions,
-                                numberOfCorrectAnswers: updatedOptions.filter(o => o.isCorrect).length
-                              });
-                            }}
-                            className="hidden"
-                          />
-                          <div className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${option.isCorrect ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 group-hover:border-white/40'}`}>
-                            {option.isCorrect && <CheckCircle2 size={14} className="text-white" />}
-                          </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${option.isCorrect ? 'text-emerald-500' : 'text-gray-500'}`}>
-                            Correct Answer
-                          </span>
-                        </label>
-                      </div>
-                      <input
-                        type="text"
-                        required
-                        value={option.text}
-                        onChange={(e) => {
-                          const updatedOptions = [...(newQuestion.options || [])];
-                          updatedOptions[idx].text = e.target.value;
-                          setNewQuestion({ ...newQuestion, options: updatedOptions });
-                        }}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-orange-500 transition-all"
-                        placeholder={`Enter option ${idx + 1}...`}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4 pt-4">
-                  <button
-                    type="submit"
-                    className="px-10 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2"
-                  >
-                    {editingQuestionId ? <Save size={20} /> : <PlusCircle size={20} />}
-                    {editingQuestionId ? 'Update Question' : 'Add Question'}
-                  </button>
-                  {editingQuestionId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingQuestionId(null);
-                        setNewQuestion({
-                          questionText: '',
-                          codeSnippet: '',
-                          programmingLanguage: 'javascript',
-                          options: [
-                            { text: '', isCorrect: true },
-                            { text: '', isCorrect: false },
-                            { text: '', isCorrect: false },
-                            { text: '', isCorrect: false }
-                          ],
-                          numberOfCorrectAnswers: 1,
-                          order: 1
-                        });
-                      }}
-                      className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
-          </div>
-
-          {adminSelectedQuiz && questions.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-white">Existing Questions ({questions.length})</h3>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {questions.map((q, idx) => (
-                  <div key={q._id} className="bg-[#1a1a1a] border border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-white/10 transition-all">
-                    <div className="flex items-center gap-6">
-                      <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-500 font-bold">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <p className="text-white font-medium line-clamp-1 max-w-xl">{q.questionText}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{q.options.length} Options</span>
-                          <span className="w-1 h-1 rounded-full bg-gray-700"></span>
-                          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
-                            {q.numberOfCorrectAnswers} Correct
-                          </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {newQuestion.options?.map((option, idx) => (
+                      <div key={idx} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Option {idx + 1}</label>
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={option.isCorrect}
+                              onChange={(e) => {
+                                const updatedOptions = [...(newQuestion.options || [])];
+                                updatedOptions[idx].isCorrect = e.target.checked;
+                                setNewQuestion({ 
+                                  ...newQuestion, 
+                                  options: updatedOptions,
+                                  numberOfCorrectAnswers: updatedOptions.filter(o => o.isCorrect).length
+                                });
+                              }}
+                              className="hidden"
+                            />
+                            <div className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${option.isCorrect ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 group-hover:border-white/40'}`}>
+                              {option.isCorrect && <CheckCircle2 size={14} className="text-white" />}
+                            </div>
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${option.isCorrect ? 'text-emerald-500' : 'text-gray-500'}`}>
+                              Correct Answer
+                            </span>
+                          </label>
                         </div>
+                        <input
+                          type="text"
+                          required
+                          value={option.text}
+                          onChange={(e) => {
+                            const updatedOptions = [...(newQuestion.options || [])];
+                            updatedOptions[idx].text = e.target.value;
+                            setNewQuestion({ ...newQuestion, options: updatedOptions });
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-orange-500 transition-all"
+                          placeholder={`Enter option ${idx + 1}...`}
+                        />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => handleEditClick(q)}
-                        className="p-3 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => openConfirm(
-                          'Delete Question',
-                          'Removing this question will permanently erase it from this quiz. This cannot be undone.',
-                          () => handleDeleteQuestion(q._id)
-                        )}
-                        className="p-3 bg-white/5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+
+                  <div className="flex items-center gap-4 pt-4">
+                    <button
+                      type="submit"
+                      className="px-10 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2"
+                    >
+                      {editingQuestionId ? <Save size={20} /> : <PlusCircle size={20} />}
+                      {editingQuestionId ? 'Update Question' : 'Add Question to Pool'}
+                    </button>
+                    {editingQuestionId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingQuestionId(null);
+                          setNewQuestion({
+                            questionText: '',
+                            codeSnippet: '',
+                            programmingLanguage: 'javascript',
+                            options: [
+                              { text: '', isCorrect: true },
+                              { text: '', isCorrect: false },
+                              { text: '', isCorrect: false },
+                              { text: '', isCorrect: false }
+                            ],
+                            numberOfCorrectAnswers: 1,
+                            order: 1
+                          });
+                        }}
+                        className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
             </div>
           )}
+
+          {adminView === 'questions' && adminSelectedQuiz && (
+            <div className="space-y-6">
+              {/* GLOBAL HUB HEADER */}
+              <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/5 backdrop-blur-md flex flex-wrap items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-orange-500/10 rounded-[1.5rem] flex items-center justify-center text-orange-500 border border-orange-500/10">
+                    <Trophy size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white tracking-tight">{adminSelectedQuiz.title}</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Quiz Configuration Hub</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 px-5 py-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="p-2 bg-white/5 rounded-lg text-gray-400 font-black text-[10px]">
+                      {adminSelectedQuiz.questions?.length || 0}
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-gray-500 font-bold uppercase">Lineup</p>
+                      <p className="text-[10px] font-black text-white uppercase tracking-widest">Questions</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 px-5 py-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="p-2 bg-white/5 rounded-lg text-gray-400">
+                      <Clock size={14} />
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-gray-500 font-bold uppercase">Time Limit</p>
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="text" 
+                          value={adminSelectedQuiz.timeLimit}
+                          onChange={async (e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            const updated = { ...adminSelectedQuiz, timeLimit: parseInt(val || '1', 10) };
+                            setAdminSelectedQuiz(updated);
+                          }}
+                          className="w-8 bg-transparent text-sm font-black text-white focus:outline-none text-center"
+                        />
+                        <span className="text-[10px] font-black text-gray-600 uppercase">min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 ml-4">
+                    <button
+                      onClick={async () => {
+                        const toastId = pushToast('Saving lineup...', 'loading', 0);
+                        try {
+                          const updated = await api.updateQuiz(adminSelectedQuiz._id, { 
+                            questions: adminSelectedQuiz.questions,
+                            questionCount: Math.max(adminSelectedQuiz.questionCount || 0, adminSelectedQuiz.questions?.length || 0),
+                            timeLimit: adminSelectedQuiz.timeLimit
+                          });
+                          setAdminSelectedQuiz(updated);
+                          fetchQuizzesForChapter(adminSelectedChapter._id);
+                          updateToast(toastId, 'Quiz Assignments Saved', 'success', 2000);
+                        } catch (err) {
+                          updateToast(toastId, 'Failed to save', 'error', 2000);
+                        }
+                      }}
+                      className="px-6 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-2xl text-xs font-black uppercase transition-all active:scale-95 flex items-center gap-2 border border-emerald-500/30 backdrop-blur-md"
+                    >
+                      <Save size={16} />
+                      Apply & Sync
+                    </button>
+                    <button
+                      onClick={() => publishQuiz(adminSelectedQuiz._id, adminSelectedChapter._id, !adminSelectedQuiz.isPublished)}
+                      className={`px-6 py-3 rounded-2xl text-xs font-black uppercase transition-all backdrop-blur-md active:scale-95 border ${
+                        adminSelectedQuiz.isPublished 
+                          ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 border-red-500/30' 
+                          : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 hover:text-orange-400 border-orange-500/30'
+                      }`}
+                    >
+                      {adminSelectedQuiz.isPublished ? 'Live' : 'Draft'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div 
+                  className="lg:col-span-3 space-y-4"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    const qId = e.dataTransfer.getData('questionId');
+                    const source = e.dataTransfer.getData('source');
+                    if (source === 'quiz') {
+                      const newSelection = adminSelectedQuiz.questions?.filter((id: any) => (typeof id === 'string' ? id : id._id) !== qId);
+                      setAdminSelectedQuiz({
+                        ...adminSelectedQuiz,
+                        questions: newSelection,
+                        questionCount: Math.max(adminSelectedQuiz.questionCount || 0, newSelection.length)
+                      });
+                      pushToast('Returned to Pool', 'success', 1000);
+                    }
+                  }}
+                >
+                  <div className="bg-[#1a1a1a] border border-white/5 rounded-[2rem] p-6 h-[750px] flex flex-col">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-white">Question Pool</h3>
+                      <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">
+                        {questions.filter(q => !((adminSelectedQuiz.questions as any[]) || []).find(id => (typeof id === 'string' ? id : (id as any)._id) === q._id)).length} Available
+                      </p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                      {questions
+                        .filter(q => !((adminSelectedQuiz.questions as any[]) || []).find(id => (typeof id === 'string' ? id : (id as any)._id) === q._id))
+                        .map((q) => (
+                          <div 
+                            key={q._id} 
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('questionId', q._id);
+                              e.dataTransfer.setData('source', 'pool');
+                            }}
+                            onClick={() => setPreviewQuestion(q)}
+                            className={`group p-4 rounded-2xl border transition-all cursor-pointer ${previewQuestion?._id === q._id ? 'bg-orange-500/10 border-orange-500/30' : 'bg-white/[0.02] border-white/5 hover:border-white/10'}`}
+                          >
+                            <p className="text-xs font-medium text-white line-clamp-2 leading-relaxed">{q.questionText}</p>
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{q.options.length} Options</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-bold text-amber-500/60 uppercase">Pool</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PANE 2: SELECTED QUESTIONS (QUIZ MANAGEMENT) */}
+                <div className="lg:col-span-5 space-y-6">
+
+                <div 
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    const qId = e.dataTransfer.getData('questionId');
+                    const source = e.dataTransfer.getData('source');
+                    if (source === 'pool') {
+                      if (adminSelectedQuiz.questions?.some((id: any) => (typeof id === 'string' ? id : id._id) === qId)) {
+                        pushToast('Already in Quiz', 'error', 2000);
+                        return;
+                      }
+                      const newQuestions = [...(adminSelectedQuiz.questions || []), qId];
+                      setAdminSelectedQuiz({
+                        ...adminSelectedQuiz,
+                        questions: newQuestions,
+                        questionCount: Math.max(adminSelectedQuiz.questionCount || 0, newQuestions.length)
+                      });
+                      pushToast('Added (Unsaved)', 'success', 1000);
+                    }
+                  }}
+                  className="space-y-4 max-h-[640px] overflow-y-auto pr-2 custom-scrollbar min-h-[200px]"
+                >
+                  {(adminSelectedQuiz.questions || []).map((qObj: any, idx: number) => {
+                    const qData = typeof qObj === 'string' ? questions.find(item => item._id === qObj) : qObj;
+                    if (!qData) return null;
+                    return (
+                      <div 
+                        key={qData._id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('questionId', qData._id);
+                          e.dataTransfer.setData('source', 'quiz');
+                        }}
+                        onClick={() => setPreviewQuestion(qData)}
+                        className={`p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center justify-between group ${previewQuestion?._id === qData._id ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-[10px] text-gray-500 font-black">
+                            {idx + 1}
+                          </div>
+                          <p className="text-xs font-semibold text-white line-clamp-1 max-w-[240px]">{qData.questionText}</p>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newSelection = adminSelectedQuiz.questions?.filter((id: any) => (typeof id === 'string' ? id : id._id) !== qData._id);
+                            setAdminSelectedQuiz({
+                              ...adminSelectedQuiz,
+                              questions: newSelection,
+                              questionCount: Math.max(adminSelectedQuiz.questionCount || 0, newSelection.length)
+                            });
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-2 text-gray-500 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(adminSelectedQuiz.questions?.length || 0) === 0 && (
+                    <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-[2.5rem]">
+                      <p className="text-gray-500 text-xs italic">Drag or click questions from the pool to build your quiz.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PANE 3: QUESTION PREVIEW */}
+              <div className="lg:col-span-4 sticky top-6">
+                {previewQuestion ? (
+                  <div className="bg-[#1a1a1a] border border-orange-500/20 rounded-[2.5rem] p-8 space-y-6 overflow-hidden">
+                    <div className="flex items-center justify-between pb-6 border-b border-white/5">
+                      <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Question Preview</h4>
+                      <span className="px-3 py-1 bg-orange-500/10 text-orange-500 text-[9px] font-black uppercase rounded-lg border border-orange-500/10">
+                        {previewQuestion.numberOfCorrectAnswers} Correct
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <p className="text-lg font-bold text-white leading-tight">{previewQuestion.questionText}</p>
+                        
+                        {previewQuestion.codeSnippet && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between px-2">
+                              <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                {previewQuestion.programmingLanguage || 'Source Code'}
+                              </span>
+                              <button
+                                onClick={() => setIsCodeFullscreen(true)}
+                                className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter"
+                                title="Fullscreen Preview"
+                              >
+                                <Maximize2 size={12} />
+                                Expand
+                              </button>
+                            </div>
+                            <div className="border border-white/10 rounded-2xl overflow-hidden h-64 shadow-inner bg-black/20">
+                              <Editor
+                                height="100%"
+                                language={previewQuestion.programmingLanguage}
+                                theme="vs-dark"
+                                value={previewQuestion.codeSnippet}
+                                options={{
+                                  readOnly: true,
+                                  minimap: { enabled: false },
+                                  fontSize: 13,
+                                  lineNumbers: 'on',
+                                  scrollBeyondLastLine: false,
+                                  automaticLayout: true,
+                                  padding: { top: 15, bottom: 15 },
+                                  renderLineHighlight: 'none',
+                                  scrollbar: {
+                                    vertical: 'hidden',
+                                    horizontal: 'hidden'
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-1 gap-3 mt-8">
+                        {previewQuestion.options.map((option: any, oIdx: number) => (
+                          <div 
+                            key={oIdx}
+                            className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${option.isCorrect ? 'bg-emerald-500/5 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.02] border-white/5 text-gray-400'}`}
+                          >
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] ${option.isCorrect ? 'bg-emerald-500 text-white' : 'bg-white/5'}`}>
+                              {String.fromCharCode(65 + oIdx)}
+                            </div>
+                            <span className="text-sm font-semibold">{option.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                    {previewQuestion.explanation && (
+                      <div className="mt-8 p-6 bg-white/[0.02] rounded-3xl border border-white/5">
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Explanation</p>
+                        <p className="text-xs text-gray-400 leading-relaxed italic">{previewQuestion.explanation}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-12 text-center h-[750px] flex flex-col items-center justify-center space-y-4">
+                    <div className="w-16 h-16 bg-white/5 rounded-[2rem] flex items-center justify-center text-gray-600">
+                      <Eye size={32} />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold">Select a Question</p>
+                      <p className="text-gray-500 text-xs mt-1">Preview its full details and answers here</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         </div>
-      )}
+      ) : null}
 
       <AnimatePresence>
         {showAddCourse && (
@@ -2036,25 +2410,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-all h-24 resize-none"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-gray-500 uppercase font-bold">Questions</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={newQuizData.questionCount}
-                    onChange={(e) => setNewQuizData({ ...newQuizData, questionCount: parseInt(e.target.value || '1', 10) })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-gray-500 uppercase font-bold">Time (mins)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={newQuizData.timeLimit}
-                    onChange={(e) => setNewQuizData({ ...newQuizData, timeLimit: parseInt(e.target.value || '1', 10) })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-all"
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] text-gray-500 uppercase font-bold text-center block">Draft quiz will be created without questions. You can add them in the next step.</label>
                 </div>
               </div>
 
@@ -2073,24 +2430,28 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     setFormError('');
                     const toastId = pushToast('Creating quiz...', 'loading', 0);
                     try {
-                      await api.createQuiz(
+                      const createdQuiz = await api.createQuiz(
                         adminSelectedChapter._id,
                         adminSelectedCourse._id,
                         newQuizData.title.trim(),
                         newQuizData.description.trim(),
-                        newQuizData.questionCount,
-                        newQuizData.passingScore,
-                        newQuizData.timeLimit
+                        0, // questionCount
+                        70, // passingScore
+                        15 // timeLimit
                       );
                       updateToast(toastId, 'Quiz created successfully', 'success', 2600);
                       setShowAddQuiz(false);
                       setNewQuizData({
                         title: '',
                         description: '',
-                        questionCount: 1,
+                        questionCount: 0,
                         passingScore: 70,
                         timeLimit: 15,
                       });
+                      
+                      // Auto-select and switch to management view
+                      setAdminSelectedQuiz(createdQuiz);
+                      setAdminView('questions');
                       fetchQuizzesForChapter(adminSelectedChapter._id);
                     } catch (err: any) {
                       const message = err.response?.data?.message || err.message || 'Failed to create quiz';
@@ -2113,6 +2474,92 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      {/* PREMIUM FULLSCREEN CODE MODAL */}
+      <AnimatePresence>
+        {isCodeFullscreen && previewQuestion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 md:p-12"
+            onClick={() => setIsCodeFullscreen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-6xl h-full bg-[#0a0a0a] border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500">
+                    <Code size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white leading-none">Code Insight</h3>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500/50"></span>
+                       {previewQuestion.programmingLanguage || 'plaintext'} mode • Ready-only
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <button
+                    onClick={() => setIsCodeFullscreen(false)}
+                    className="p-4 bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 rounded-2xl transition-all border border-white/5"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content - Editor */}
+              <div className="flex-1 min-h-0 relative">
+                <Editor
+                  height="100%"
+                  language={previewQuestion.programmingLanguage}
+                  theme="vs-dark"
+                  value={previewQuestion.codeSnippet}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: true },
+                    fontSize: 15,
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    padding: { top: 30, bottom: 30 },
+                    cursorStyle: 'line',
+                    folding: true,
+                    glyphMargin: true,
+                    wordWrap: 'on'
+                  }}
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
+                <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest italic flex items-center gap-2">
+                  <AlertCircle size={12} />
+                  Viewing original source snippet
+                </p>
+                <div className="flex items-center gap-2">
+                   <button
+                    onClick={() => setIsCodeFullscreen(false)}
+                    className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-sm transition-all border border-white/5 flex items-center gap-2"
+                  >
+                    <Minimize2 size={16} />
+                    Close Insight
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ConfirmModalUI />
     </motion.div>
   );

@@ -32,6 +32,7 @@ export interface Quiz {
   passingScore: number;
   timeLimit: number; // in minutes
   isPublished: boolean;
+  questions: string[]; // pool of question IDs
 }
 
 export interface Option {
@@ -41,7 +42,9 @@ export interface Option {
 
 export interface Question {
   _id: string;
-  quizId: string;
+  chapterId: string;
+  courseId: string;
+  quizId?: string; // Optional reference for compatibility
   questionText: string;
   image?: string;
   codeSnippet?: string;

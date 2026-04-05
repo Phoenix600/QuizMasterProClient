@@ -49,16 +49,22 @@ export const updateQuiz = async (quizId, quizData) => {
   return response.data;
 };
 
-export const publishQuiz = async (quizId) => {
-  await apiClient.patch(ENDPOINTS.ADMIN.PUBLISH_QUIZ(quizId));
+export const publishQuiz = async (quizId, isPublished = true) => {
+  const response = await apiClient.patch(ENDPOINTS.ADMIN.PUBLISH_QUIZ(quizId), { isPublished });
+  return response.data;
 };
 
 export const deleteQuiz = async (quizId) => {
   await apiClient.delete(`${ENDPOINTS.ADMIN.QUIZZES_BASE}/${quizId}`);
 };
 
-export const getQuestions = async (quizId) => {
-  const response = await apiClient.get(ENDPOINTS.ADMIN.QUESTIONS(quizId));
+export const getCourseQuestions = async (courseId) => {
+  const response = await apiClient.get(`${ENDPOINTS.ADMIN.QUESTIONS_BASE}/course/${courseId}`);
+  return response.data;
+};
+
+export const getQuestions = async (chapterId) => {
+  const response = await apiClient.get(ENDPOINTS.ADMIN.QUESTIONS(chapterId));
   return response.data;
 };
 
