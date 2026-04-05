@@ -578,7 +578,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <div className="space-y-6">
             {adminSelectedCourse ? (
               <div className="space-y-6">
-                <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden group">
+                <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-orange-500/10 transition-all duration-700" />
                   <div className="relative flex items-center gap-6">
                     <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500 ring-1 ring-orange-500/20">
@@ -1245,19 +1245,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <tr key={log._id} className="group hover:bg-white/[0.03] transition-all">
                       <td className="px-6 py-5 bg-white/[0.015] rounded-l-2xl border-l border-t border-b border-white/[0.02]">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${idx === 0 ? 'bg-orange-500/10 text-orange-500' : 'bg-gray-500/5 text-gray-500'}`}>
+                          <div className="p-2 rounded-lg bg-gray-500/5 text-gray-500 group-hover:bg-orange-500/10 group-hover:text-orange-500 transition-all">
                             {log.deviceType?.includes('iPad') || log.deviceType?.includes('Tablet') ? <Tablet size={18} /> : 
                              log.deviceType?.includes('Phone') ? <Smartphone size={18} /> : <Laptop size={18} />}
                           </div>
                           <div className="flex flex-col">
-                            <span className={`text-[13px] font-black ${idx === 0 ? 'text-orange-500' : 'text-gray-200'}`}>{log.deviceType || 'Desktop Device'}</span>
+                            <span className="text-[13px] font-black text-gray-200 group-hover:text-white transition-all">{log.deviceType || 'Desktop Device'}</span>
                             <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{new Date(log.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
                         <div className="flex flex-col">
-                          <span className={`text-[13px] font-black ${idx === 0 ? 'text-orange-500/90' : 'text-white'}`}>{log.userName}</span>
+                          <span className="text-[13px] font-black text-white">{log.userName}</span>
                           <span className="text-[11px] text-gray-500 font-medium">{log.userEmail}</span>
                         </div>
                       </td>
