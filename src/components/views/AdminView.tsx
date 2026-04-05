@@ -1231,6 +1231,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <th className="px-6 py-3">Device</th>
                     <th className="px-6 py-3">User</th>
                     <th className="px-6 py-3 text-center">Login Method</th>
+                    <th className="px-6 py-3">System</th>
                     <th className="px-6 py-3">Location</th>
                     <th className="px-6 py-3">IP Address</th>
                     <th className="px-6 py-3 text-right pr-10">Action</th>
@@ -1238,9 +1239,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </thead>
                 <tbody className="divide-y-0">
                   {logsLoading ? (
-                    <tr><td colSpan={6} className="text-center py-20 text-gray-500 animate-pulse font-bold">Scanning secure logs...</td></tr>
+                    <tr><td colSpan={7} className="text-center py-20 text-gray-500 animate-pulse font-bold">Scanning secure logs...</td></tr>
                   ) : logs.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-24 text-gray-600 italic font-medium">No sessions found for this search.</td></tr>
+                    <tr><td colSpan={7} className="text-center py-24 text-gray-600 italic font-medium">No sessions found for this search.</td></tr>
                   ) : logs.map((log, idx) => (
                     <tr key={log._id} className="group hover:bg-white/[0.03] transition-all">
                       <td className="px-6 py-5 bg-white/[0.015] rounded-l-2xl border-l border-t border-b border-white/[0.02]">
@@ -1267,13 +1268,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         </span>
                       </td>
                       <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <span className="px-3 py-1 bg-white/5 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/5">
+                          {log.deviceOS || 'Unknown OS'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
                         <div className="flex flex-col">
                           <span className="text-[13px] text-gray-300 font-bold">{log.location}</span>
                           <span className="text-[10px] text-gray-600 font-medium tracking-tight">LAT: {log.coordinates?.split(',')[1]} LON: {log.coordinates?.split(',')[0]}</span>
                         </div>
                       </td>
                       <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
-                        <span className="text-[13px] text-gray-400 font-mono tracking-tighter">{log.ipAddress}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] text-gray-400 font-mono tracking-tighter truncate max-w-[120px]" title={log.ipAddress}>
+                            {log.ipAddress?.split(',')[0]}
+                          </span>
+                          {log.ipAddress?.includes(',') && (
+                            <span className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 text-[9px] font-bold rounded">
+                              +{log.ipAddress.split(',').length - 1}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-5 bg-white/[0.015] rounded-r-2xl border-r border-t border-b border-white/[0.02] text-right pr-6">
                         <button
