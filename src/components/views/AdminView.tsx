@@ -117,9 +117,95 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const [editingChapterData, setEditingChapterData] = useState<{
     chapterId: string;
+    courseId: string;
     title: string;
     description: string;
   } | null>(null);
+
+  // Custom Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    countdown?: number;
+  } | null>(null);
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void, countdown: number = 8) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal(null);
+      },
+      onCancel: () => setConfirmModal(null),
+      countdown
+    });
+  };
+
+  const ConfirmModalUI = () => {
+    if (!confirmModal) return null;
+    const [timeLeft, setTimeLeft] = useState(confirmModal.countdown || 8);
+    
+    useEffect(() => {
+      if (timeLeft <= 0) {
+        confirmModal.onCancel();
+        return;
+      }
+      const timer = setInterval(() => setTimeLeft(t => t - 0.1), 100);
+      return () => clearInterval(timer);
+    }, [timeLeft]);
+
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+          onClick={confirmModal.onCancel}
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 10, opacity: 0 }}
+            className="w-full max-w-md bg-[#1a1a1a] border border-white/10 rounded-[2rem] p-8 space-y-6 shadow-2xl relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Auto-cancel progress bar */}
+            <div className="absolute top-0 left-0 h-1 bg-red-500/50 transition-all duration-100" style={{ width: `${(timeLeft / (confirmModal.countdown || 8)) * 100}%` }} />
+            
+            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mx-auto">
+              <AlertCircle size={32} />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h4 className="text-2xl font-black text-white">{confirmModal.title}</h4>
+              <p className="text-gray-400 text-sm leading-relaxed">{confirmModal.message}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <button
+                onClick={confirmModal.onCancel}
+                className="py-4 bg-white/5 hover:bg-white/10 text-gray-400 font-black rounded-2xl transition-all uppercase tracking-widest text-xs"
+              >
+                Cancel ({Math.ceil(timeLeft)}s)
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="py-4 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-red-500/20"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
 
   const loadLeaderboard = async () => {
     setLbLoading(true);
@@ -140,13 +226,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
   }, [adminView, lbModeFilter]);
 
   const handleDeleteRecord = async (resultId: string) => {
-    if (!window.confirm('Delete this record?')) return;
-    try {
-      await api.deleteLeaderboardRecord(resultId);
-      setLbEntries(prev => prev.filter(e => e.resultId !== resultId));
-    } catch (e) {
-      alert('Delete failed');
-    }
+    openConfirm('Delete Record', 'Are you sure you want to delete this leaderboard entry? This action is permanent.', async () => {
+      try {
+        await api.deleteLeaderboardRecord(resultId);
+        setLbEntries(prev => prev.filter(e => e.resultId !== resultId));
+        pushToast('Record deleted', 'success');
+      } catch (e) {
+        pushToast('Delete failed', 'error');
+      }
+    });
   };
 
   // Reset to page 1 whenever any filter or sort changes
@@ -177,25 +265,24 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if (targetCount === 0) return;
 
     const msg = isFiltered 
-      ? `Delete ALL ${targetCount} filtered records? This CANNOT be undone.`
-      : `Delete ALL ${lbEntries.length} records in the system? THIS WILL CLEAR THE ENTIRE LEADERBOARD.`;
+      ? `Are you sure you want to delete ALL ${targetCount} filtered records? This CANNOT be undone.`
+      : `Are you sure you want to delete ALL ${lbEntries.length} records in the system? THIS WILL CLEAR THE ENTIRE LEADERBOARD.`;
 
-    if (!window.confirm(msg)) return;
-
-    try {
-      const idsToDelete = isFiltered ? filteredLBEntries.map(e => e.resultId) : [];
-      const res = await api.deleteLeaderboardBulk(idsToDelete);
-      
-      if (isFiltered) {
-        setLbEntries(prev => prev.filter(e => !idsToDelete.includes(e.resultId)));
-      } else {
-        setLbEntries([]);
+    openConfirm('Bulk Clear Leaderboard', msg, async () => {
+      try {
+        const idsToDelete = isFiltered ? filteredLBEntries.map(e => e.resultId) : [];
+        await api.deleteLeaderboardBulk(idsToDelete);
+        
+        if (isFiltered) {
+          setLbEntries(prev => prev.filter(e => !idsToDelete.includes(e.resultId)));
+        } else {
+          setLbEntries([]);
+        }
+        pushToast('Records deleted successfully', 'success');
+      } catch (e) {
+        pushToast('Action failed', 'error');
       }
-      
-      alert(res.message);
-    } catch (e) {
-      alert('Delete failed');
-    }
+    }, 15); // Longer countdown for mass actions
   };
 
   // User Logs State
@@ -227,31 +314,33 @@ export const AdminView: React.FC<AdminViewProps> = ({
   }, [adminView, logsSearch]);
 
   const handleDeleteLog = async (id: string) => {
-    if (!window.confirm('Delete this login log?')) return;
-    try {
-      await api.deleteLoginLog(id);
-      loadLogs(logsPage);
-      pushToast('Log deleted', 'success');
-    } catch (e) {
-      pushToast('Delete failed', 'error');
-    }
+    openConfirm('Delete Login Log', 'Are you sure you want to delete this specific login session? This action is permanent.', async () => {
+      try {
+        await api.deleteLoginLog(id);
+        loadLogs(logsPage);
+        pushToast('Log deleted', 'success');
+      } catch (e) {
+        pushToast('Delete failed', 'error');
+      }
+    });
   };
 
   const handleDeleteSelectedLogs = async () => {
     const isFiltered = logsSearch.trim() !== '';
     const msg = isFiltered 
-      ? `Delete ALL logs matching "${logsSearch}"?`
-      : `Delete ALL logs in the system?`;
+      ? `Are you sure you want to delete ALL logs matching "${logsSearch}"? This action cannot be reversed.`
+      : `Are you sure you want to delete ALL login logs in the system? THIS WILL CLEAR ALL AUDIT DATA.`;
     
-    if (!window.confirm(msg)) return;
-    try {
-      await api.deleteLoginLogsBulk([], logsSearch);
-      setLogsSearch('');
-      loadLogs(1);
-      pushToast('Logs cleared successfully', 'success');
-    } catch (e) {
-      pushToast('Bulk delete failed', 'error');
-    }
+    openConfirm('Bulk Clear Logs', msg, async () => {
+      try {
+        await api.deleteLoginLogsBulk([], logsSearch);
+        setLogsSearch('');
+        loadLogs(1);
+        pushToast('Logs cleared successfully', 'success');
+      } catch (e) {
+        pushToast('Bulk delete failed', 'error');
+      }
+    }, 12);
   };
 
   const toggleLogSelection = (id: string) => {
@@ -444,13 +533,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                       {/* Delete */}
                       <button
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Delete this course and all its data?')) {
-                            await api.deleteCourse(course._id);
-                            if (adminSelectedCourse?._id === course._id) setAdminSelectedCourse(null);
-                            fetchInitialData();
-                          }
+                          openConfirm(
+                            'Delete Course',
+                            'This will permanently delete this course and all its underlying data. This action is irreversible.',
+                            async () => {
+                              await api.deleteCourse(course._id);
+                              if (adminSelectedCourse?._id === course._id) setAdminSelectedCourse(null);
+                              fetchInitialData();
+                            }
+                          );
                         }}
                         className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-all"
                       >
@@ -581,7 +674,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingChapterData({ chapterId: chapter._id, title: chapter.title, description: chapter.description });
+                                setEditingChapterData({ 
+                                  chapterId: chapter._id, 
+                                  courseId: adminSelectedCourse._id,
+                                  title: chapter.title, 
+                                  description: chapter.description 
+                                });
                                 setFormError('');
                               }}
                               className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-400 hover:bg-blue-500/10 hover:text-blue-400 transition-all"
@@ -590,16 +688,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
                               Edit
                             </button>
                             <button
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Are you sure you want to delete this chapter?')) {
-                                  await api.deleteChapter(chapter._id);
-                                  if (adminSelectedChapter?._id === chapter._id) {
-                                    setAdminSelectedChapter(null);
-                                    setAdminSelectedQuiz(null);
+                                openConfirm(
+                                  'Delete Chapter',
+                                  'Deleting this chapter will also remove all quizzes and questions within it. This action is irreversible.',
+                                  async () => {
+                                    await api.deleteChapter(chapter._id);
+                                    if (adminSelectedChapter?._id === chapter._id) {
+                                      setAdminSelectedChapter(null);
+                                      setAdminSelectedQuiz(null);
+                                    }
+                                    fetchChaptersForCourse(adminSelectedCourse._id);
                                   }
-                                  fetchChaptersForCourse(adminSelectedCourse._id);
-                                }
+                                );
                               }}
                               className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-all"
                             >
@@ -728,12 +830,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   {quiz.isPublished ? 'Unpublish' : 'Publish'}
                                 </button>
                                 <button
-                                  onClick={async (e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm('Are you sure you want to delete this quiz?')) {
-                                      await api.deleteQuiz(quiz._id);
-                                      fetchQuizzesForChapter(adminSelectedChapter._id);
-                                    }
+                                    openConfirm(
+                                      'Delete Quiz',
+                                      'This quiz and all associated results will be permanently deleted.',
+                                      async () => {
+                                        await api.deleteQuiz(quiz._id);
+                                        fetchQuizzesForChapter(adminSelectedChapter._id);
+                                      }
+                                    );
                                   }}
                                   className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-all"
                                 >
@@ -1426,7 +1532,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <Edit size={18} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteQuestion(q._id)}
+                        onClick={() => openConfirm(
+                          'Delete Question',
+                          'Removing this question will permanently erase it from this quiz. This cannot be undone.',
+                          () => handleDeleteQuestion(q._id)
+                        )}
                         className="p-3 bg-white/5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                       >
                         <Trash2 size={18} />
@@ -1979,6 +2089,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      <ConfirmModalUI />
     </motion.div>
   );
 };
