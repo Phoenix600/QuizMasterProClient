@@ -290,6 +290,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsPage, setLogsPage] = useState(1);
   const [logsTotalPages, setLogsTotalPages] = useState(1);
+  const [expandedIpLogId, setExpandedIpLogId] = useState<string | null>(null);
   const [logsSearch, setLogsSearch] = useState('');
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
 
@@ -1278,17 +1279,25 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           <span className="text-[10px] text-gray-600 font-medium tracking-tight">LAT: {log.coordinates?.split(',')[1]} LON: {log.coordinates?.split(',')[0]}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] text-gray-400 font-mono tracking-tighter truncate max-w-[120px]" title={log.ipAddress}>
-                            {log.ipAddress?.split(',')[0]}
+                      <td 
+                        className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]"
+                      >
+                        <button 
+                          onClick={() => setExpandedIpLogId(expandedIpLogId === log._id ? null : log._id)}
+                          className={`flex items-center gap-2 group/ip transition-all ${expandedIpLogId === log._id ? 'bg-orange-500/10 rounded-xl p-2 -ml-2 border border-orange-500/20' : ''}`}
+                        >
+                          <span className={`text-[13px] text-gray-400 font-mono tracking-tighter ${expandedIpLogId === log._id ? 'text-white' : ''}`}>
+                            {expandedIpLogId === log._id 
+                              ? log.ipAddress 
+                              : (log.ipAddress?.split(',')[0].length > 15 ? log.ipAddress?.split(',')[0].substring(0, 15) + '...' : log.ipAddress?.split(',')[0])
+                            }
                           </span>
-                          {log.ipAddress?.includes(',') && (
-                            <span className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 text-[9px] font-bold rounded">
+                          {log.ipAddress?.includes(',') && expandedIpLogId !== log._id && (
+                            <span className="px-1.5 py-0.5 bg-gray-500/10 text-gray-400 text-[9px] font-bold rounded group-hover/ip:bg-orange-500/20 group-hover/ip:text-orange-500 transition-all">
                               +{log.ipAddress.split(',').length - 1}
                             </span>
                           )}
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-5 bg-white/[0.015] rounded-r-2xl border-r border-t border-b border-white/[0.02] text-right pr-6">
                         <button
