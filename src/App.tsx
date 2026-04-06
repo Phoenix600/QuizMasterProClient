@@ -971,6 +971,11 @@ function AppContent() {
               setView={setView}
               questionsLen={questions.length}
               formatTime={formatTime}
+              questions={questions}
+              answers={answers}
+              quizMode={quizMode}
+              getLanguage={getLanguage}
+              selectedCourseTitle={selectedCourse?.title}
             />
           )}
 
