@@ -17,4 +17,22 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Global error handling for 401 / 403 (Banned)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && [401, 403].includes(error.response.status)) {
+      // Clear session
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // If we are currently in a quiz and get 403, it means the user was just banned
+      // or session expired. Reloading will force App.tsx to reset state.
+      if (window.location.pathname !== '/login') {
+        window.location.reload();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;

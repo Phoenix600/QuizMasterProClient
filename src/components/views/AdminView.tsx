@@ -4,14 +4,15 @@ import Editor from '@monaco-editor/react';
 import { 
   ChevronLeft, ChevronRight, Plus, Search, Code, Trash2, Layers, ChevronDown, Trophy, 
   AlertCircle, CheckCircle2, Save, PlusCircle, Edit, Users, Clock, Medal,
-  RefreshCw, Filter, BookOpen, Laptop, Smartphone, Tablet, Eye, Maximize2, Minimize2, X
+  RefreshCw, Filter, BookOpen, Laptop, Smartphone, Tablet, Eye, Maximize2, Minimize2, X,
+  Settings, ChevronUp
 } from 'lucide-react';
 import * as api from '../../services/api';
 import { Course, Chapter, Quiz, Question, GlobalLeaderboardEntry } from '../../types';
 
 interface AdminViewProps {
-  adminView: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs';
-  setAdminView: (val: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs') => void;
+  adminView: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans';
+  setAdminView: (val: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans') => void;
   courses: Course[];
   courseChapters: Record<string, Chapter[]>;
   chapterQuizzes: Record<string, Quiz[]>;
@@ -135,6 +136,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [previewQuestion, setPreviewQuestion] = useState<any>(null);
   const [poolChapterFilter, setPoolChapterFilter] = useState<string>('all');
   const [poolSearch, setPoolSearch] = useState('');
+
+  const [showCourseDrop, setShowCourseDrop] = useState(false);
+  const [showChapterDrop, setShowChapterDrop] = useState(false);
 
   const openConfirm = (title: string, message: string, onConfirm: () => void, countdown: number = 8) => {
     setConfirmModal({
@@ -366,6 +370,43 @@ export const AdminView: React.FC<AdminViewProps> = ({
     description: string;
   } | null>(null);
 
+  // Ban Logs State
+  const [banLogs, setBanLogs] = useState<any[]>([]);
+  const [banLogsLoading, setBanLogsLoading] = useState(false);
+  const [banLogsPage, setBanLogsPage] = useState(1);
+  const [banLogsTotalPages, setBanLogsTotalPages] = useState(1);
+  const [banLogsSearch, setBanLogsSearch] = useState('');
+
+  const loadBanLogs = async (page = 1) => {
+    setBanLogsLoading(true);
+    try {
+      const data = await api.getBanLogs(page, 10, banLogsSearch);
+      setBanLogs(data.logs);
+      setBanLogsTotalPages(data.pages);
+      setBanLogsPage(data.page);
+    } catch (e) {
+      pushToast('Failed to load ban logs', 'error');
+    } finally {
+      setBanLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (adminView === 'bans') {
+      loadBanLogs(1);
+    }
+  }, [adminView, banLogsSearch]);
+
+  const handleUnbanUser = async (userId: string) => {
+    try {
+      await api.unbanUser(userId);
+      pushToast('User unbanned successfully', 'success');
+      loadBanLogs(banLogsPage);
+    } catch (e) {
+      pushToast('Failed to unban user', 'error');
+    }
+  };
+
   return (
     <motion.div 
       key="admin"
@@ -376,7 +417,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <h2 className="text-4xl font-black text-white tracking-tight">
-            {adminView === 'hierarchy' ? 'Manage Hierarchy' : adminView === 'leaderboard' ? 'Leaderboard' : adminView === 'logs' ? 'User Login Logs' : 'Manage Questions'}
+            {adminView === 'hierarchy' ? 'Manage Hierarchy' : 
+             adminView === 'leaderboard' ? 'Leaderboard' : 
+             adminView === 'logs' ? 'User Login Logs' : 
+             adminView === 'bans' ? 'Suspensions & Bans' :
+             'Manage Questions'}
           </h2>
           <p className="text-gray-400">
             {adminView === 'hierarchy' 
@@ -385,9 +430,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
               ? 'View all student quiz submissions and rankings.'
               : adminView === 'logs'
               ? 'Trace user login history, IP addresses, and devices.'
+              : adminView === 'bans'
+              ? 'Track integrity violations and manage student bans.'
               : adminView === 'questionBank'
-              ? `Question Pool for Chapter: ${adminSelectedChapter?.title}`
-              : `Select Questions for Quiz: ${adminSelectedQuiz?.title}`}
+              ? `Question Pool for Chapter: ${adminSelectedChapter?.title || 'Not Selected'}`
+              : `Select Questions for Quiz: ${adminSelectedQuiz?.title || 'Not Selected'}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -427,6 +474,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             >
               <Clock size={14} />
               User Logs
+            </button>
+            <button
+              onClick={() => setAdminView('bans')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                adminView === 'bans' ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <AlertCircle size={14} />
+              Suspensions
             </button>
           </div>
         </div>
@@ -586,7 +642,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <div className="space-y-6">
             {adminSelectedCourse ? (
               <div className="space-y-6">
-                <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-orange-500/10 transition-all duration-700" />
                   <div className="relative flex items-center gap-6">
                     <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500 ring-1 ring-orange-500/20">
@@ -597,7 +653,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <p className="text-gray-500 text-sm font-medium">{adminSelectedCourse.description}</p>
                     </div>
                   </div>
-                  <div className="relative flex items-center gap-3">
+                  <div className="relative flex items-center gap-3 shrink-0">
                     <button
                       onClick={() => setEditingCourseData({ courseId: adminSelectedCourse._id, title: adminSelectedCourse.title, description: adminSelectedCourse.description })}
                       className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-white/5"
@@ -610,8 +666,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         const newStatus = !adminSelectedCourse.isPublished;
                         const toastId = pushToast(newStatus ? 'Publishing course...' : 'Unpublishing...', 'loading', 0);
                         try {
-                          await api.updateCourse(adminSelectedCourse._id, { isPublished: newStatus });
+                          const updated = await api.updateCourse(adminSelectedCourse._id, { isPublished: newStatus });
                           updateToast(toastId, `Course ${newStatus ? 'published' : 'unpublished'}`, 'success', 2500);
+                          setAdminSelectedCourse(updated);
                           fetchInitialData();
                         } catch (err: any) {
                           updateToast(toastId, 'Failed to update status', 'error', 3000);
@@ -777,8 +834,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       {courseHierarchyTab === 'pool' && (
                         <button 
                           onClick={() => {
-                            setAdminSelectedChapter(null);
                             setAdminView('questionBank');
+                            // If a chapter is selected, make sure its questions are loaded
+                            if (adminSelectedChapter) {
+                              api.getQuestions(adminSelectedChapter._id).then(setQuestions);
+                            }
                           }}
                           className="px-4 py-2 bg-orange-500/10 text-orange-400 rounded-xl text-xs font-bold border border-orange-500/10 flex items-center gap-2 hover:bg-orange-500/20 transition-all"
                         >
@@ -878,7 +938,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        publishQuiz(quiz._id, adminSelectedChapter._id);
+                                        publishQuiz(quiz._id, adminSelectedChapter._id, !quiz.isPublished);
                                       }}
                                       className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
                                         quiz.isPublished
@@ -1479,6 +1539,143 @@ export const AdminView: React.FC<AdminViewProps> = ({
             )}
           </div>
         </div>
+      ) : adminView === 'bans' ? (
+        <div className="space-y-12">
+          <div className="bg-[#1a1a1a] border border-white/5 rounded-[3rem] p-10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/5 blur-[120px] pointer-events-none rounded-full translate-x-1/3 -translate-y-1/3 group-hover:bg-red-500/10 transition-all duration-700" />
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-[0.3em] ml-1">
+                  <AlertCircle size={14} />
+                  Academic Integrity
+                </div>
+                <h3 className="text-3xl font-black text-white tracking-tight">Suspension Logs</h3>
+              </div>
+              
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative group/search">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/search:text-red-500 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or reason..."
+                    value={banLogsSearch}
+                    onChange={(e) => setBanLogsSearch(e.target.value)}
+                    className="bg-white/[0.02] border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all w-80 shadow-inner group-focus-within/search:bg-white/[0.04]"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => loadBanLogs(1)}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white rounded-2xl transition-all active:scale-95"
+                >
+                  <RefreshCw size={20} className={banLogsLoading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto -mx-2">
+              <table className="w-full border-separate border-spacing-y-4">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest pl-20">Student</th>
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Violation Reason</th>
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Type</th>
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Source</th>
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Timestamp</th>
+                    <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right pr-12">Controls</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {banLogs.map((log) => (
+                    <tr key={log._id} className="group hover:bg-white/[0.03] transition-all">
+                      <td className="px-6 py-5 bg-white/[0.015] rounded-l-2xl border-l border-t border-b border-white/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${log.action === 'ban' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                            {log.userName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[13px] font-black text-gray-200 group-hover:text-white transition-all">{log.userName}</span>
+                            <span className="text-[10px] text-gray-600 font-bold tracking-tight">{log.userEmail}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <p className="text-[13px] text-gray-300 font-bold line-clamp-1 max-w-[200px]" title={log.reason}>{log.reason}</p>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${log.action === 'ban' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <span className="px-3 py-1 bg-white/5 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/5">
+                          {log.performedBy}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
+                        <span className="text-[11px] text-gray-500 font-bold">{new Date(log.createdAt).toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-5 bg-white/[0.015] rounded-r-2xl border-r border-t border-b border-white/[0.02] text-right pr-6">
+                        {log.action === 'ban' && (
+                          <button
+                            onClick={() => handleUnbanUser(log.userId)}
+                            className="bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-green-500/20 active:scale-95"
+                          >
+                            Unban Student
+                          </button>
+                        )}
+                        {log.action === 'unban' && (
+                          <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest italic mr-3">Restored</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {banLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-20 text-center">
+                        <div className="flex flex-col items-center gap-4 opacity-30">
+                          <CheckCircle2 size={48} className="text-gray-500" />
+                          <p className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">No violations recorded</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {banLogs.length > 0 && (
+              <div className="flex items-center justify-between mt-12 px-4 py-6 border-t border-white/[0.03]">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                    Showing <span className="text-white">{banLogs.length}</span> Integrity Logs
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/[0.02] p-1.5 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => loadBanLogs(banLogsPage - 1)}
+                    disabled={banLogsPage === 1}
+                    className="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-500 rounded-xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-10"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div className="px-6 py-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                    Page <span className="text-red-500">{banLogsPage}</span> <span className="mx-2 opacity-30">|</span> Total {Math.max(1, banLogsTotalPages)}
+                  </div>
+                  <button
+                    onClick={() => loadBanLogs(banLogsPage + 1)}
+                    disabled={banLogsPage === banLogsTotalPages || banLogsTotalPages === 0}
+                    className="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-500 rounded-xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-10"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (adminView === 'questionBank' || adminView === 'questions') ? (
         <div className="space-y-12">
           {adminView === 'questionBank' && (
@@ -1488,13 +1685,139 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   {editingQuestionId ? 'Edit Pool Question' : 'Add New Question to Pool'}
                 </h3>
               </div>
-              {!adminSelectedChapter ? (
-                <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                  <AlertCircle className="mx-auto text-gray-600 mb-4" size={48} />
-                  <p className="text-gray-400">Please select a chapter from the Hierarchy tab first.</p>
+              <div className="space-y-10">
+                <div className="flex flex-wrap items-center justify-between gap-8 pb-10 border-b border-white/5">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] ml-1">
+                      <Settings size={12} className="text-orange-500" />
+                      Target Destination
+                    </div>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {/* Custom Course Selection */}
+                      <div className="relative z-[60] min-w-[280px]">
+                        <button
+                          onClick={() => setShowCourseDrop(!showCourseDrop)}
+                          className="w-full flex items-center justify-between bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-2xl pl-12 pr-6 py-3.5 transition-all group relative"
+                        >
+                          <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
+                          <span className="text-xs font-black text-white uppercase tracking-widest truncate max-w-[180px]">
+                            {adminSelectedCourse?.title || 'Select Course'}
+                          </span>
+                          <div className="flex flex-col gap-0.5 opacity-40 group-hover:opacity-100">
+                            <ChevronUp size={10} className="text-orange-500" />
+                            <ChevronDown size={10} className="text-orange-500" />
+                          </div>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {showCourseDrop && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowCourseDrop(false)} />
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="absolute z-20 top-full left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl"
+                              >
+                                <div className="max-h-[300px] overflow-y-auto custom-scrollbar-orange">
+                                  {courses.map(c => (
+                                    <button
+                                      key={c._id}
+                                      onClick={() => {
+                                        setAdminSelectedCourse(c);
+                                        fetchChaptersForCourse(c._id);
+                                        setAdminSelectedChapter(null);
+                                        setQuestions([]);
+                                        setShowCourseDrop(false);
+                                      }}
+                                      className={`w-full text-left px-5 py-4 rounded-xl transition-all flex items-center justify-between group/item ${
+                                        adminSelectedCourse?._id === c._id ? 'bg-orange-500/10 text-orange-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                      }`}
+                                    >
+                                      <span className="text-xs font-bold uppercase tracking-widest">{c.title}</span>
+                                      {adminSelectedCourse?._id === c._id && <CheckCircle2 size={14} />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <ChevronRight size={18} className="text-gray-800" />
+
+                      {/* Custom Chapter Selection */}
+                      <div className="relative z-[50] min-w-[280px]">
+                        <button
+                          onClick={() => setShowChapterDrop(!showChapterDrop)}
+                          disabled={!adminSelectedCourse}
+                          className={`w-full flex items-center justify-between border rounded-2xl pl-12 pr-6 py-3.5 transition-all group relative ${
+                            !adminSelectedCourse 
+                              ? 'bg-white/5 border-white/5 opacity-30 cursor-not-allowed' 
+                              : 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20 cursor-pointer'
+                          }`}
+                        >
+                          <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
+                          <span className="text-xs font-black text-white uppercase tracking-widest truncate max-w-[180px]">
+                            {adminSelectedChapter?.title || 'Select Chapter'}
+                          </span>
+                          <div className="flex flex-col gap-0.5 opacity-40 group-hover:opacity-100">
+                            <ChevronUp size={10} className="text-blue-500" />
+                            <ChevronDown size={10} className="text-blue-500" />
+                          </div>
+                        </button>
+
+                        <AnimatePresence>
+                          {showChapterDrop && adminSelectedCourse && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowChapterDrop(false)} />
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="absolute z-20 top-full left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl"
+                              >
+                                <div className="max-h-[300px] overflow-y-auto custom-scrollbar-blue">
+                                  {(courseChapters[adminSelectedCourse?._id] || []).length === 0 && (
+                                    <div className="p-8 text-center text-gray-500 text-[10px] font-bold uppercase">No chapters available</div>
+                                  )}
+                                  {(courseChapters[adminSelectedCourse?._id] || []).map(ch => (
+                                    <button
+                                      key={ch._id}
+                                      onClick={() => {
+                                        setAdminSelectedChapter(ch);
+                                        api.getQuestions(ch._id).then(setQuestions);
+                                        setShowChapterDrop(false);
+                                      }}
+                                      className={`w-full text-left px-5 py-4 rounded-xl transition-all flex items-center justify-between group/item ${
+                                        adminSelectedChapter?._id === ch._id ? 'bg-blue-500/10 text-blue-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                      }`}
+                                    >
+                                      <span className="text-xs font-bold uppercase tracking-widest">{ch.title}</span>
+                                      {adminSelectedChapter?._id === ch._id && <CheckCircle2 size={14} />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <form onSubmit={handleAddQuestion} className="space-y-8">
+
+                <div className={`transition-all duration-700 ${!adminSelectedChapter ? 'opacity-20 pointer-events-none grayscale' : 'opacity-100'}`}>
+                  {!adminSelectedChapter && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                      <div className="bg-[#1a1a1a]/80 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3">
+                        <AlertCircle className="text-orange-500" size={24} />
+                        <span className="text-sm font-bold text-white uppercase tracking-wider">Select a destination above to begin</span>
+                      </div>
+                    </div>
+                  )}
+                  <form onSubmit={handleAddQuestion} className="space-y-8 pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Question Text</label>
@@ -1642,8 +1965,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </button>
                     )}
                   </div>
-                </form>
-              )}
+                  </form>
+                </div>
+              </div>
             </div>
           )}
 
@@ -2249,7 +2573,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     setFormError('');
                     const toastId = pushToast('Updating quiz details...', 'loading', 0);
                     try {
-                      await api.updateQuiz(editingQuizData.quizId, {
+                      const updated = await api.updateQuiz(editingQuizData.quizId, {
                         title: editingQuizData.title.trim(),
                         description: editingQuizData.description.trim(),
                         questionCount: editingQuizData.questionCount,
@@ -2257,6 +2581,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         timeLimit: editingQuizData.timeLimit,
                       });
 
+                      if (adminSelectedQuiz?._id === updated._id) {
+                        setAdminSelectedQuiz(updated);
+                      }
                       await fetchQuizzesForChapter(editingQuizData.chapterId);
                       updateToast(toastId, 'Quiz details updated', 'success', 2600);
                       closeEditQuizModal();

@@ -161,6 +161,19 @@ export const getMyStats = (): Promise<any> =>
   (resultsApi as any).getMyStats();
 
 /* ------------------------------------------------------------------ */
+/* Integrity & Bans                                                     */
+/* ------------------------------------------------------------------ */
+
+export const reportViolation = (reason: string) =>
+  apiClient.post('/integrity/violation', { reason }).then((r) => r.data);
+
+export const getBanLogs = (page: number = 1, limit: number = 10, search: string = '') =>
+  apiClient.get(`/admin/bans?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`).then((r) => r.data as { logs: any[]; total: number; page: number; pages: number });
+
+export const unbanUser = (userId: string) =>
+  apiClient.post(`/admin/bans/unban/${userId}`).then((r) => r.data);
+
+/* ------------------------------------------------------------------ */
 /* No-op kept for backward compatibility with any call sites            */
 /* ------------------------------------------------------------------ */
 export const testConnection = async () => undefined;

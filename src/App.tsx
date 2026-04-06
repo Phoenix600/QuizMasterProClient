@@ -43,7 +43,7 @@ import { DashboardView } from './components/views/DashboardView';
 import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry, QuizMode } from './types';
 
 type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard';
-type AdminTab = 'hierarchy' | 'questions' | 'questionBank' | 'leaderboard' | 'logs';
+type AdminTab = 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans';
 type ToastType = 'success' | 'error' | 'loading';
 
 interface ToastMessage {
@@ -123,9 +123,33 @@ function AppContent() {
   const [summaryStats, setSummaryStats] = useState({ courses: 0, chapters: 0, quizzes: 0, questions: 0 });
   
   // Selection state
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
-  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
+    const saved = localStorage.getItem('selectedCourse');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(() => {
+    const saved = localStorage.getItem('selectedChapter');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(() => {
+    const saved = localStorage.getItem('selectedQuiz');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (selectedCourse) localStorage.setItem('selectedCourse', JSON.stringify(selectedCourse));
+    else localStorage.removeItem('selectedCourse');
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    if (selectedChapter) localStorage.setItem('selectedChapter', JSON.stringify(selectedChapter));
+    else localStorage.removeItem('selectedChapter');
+  }, [selectedChapter]);
+
+  useEffect(() => {
+    if (selectedQuiz) localStorage.setItem('selectedQuiz', JSON.stringify(selectedQuiz));
+    else localStorage.removeItem('selectedQuiz');
+  }, [selectedQuiz]);
   
   // Admin selection state
   const [adminSelectedCourse, setAdminSelectedCourse] = useState<Course | null>(null);
@@ -133,18 +157,75 @@ function AppContent() {
   const [adminSelectedQuiz, setAdminSelectedQuiz] = useState<Quiz | null>(null);
   const [adminView, setAdminView] = useState<AdminTab>('hierarchy');
   
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, number[]>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>(() => {
+    const saved = localStorage.getItem('questions');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
+    const saved = localStorage.getItem('currentQuestionIndex');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('currentQuestionIndex', currentQuestionIndex.toString());
+  }, [currentQuestionIndex]);
+  const [answers, setAnswers] = useState<Record<string, number[]>>(() => {
+    const saved = localStorage.getItem('answers');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [isSubmitted, setIsSubmitted] = useState(() => {
+    return localStorage.getItem('isSubmitted') === 'true';
+  });
   const [quizMode, setQuizMode] = useState<QuizMode>('test');
   const [isLoading, setIsLoading] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [quizDuration, setQuizDuration] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const saved = localStorage.getItem('timeLeft');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [quizDuration, setQuizDuration] = useState(() => {
+    const saved = localStorage.getItem('quizDuration');
+    return saved ? parseInt(saved, 10) : 0;
+  });
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
-  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(() => {
+    const saved = localStorage.getItem('quizResult');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('view', view);
+  }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('questions', JSON.stringify(questions));
+  }, [questions]);
+
+  useEffect(() => {
+    localStorage.setItem('answers', JSON.stringify(answers));
+  }, [answers]);
+
+  useEffect(() => {
+    localStorage.setItem('isSubmitted', isSubmitted.toString());
+  }, [isSubmitted]);
+
+  useEffect(() => {
+    localStorage.setItem('timeLeft', timeLeft.toString());
+  }, [timeLeft]);
+
+  useEffect(() => {
+    localStorage.setItem('quizDuration', quizDuration.toString());
+  }, [quizDuration]);
+
+  useEffect(() => {
+    if (quizResult) {
+      localStorage.setItem('quizResult', JSON.stringify(quizResult));
+    } else {
+      localStorage.removeItem('quizResult');
+    }
+  }, [quizResult]);
+
   const [quizQuestionCounts, setQuizQuestionCounts] = useState<Record<string, number>>({});
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [userStats, setUserStats] = useState<any>(null);
@@ -264,6 +345,55 @@ function AppContent() {
     }
     return () => clearInterval(timer);
   }, [view, timeLeft, isSubmitted]);
+
+  // ACADEMIC INTEGRITY ENFORCEMENT
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (view === 'quiz') {
+        const isRefresh = 
+          (e.ctrlKey && e.key === 'r') || 
+          (e.metaKey && e.key === 'r') || 
+          e.key === 'F5';
+        
+        if (isRefresh) {
+          e.preventDefault();
+          pushToast('Refresh is disabled during the quiz for integrity protection.', 'error', 3000);
+          return false;
+        }
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      if (view === 'quiz' && !isSubmitted && document.visibilityState === 'hidden') {
+        try {
+          const toastId = pushToast('INTEGRITY VIOLATION DETECTED: Switching tabs is prohibited.', 'loading', 0);
+          await api.reportViolation('User switched tabs during an active quiz session.');
+          updateToast(toastId, 'ACCOUNT SUSPENDED: Please contact admin to unban.', 'error', 5000);
+          // Wait a bit then logout/reset to show ban screen
+          setTimeout(() => {
+            handleLogout();
+          }, 3000);
+        } catch (error) {
+          console.error('Failed to report violation:', error);
+        }
+      }
+    };
+
+    if (view === 'quiz') {
+      window.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Also prevent context menu (right click)
+      const preventDefault = (e: Event) => e.preventDefault();
+      window.addEventListener('contextmenu', preventDefault);
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('contextmenu', preventDefault);
+      };
+    }
+  }, [view, isSubmitted]);
 
   useEffect(() => {
     if (isAuthReady && !currentUser && ['selection', 'quiz', 'admin', 'results'].includes(view)) {
@@ -556,6 +686,10 @@ function AppContent() {
     setSelectedCourse(null);
     setSelectedChapter(null);
     setSelectedQuiz(null);
+    setQuestions([]);
+    setTimeLeft(0);
+    setQuizDuration(0);
+    setQuizResult(null);
     setView('home');
   };
 
@@ -687,7 +821,7 @@ function AppContent() {
       {/* Header */}
       <header className="border-b border-white/5 bg-[#1a1a1a]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('home')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => view !== 'quiz' && setView('home')}>
             <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
               <Trophy className="text-white w-6 h-6" />
             </div>
@@ -696,16 +830,18 @@ function AppContent() {
           
           <nav className="flex items-center gap-2">
             <button 
+              disabled={view === 'quiz' && !isSubmitted}
               onClick={() => setView('home')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'home' || view === 'selection' || view === 'quiz' || view === 'results' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'home' || view === 'selection' || view === 'quiz' || view === 'results' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <PlayCircle size={18} />
               <span className="hidden sm:inline">Quiz</span>
             </button>
             {currentUser && !isAdmin && (
               <button 
+                disabled={view === 'quiz' && !isSubmitted}
                 onClick={() => setView('dashboard')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'dashboard' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'dashboard' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <LayoutDashboard size={18} />
                 <span className="hidden sm:inline">Dashboard</span>
@@ -715,8 +851,9 @@ function AppContent() {
               <>
                 {isAdmin && (
                   <button 
+                    disabled={view === 'quiz' && !isSubmitted}
                     onClick={() => setView('admin')}
-                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Settings size={18} />
                     <span className="hidden sm:inline">Admin</span>
@@ -729,8 +866,9 @@ function AppContent() {
                   <span className="text-sm font-semibold text-white/90 hidden sm:inline">{currentUser.name}</span>
                 </div>
                 <button 
+                  disabled={view === 'quiz' && !isSubmitted}
                   onClick={handleLogout}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:bg-red-500/10 text-red-400"
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:bg-red-500/10 text-red-400 ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <LogOut size={18} />
                   <span className="hidden sm:inline">Logout</span>
@@ -738,8 +876,9 @@ function AppContent() {
               </>
             ) : (
               <button 
+                disabled={view === 'quiz' && !isSubmitted}
                 onClick={() => setView('login')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'login' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'login' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <UserIcon size={18} />
                 <span className="hidden sm:inline">Login</span>
