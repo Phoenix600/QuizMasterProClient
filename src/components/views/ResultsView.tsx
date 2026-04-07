@@ -11,7 +11,7 @@ interface ResultsViewProps {
   quizDuration: number;
   timeLeft: number;
   getResultGif: (accuracy: number) => string;
-  resetQuiz: () => void;
+  handleRetake: () => void;
   setView: (view: 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login') => void;
   questionsLen: number;
   formatTime: (seconds: number) => string;
@@ -28,7 +28,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   quizDuration,
   timeLeft,
   getResultGif,
-  resetQuiz,
+  handleRetake,
   setView,
   questionsLen,
   formatTime,
@@ -129,7 +129,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button 
-              onClick={resetQuiz}
+              onClick={handleRetake}
               className="w-full sm:w-auto px-10 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-2"
             >
               <RotateCcw size={20} />

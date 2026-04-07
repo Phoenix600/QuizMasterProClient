@@ -60,26 +60,31 @@ export const createChapter = (
   order?: number
 ) => (adminApi as any).createChapter(courseId, title, description, order) as Promise<Chapter>;
 
+export const updateChapter = (chapterId: string, data: any) =>
+  (adminApi as any).updateChapter(chapterId, data) as Promise<Chapter>;
+
 export const deleteChapter = (chapterId: string) =>
   (adminApi as any).deleteChapter(chapterId) as Promise<void>;
 
-export const createQuiz = (
-  chapterId: string,
-  courseId: string,
-  title: string,
-  description: string,
-  questionCount: number,
-  passingScore: number,
-  timeLimit: number
-) =>
+export const createQuiz = (data: {
+  chapterId: string;
+  courseId: string;
+  title: string;
+  description: string;
+  questionCount: number;
+  passingScore: number;
+  timeLimit: number;
+  questions?: string[];
+}) =>
   (adminApi as any).createQuiz(
-    chapterId,
-    courseId,
-    title,
-    description,
-    questionCount,
-    passingScore,
-    timeLimit
+    data.chapterId,
+    data.courseId,
+    data.title,
+    data.description,
+    data.questionCount,
+    data.passingScore,
+    data.timeLimit,
+    data.questions
   ) as Promise<Quiz>;
 
 export const updateQuiz = (quizId: string, quizData: Partial<Quiz>) =>
@@ -104,7 +109,8 @@ export const deleteLeaderboardBulk = (ids: string[] = []) =>
   (adminApi as any).deleteLeaderboardBulk(ids) as Promise<{ message: string; deletedCount: number }>;
 
 export const getLoginLogs = (page: number = 1, limit: number = 10, search: string = '') =>
-  apiClient.get(`/admin/logs?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`).then((r) => r.data as { logs: any[]; total: number; page: number; pages: number });
+  apiClient.get(`/admin/logs?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`)
+    .then((r) => r.data as { logs: any[]; pagination: { total: number; page: number; pages: number } });
 
 export const deleteLoginLog = (id: string) =>
   apiClient.delete(`/admin/logs/${id}`).then((r) => r.data);
@@ -126,7 +132,7 @@ export const createQuestion = (questionData: Partial<Question>) =>
   (adminApi as any).createQuestion(questionData) as Promise<Question>;
 
 export const updateQuestion = (questionId: string, questionData: Partial<Question>) =>
-  (adminApi as any).updateQuestion(questionId, questionData) as Promise<void>;
+  (adminApi as any).updateQuestion(questionId, questionData) as Promise<Question>;
 
 export const deleteQuestion = (questionId: string) =>
   (adminApi as any).deleteQuestion(questionId) as Promise<void>;
@@ -164,11 +170,12 @@ export const getMyStats = (): Promise<any> =>
 /* Integrity & Bans                                                     */
 /* ------------------------------------------------------------------ */
 
-export const reportViolation = (reason: string) =>
-  apiClient.post('/integrity/violation', { reason }).then((r) => r.data);
+export const reportViolation = (reason: string, isFinal?: boolean) =>
+  apiClient.post('/integrity/violation', { reason, isFinal }).then((r) => r.data);
 
-export const getBanLogs = (page: number = 1, limit: number = 10, search: string = '') =>
-  apiClient.get(`/admin/bans?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`).then((r) => r.data as { logs: any[]; total: number; page: number; pages: number });
+export const getBanLogs = (page: number = 1, limit: number = 10, search: string = '', type: string = 'banned') =>
+  apiClient.get(`/admin/bans?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&type=${type}`)
+    .then((r) => r.data as { logs: any[]; pagination: { total: number; page: number; pages: number; type: string } });
 
 export const unbanUser = (userId: string) =>
   apiClient.post(`/admin/bans/unban/${userId}`).then((r) => r.data);

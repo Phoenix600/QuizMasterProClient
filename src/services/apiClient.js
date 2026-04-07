@@ -22,12 +22,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && [401, 403].includes(error.response.status)) {
-      // Clear session
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // If we are currently in a quiz and get 403, it means the user was just banned
-      // or session expired. Reloading will force App.tsx to reset state.
-      if (window.location.pathname !== '/login') {
+      const isLoginRequest = error.config.url.includes('/auth/login') || error.config.url.includes('/auth/google');
+      
+      if (!isLoginRequest) {
+        // Clear session and reload for active sessions only
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.reload();
       }
     }

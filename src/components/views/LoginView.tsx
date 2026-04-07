@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { User as UserIcon, UserPlus, XCircle } from 'lucide-react';
+import { User as UserIcon, UserPlus, XCircle, X } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 interface LoginViewProps {
@@ -55,9 +55,35 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
         <form onSubmit={handleLogin} className="space-y-6">
           {loginError && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500 text-sm">
-              <XCircle size={18} />
-              {loginError}
+            <div className={`p-5 border rounded-[1.5rem] flex flex-col gap-3 shadow-xl transition-all ${
+              loginError.toLowerCase().includes('banned') 
+                ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                : 'bg-orange-500/10 border-orange-500/20 text-orange-400'
+            }`}>
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setLoginError('');
+                  }}
+                  className="hover:scale-110 transition-transform flex items-center justify-center p-1 -ml-1 rounded-full hover:bg-white/10"
+                  title="Dismiss alert"
+                >
+                  <XCircle size={20} className={loginError.toLowerCase().includes('banned') ? 'text-red-500' : 'text-orange-500'} />
+                </button>
+                <span className="text-xs font-black uppercase tracking-widest">
+                  {loginError.toLowerCase().includes('banned') ? 'Account Suspended' : 'Authentication Error'}
+                </span>
+              </div>
+              <p className="text-[12px] font-bold leading-relaxed text-red-500/90 pl-8">
+                {loginError}
+              </p>
+              {loginError.toLowerCase().includes('banned') && (
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-500/50 pl-8 mt-1 border-t border-red-500/10 pt-3">
+                  CONTACT ADMINISTRATOR FOR FURTHER DETAILS.
+                </p>
+              )}
             </div>
           )}
           

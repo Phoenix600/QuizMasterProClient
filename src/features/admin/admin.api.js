@@ -30,6 +30,11 @@ export const createChapter = async (courseId, title, description, order = 1) => 
   return response.data;
 };
 
+export const updateChapter = async (chapterId, data) => {
+  const response = await apiClient.patch(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${chapterId}`, data);
+  return response.data;
+};
+
 export const deleteChapter = async (chapterId) => {
   await apiClient.delete(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${chapterId}`);
 };
@@ -74,7 +79,8 @@ export const createQuestion = async (questionData) => {
 };
 
 export const updateQuestion = async (questionId, questionData) => {
-  await apiClient.patch(ENDPOINTS.ADMIN.QUESTION_BY_ID(questionId), questionData);
+  const response = await apiClient.patch(ENDPOINTS.ADMIN.QUESTION_BY_ID(questionId), questionData);
+  return response.data;
 };
 
 export const deleteQuestion = async (questionId) => {

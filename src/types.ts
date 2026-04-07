@@ -5,6 +5,9 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'student';
+  isBanned?: boolean;
+  banReason?: string;
+  violationCount?: number;
 }
 
 export interface Course {
@@ -12,6 +15,12 @@ export interface Course {
   title: string;
   description: string;
   isPublished: boolean;
+  chapterCount?: number;
+  completedChapterCount?: number;
+  quizCount?: number;
+  completedQuizCount?: number;
+  totalQuestions?: number;
+  progress?: number;
 }
 
 export interface Chapter {
@@ -20,6 +29,9 @@ export interface Chapter {
   title: string;
   description: string;
   order: number;
+  quizCount?: number;
+  completedQuizCount?: number;
+  isCompleted?: boolean;
 }
 
 export interface Quiz {
@@ -32,7 +44,8 @@ export interface Quiz {
   passingScore: number;
   timeLimit: number; // in minutes
   isPublished: boolean;
-  questions: string[]; // pool of question IDs
+  questions: (string | Question)[]; // pool of question IDs or full objects
+  isCompleted?: boolean;
 }
 
 export interface Option {

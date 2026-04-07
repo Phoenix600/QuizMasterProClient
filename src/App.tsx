@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { motion, AnimatePresence } from 'motion/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -30,7 +30,8 @@ import {
   MoreVertical,
   PlusCircle,
   AlertCircle,
-  UserPlus
+  UserPlus,
+  Flag
 } from 'lucide-react';
 import * as api from './services/api';
 import { HomeView } from './components/views/HomeView';
@@ -176,6 +177,8 @@ function AppContent() {
   const [isSubmitted, setIsSubmitted] = useState(() => {
     return localStorage.getItem('isSubmitted') === 'true';
   });
+  const [violationCount, setViolationCount] = useState(0);
+  const violationCountRef = useRef(0);
   const [quizMode, setQuizMode] = useState<QuizMode>('test');
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(() => {
@@ -225,6 +228,17 @@ function AppContent() {
       localStorage.removeItem('quizResult');
     }
   }, [quizResult]);
+
+  useEffect(() => {
+    if (currentUser) {
+      const count = currentUser.violationCount || 0;
+      setViolationCount(count);
+      violationCountRef.current = count;
+    } else {
+      setViolationCount(0);
+      violationCountRef.current = 0;
+    }
+  }, [currentUser?._id, currentUser?.violationCount]);
 
   const [quizQuestionCounts, setQuizQuestionCounts] = useState<Record<string, number>>({});
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -319,7 +333,8 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (view === 'dashboard') {
+    if (view === 'selection' || view === 'dashboard') {
+      fetchInitialData();
       fetchUserStats();
     }
   }, [view]);
@@ -365,16 +380,38 @@ function AppContent() {
 
     const handleVisibilityChange = async () => {
       if (view === 'quiz' && !isSubmitted && document.visibilityState === 'hidden') {
-        try {
-          const toastId = pushToast('INTEGRITY VIOLATION DETECTED: Switching tabs is prohibited.', 'loading', 0);
-          await api.reportViolation('User switched tabs during an active quiz session.');
-          updateToast(toastId, 'ACCOUNT SUSPENDED: Please contact admin to unban.', 'error', 5000);
-          // Wait a bit then logout/reset to show ban screen
-          setTimeout(() => {
-            handleLogout();
-          }, 3000);
-        } catch (error) {
-          console.error('Failed to report violation:', error);
+        const nextCount = violationCountRef.current + 1;
+        violationCountRef.current = nextCount;
+        setViolationCount(nextCount);
+        
+        if (nextCount < 4) {
+          pushToast(`WARNING (${nextCount}/4): Tab switching detected. Your session WILL be banned after 4 attempts.`, 'error', 5000);
+          try {
+            const result = await api.reportViolation(`WARNING: User switched tabs (${nextCount}/4).`, false);
+            if (result.user) {
+              const updatedUser = { ...currentUser, ...result.user };
+              setCurrentUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              violationCountRef.current = updatedUser.violationCount || 0;
+            }
+          } catch (e) { console.error(e); }
+        } else {
+          try {
+            const toastId = pushToast('FINAL INTEGRITY VIOLATION: Exceeded switch limit.', 'loading', 0);
+            const result = await api.reportViolation('FORCE BAN: User exceeded tab switch limit (4/4) during active quiz.', true);
+            if (result.user) {
+              const updatedUser = { ...currentUser, ...result.user };
+              setCurrentUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              violationCountRef.current = updatedUser.violationCount || 0;
+            }
+            updateToast(toastId, 'ACCOUNT SUSPENDED: Please contact admin to unban.', 'error', 10000);
+            setTimeout(() => {
+              handleLogout();
+            }, 3000);
+          } catch (error) {
+            console.error('Failed to report violation:', error);
+          }
         }
       }
     };
@@ -528,6 +565,23 @@ function AppContent() {
       const result = await api.submitQuiz(selectedQuiz._id, formattedAnswers, quizDuration - timeLeft, quizMode);
       setQuizResult(result);
       setIsSubmitted(true);
+      
+      // Invalidate caches to force refetch of progress
+      if (selectedCourse) {
+        setCourseChapters(prev => {
+          const next = { ...prev };
+          delete next[selectedCourse._id];
+          return next;
+        });
+      }
+      if (selectedChapter) {
+        setChapterQuizzes(prev => {
+          const next = { ...prev };
+          delete next[selectedChapter._id];
+          return next;
+        });
+      }
+
       updateToast(toastId, 'Quiz submitted successfully', 'success', 2300);
       setView('results');
     } catch (error: any) {
@@ -693,6 +747,14 @@ function AppContent() {
     setView('home');
   };
 
+  const handleRetake = async () => {
+    if (selectedQuiz) {
+      await startQuiz(selectedQuiz._id, selectedCourse, selectedChapter, quizMode);
+    } else {
+      resetQuiz();
+    }
+  };
+
   const retakeQuestion = (questionId: string) => {
     setAnswers(prev => {
       const next = { ...prev };
@@ -727,7 +789,11 @@ function AppContent() {
       setLoginPassword('');
       setRegisterName('');
     } catch (error: any) {
-      setLoginError(error.response?.data?.message || error.message || 'Authentication failed. Please try again.');
+      const msg = error.response?.data?.message || error.message || 'Authentication failed. Please try again.';
+      setLoginError(msg);
+      if (msg.toLowerCase().includes('banned')) {
+        pushToast(msg, 'error', 5000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -749,7 +815,11 @@ function AppContent() {
       await fetchUserStats();
       setView(user.role === 'admin' ? 'admin' : 'dashboard');
     } catch (error: any) {
-      setLoginError(error.response?.data?.message || error.message || 'Google authentication failed.');
+      const msg = error.response?.data?.message || error.message || 'Google authentication failed.';
+      setLoginError(msg);
+      if (msg.toLowerCase().includes('banned')) {
+        pushToast(msg, 'error', 5000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -885,13 +955,22 @@ function AppContent() {
               </button>
             )}
             {view === 'quiz' && (
-              <button 
-                onClick={resetQuiz}
-                className="ml-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-orange-500/20"
-              >
-                <RotateCcw size={18} />
-                <span className="hidden sm:inline">Reset Quiz</span>
-              </button>
+              <>
+                <button 
+                  onClick={handleRetake}
+                  className="ml-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-orange-500/20"
+                >
+                  <RotateCcw size={18} />
+                  <span className="hidden sm:inline">Reset Quiz</span>
+                </button>
+                <button 
+                  onClick={resetQuiz}
+                  className="ml-2 px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-lg flex items-center gap-2 transition-all shadow-lg group-hover:shadow-red-500/20"
+                >
+                  <Flag size={18} />
+                  <span className="hidden sm:inline">Surrender</span>
+                </button>
+              </>
             )}
           </nav>
         </div>
@@ -908,6 +987,9 @@ function AppContent() {
               questions={questions}
               summaryStats={summaryStats}
               currentUser={currentUser}
+              setSelectedCourse={setSelectedCourse}
+              setSelectedChapter={setSelectedChapter}
+              setSelectedQuiz={setSelectedQuiz}
             />
           )}
 
@@ -967,7 +1049,7 @@ function AppContent() {
               quizDuration={quizDuration}
               timeLeft={timeLeft}
               getResultGif={getResultGif}
-              resetQuiz={resetQuiz}
+              handleRetake={handleRetake}
               setView={setView}
               questionsLen={questions.length}
               formatTime={formatTime}

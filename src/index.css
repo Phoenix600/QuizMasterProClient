@@ -6,16 +6,82 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+/* Global Base Customizations */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+
+/* Chrome, Edge, and Safari */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 10px;
+  border: 2px solid #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* Themed Scrollbars */
+.custom-scrollbar::-webkit-scrollbar,
+.custom-scrollbar-orange::-webkit-scrollbar,
+.custom-scrollbar-blue::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar-orange::-webkit-scrollbar-track,
+.custom-scrollbar-blue::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Default Grey Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 20px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Orange Custom Scrollbar (Used in Question Pool) */
+.custom-scrollbar-orange::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.2); /* orange-500 with low opacity */
+  border-radius: 20px;
+  border: 1px solid rgba(249, 115, 22, 0.1);
+}
+.custom-scrollbar-orange::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+/* Blue Custom Scrollbar (Used in Chapters Selection) */
+.custom-scrollbar-blue::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.2); /* blue-500 with low opacity */
+  border-radius: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+.custom-scrollbar-blue::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.4);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0a0a;
 }

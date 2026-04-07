@@ -11,12 +11,18 @@ interface HomeViewProps {
   questions: Question[];
   summaryStats: { courses: number; chapters: number; quizzes: number; questions: number };
   currentUser: User | null;
+  setSelectedCourse: (course: Course | null) => void;
+  setSelectedChapter: (chapter: Chapter | null) => void;
+  setSelectedQuiz: (quiz: Quiz | null) => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   setView,
   summaryStats,
-  currentUser
+  currentUser,
+  setSelectedCourse,
+  setSelectedChapter,
+  setSelectedQuiz
 }) => {
   return (
     <motion.div
@@ -53,6 +59,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
       >
         <button
           onClick={() => {
+            setSelectedCourse(null);
+            setSelectedChapter(null);
+            setSelectedQuiz(null);
             if (!currentUser) setView('login');
             else setView(currentUser.role === 'admin' ? 'admin' : 'selection');
           }}

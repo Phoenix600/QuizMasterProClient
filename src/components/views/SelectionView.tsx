@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Code, Layers, ChevronDown, Trophy, PlayCircle, BookOpen, FlaskConical, X } from 'lucide-react';
-import { Course, Chapter, Quiz, QuizMode } from '../../types';
+import { ChevronLeft, Code, Layers, ChevronDown, Trophy, PlayCircle, BookOpen, FlaskConical, X, CheckCircle2 } from 'lucide-react';
+import { Course, Chapter, Quiz, QuizMode, User } from '../../types';
 
 interface SelectionViewProps {
   courses: Course[];
@@ -69,6 +69,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
             {!selectedCourse ? 'Select Subject' : selectedCourse.title}
           </h2>
         </div>
+
         <p className="text-gray-400">
           {!selectedCourse 
             ? 'Choose a subject to start your learning journey' 
@@ -78,7 +79,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
 
       <div className="max-w-5xl mx-auto">
         {!selectedCourse ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
               <button
                 key={course._id}
@@ -86,14 +87,108 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                   setSelectedCourse(course);
                   fetchChaptersForCourse(course._id);
                 }}
-                className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl hover:border-orange-500/30 transition-all group text-left relative overflow-hidden"
+                className="group relative flex flex-col h-full min-h-[320px] p-8 bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] hover:border-orange-500/40 hover:bg-white/[0.03] transition-all duration-500 text-left overflow-hidden shadow-2xl"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -mr-16 -mt-16 rounded-full"></div>
-                <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative z-10">
-                  <Code size={24} />
+                {/* Accent Background */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/[0.03] blur-[100px] -mr-24 -mt-24 rounded-full transition-all duration-700 group-hover:bg-orange-500/[0.1]"></div>
+                
+                {/* Icon Container */}
+                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-all duration-500 relative z-10 border ${
+                  course.quizCount! > 0 && course.completedQuizCount === course.quizCount 
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/10' 
+                    : 'bg-orange-500/10 text-orange-500 border-orange-500/10 group-hover:bg-orange-500/20'
+                }`}>
+                  <Code size={28} />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2 relative z-10">{course.title}</h3>
-                <p className="text-gray-500 text-sm relative z-10">{course.description}</p>
+                
+                {/* Content */}
+                <div className="flex-1 flex flex-col items-stretch relative z-10">
+                  {/* Top Section: Fixed height to keep everything below it aligned */}
+                  <div className="min-h-[160px] flex flex-col">
+                    <div className="flex items-start justify-between min-h-[80px]">
+                      <h3 className="text-3xl font-black text-white leading-tight break-words group-hover:text-orange-500 transition-colors">
+                        {course.title}
+                      </h3>
+                      {course.quizCount! > 0 && course.completedQuizCount === course.quizCount && (
+                        <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1 shrink-0 ml-4">
+                          <CheckCircle2 size={10} className="text-emerald-500" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Description with Hover Reveal */}
+                    <div className="relative group/desc mt-2 cursor-help">
+                      <p className="text-gray-500 text-sm leading-relaxed font-medium transition-all duration-300 line-clamp-2 group-hover/desc:line-clamp-none group-hover/desc:text-gray-300">
+                        {course.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bottom Stats Section: Pushed to bottom and aligned */}
+                  <div className="mt-auto pt-6 border-t border-white/5 space-y-6">
+                    {/* Meta Stats Row */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex flex-col items-center justify-center text-center px-1">
+                        <div className="flex items-center gap-1">
+                          <span className={`${course.completedChapterCount && course.completedChapterCount > 0 ? (course.completedChapterCount === course.chapterCount ? 'text-emerald-500' : 'text-orange-500') : 'text-white'} font-bold text-xl leading-none`}>
+                            {course.completedChapterCount || 0}
+                          </span>
+                          <span className="text-gray-600 text-[11px] font-bold mt-1">/ {course.chapterCount || 0}</span>
+                          {course.chapterCount! > 0 && course.completedChapterCount === course.chapterCount && (
+                            <CheckCircle2 size={10} className="text-emerald-500 ml-0.5" />
+                          )}
+                        </div>
+                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">Chapters</span>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center text-center px-1 border-x border-white/5">
+                        <div className="flex items-center gap-1">
+                          <span className={`${course.completedQuizCount && course.completedQuizCount > 0 ? (course.completedQuizCount === course.quizCount ? 'text-emerald-500' : 'text-orange-500') : 'text-white'} font-bold text-xl leading-none`}>
+                            {course.completedQuizCount || 0}
+                          </span>
+                          <span className="text-gray-600 text-[11px] font-bold mt-1">/ {course.quizCount || 0}</span>
+                          {course.quizCount! > 0 && course.completedQuizCount === course.quizCount && (
+                            <CheckCircle2 size={10} className="text-emerald-500 ml-0.5" />
+                          )}
+                        </div>
+                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">Quizzes</span>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center text-center px-1">
+                        <span className="text-white font-bold text-xl leading-none">
+                          {course.totalQuestions || 0}
+                        </span>
+                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">Questions</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar Container */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[10px] font-black tracking-widest uppercase">
+                        <span className="text-gray-500">Overall Progress</span>
+                        <span className={`font-bold ${course.progress === 100 ? 'text-emerald-500' : 'text-orange-500'}`}>
+                          {course.progress || 0}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${course.progress || 0}%` }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className={`h-full shadow-[0_0_15px_rgba(249,115,22,0.4)] ${
+                            course.progress === 100 ? 'bg-emerald-500' : 'bg-orange-500'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Bottom Indicator */}
+                  <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 group-hover:text-orange-500/50 transition-colors">
+                    <span>Explore Chapters</span>
+                    <ChevronDown size={14} className="-rotate-90" />
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -106,12 +201,37 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                   className="w-full px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                      chapter.quizCount! > 0 && chapter.completedQuizCount === chapter.quizCount 
+                        ? 'bg-emerald-500/10 text-emerald-500' 
+                        : 'bg-blue-500/10 text-blue-500'
+                    }`}>
                       <Layers size={20} />
                     </div>
                     <div className="text-left">
-                      <h3 className="text-xl font-bold text-white">{chapter.title}</h3>
-                      <p className="text-gray-500 text-sm">{chapter.description}</p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-white">{chapter.title}</h3>
+                        {chapter.isCompleted && (
+                          <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1.5">
+                            <span className="text-[8px] font-black text-emerald-500 tracking-tighter uppercase mt-0.5">Chapter Completed</span>
+                            <CheckCircle2 size={10} className="text-emerald-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                          {chapter.quizCount || 0} {chapter.quizCount === 1 ? 'Quiz' : 'Quizzes'}
+                        </span>
+                        {chapter.quizCount! > 0 && (
+                          <>
+                            <div className="w-1 h-1 rounded-full bg-white/10" />
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${chapter.isCompleted ? 'text-emerald-500' : 'text-orange-500/80'}`}>
+                              {chapter.completedQuizCount || 0} Completed
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-gray-500 text-sm mt-2 line-clamp-1">{chapter.description}</p>
                     </div>
                   </div>
                   <div className={`transition-transform duration-300 ${expandedChapters[chapter._id] ? 'rotate-180' : ''}`}>
@@ -132,18 +252,42 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                           <button
                             key={quiz._id}
                             onClick={() => setPendingQuiz({ quiz, chapter })}
-                            className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-xl hover:border-orange-500/30 hover:bg-white/[0.08] transition-all group"
+                            className={`flex items-center justify-between p-5 rounded-xl transition-all group relative overflow-hidden ${
+                              quiz.isCompleted 
+                                ? 'bg-emerald-500/[0.03] border-emerald-500/20' 
+                                : 'bg-white/5 border-white/5 hover:border-orange-500/30 hover:bg-white/[0.08]'
+                            } border`}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-orange-500/10 text-orange-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <div className="flex items-center gap-4 flex-1 pr-6 pb-2">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all shrink-0 ${
+                                quiz.isCompleted ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/10 text-orange-500'
+                              }`}>
                                 <Trophy size={18} />
                               </div>
-                              <div className="text-left">
-                                <h4 className="font-bold text-white">{quiz.title}</h4>
-                                <p className="text-xs text-gray-500">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
+                              <div className="text-left min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className={`font-bold transition-colors line-clamp-2 ${quiz.isCompleted ? 'text-emerald-400' : 'text-white'}`}>
+                                    {quiz.title}
+                                  </h4>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1 font-medium">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
                               </div>
                             </div>
-                            <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
+
+                            {quiz.isCompleted ? (
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                  <CheckCircle2 size={12} className="text-emerald-500" />
+                                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tight">
+                                    PASSED
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-orange-500/10 transition-colors">
+                                <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
+                              </div>
+                            )}
                           </button>
                         ))}
                         {(!chapterQuizzes[chapter._id] || chapterQuizzes[chapter._id].length === 0) && (
