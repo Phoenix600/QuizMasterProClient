@@ -1,14 +1,15 @@
 import { ApiResponse, CodeDraft, Problem, Submission, TestCase } from '../types.ts';
 
 const SPRING_API_URL = 'http://localhost:8080';
-const NODE_API_URL = 'http://localhost:5001/api';
+// const NODE_API_URL = 'http://localhost:5001/api';
+const NODE_API_URL = '"https://quizmasterproserver-1.onrender.com/api';
 
 const pendingRequests = new Map<string, Promise<any>>();
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit, baseUrl = SPRING_API_URL): Promise<T> {
   const token = localStorage.getItem('token');
   const method = options?.method || 'GET';
-  
+
   // Deduplicate concurrent GET requests to same endpoint
   const requestKey = `${method}:${baseUrl}${endpoint}`;
   if (method === 'GET' && pendingRequests.has(requestKey)) {
@@ -32,7 +33,7 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit, baseUrl = SP
       }
 
       const result: any = await response.json();
-      
+
       // Standard format { success: boolean, data: T, message?: string }
       if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
         if (!result.success) {
@@ -56,7 +57,7 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit, baseUrl = SP
   if (method === 'GET') {
     pendingRequests.set(requestKey, fetchPromise);
   }
-  
+
   return fetchPromise;
 }
 
@@ -68,16 +69,16 @@ export const api = {
     if (filters?.courseId) url += `&courseId=${filters.courseId}`;
     return fetchApi<any>(url, {}, NODE_API_URL);
   },
-  
+
   getProblem: (id: number | string) => {
     if (!id || id === 'undefined') return Promise.resolve(null as any);
     return fetchApi<Problem>(`/problems/${id}`, {}, NODE_API_URL);
   },
-  
-  getSampleTestCases: (id: number | string) => 
+
+  getSampleTestCases: (id: number | string) =>
     fetchApi<TestCase[]>(`/problems/${id}/testcases`, {}, NODE_API_URL),
-  
-  getAllTestCases: (id: number | string) => 
+
+  getAllTestCases: (id: number | string) =>
     fetchApi<TestCase[]>(`/problems/${id}/testcases/all`, {}, NODE_API_URL),
 
   // Curriculum (Source: Node.js)
@@ -85,28 +86,28 @@ export const api = {
   getChapters: (courseId: number | string) => fetchApi<any[]>(`/chapters/${courseId}`, {}, NODE_API_URL),
 
   // Submissions (Source: Spring Boot)
-  submitCode: (problemId: string, sourceCode: string, language: string, testCases: TestCase[], driverCode: string) => 
+  submitCode: (problemId: string, sourceCode: string, language: string, testCases: TestCase[], driverCode: string) =>
     fetchApi<Submission>(`/submit`, {
       method: 'POST',
       body: JSON.stringify({ problemId, sourceCode, language, testCases, driverCode }),
     }, SPRING_API_URL),
 
-  runCode: (problemId: string, sourceCode: string, language: string, testCases: TestCase[], driverCode: string) => 
+  runCode: (problemId: string, sourceCode: string, language: string, testCases: TestCase[], driverCode: string) =>
     fetchApi<any>(`/submit/run`, {
       method: 'POST',
       body: JSON.stringify({ problemId, sourceCode, language, testCases, driverCode }),
     }, SPRING_API_URL),
 
-  getSubmission: (id: number | string) => 
+  getSubmission: (id: number | string) =>
     fetchApi<Submission>(`/submit/${id}`, {}, SPRING_API_URL),
 
-  getProblemSubmissions: (problemId: string, page = 0, size = 20) => 
+  getProblemSubmissions: (problemId: string, page = 0, size = 20) =>
     fetchApi<any>(`/submit/problem/${problemId}?page=${page}&size=${size}&sort=submittedAt,desc`, {}, SPRING_API_URL),
 
-  deleteSubmission: (id: number | string) => 
+  deleteSubmission: (id: number | string) =>
     fetchApi<string>(`/submit/${id}`, { method: 'DELETE' }, SPRING_API_URL),
 
-  getSolvedProblems: () => 
+  getSolvedProblems: () =>
     fetchApi<string[]>(`/submit/solved`, {}, SPRING_API_URL),
 
   getSolvedFromNode: () =>
@@ -114,7 +115,7 @@ export const api = {
 
   getResumeProblemId: () =>
     fetchApi<string | null>(`/problems/resume/last`, {}, NODE_API_URL), // Changed to Node.js
-    
+
   trackProgress: (problemId: string) => {
     if (!problemId || problemId === 'undefined') return Promise.resolve(null);
     return fetchApi<any>(`/problems/${problemId}/track`, { method: 'POST' }, NODE_API_URL);
@@ -138,12 +139,12 @@ export const api = {
 
   // Admin (Target: Node.js)
   admin: {
-    createCourse: (title: string, description: string, imageUrl?: string, type: string = 'PROGRAMMING') => 
+    createCourse: (title: string, description: string, imageUrl?: string, type: string = 'PROGRAMMING') =>
       fetchApi<any>('/admin/courses', {
         method: 'POST',
         body: JSON.stringify({ title, description, imageUrl, type }),
       }, NODE_API_URL),
-    createChapter: (courseId: number | string, title: string, orderIndex: number, parentId: string | null = null, description: string = '') => 
+    createChapter: (courseId: number | string, title: string, orderIndex: number, parentId: string | null = null, description: string = '') =>
       fetchApi<any>(`/admin/chapters`, {
         method: 'POST',
         body: JSON.stringify({ courseId, title, orderIndex, parentId, description }),
@@ -160,7 +161,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ chapters }),
       }, NODE_API_URL),
-    createProblem: (request: any) => 
+    createProblem: (request: any) =>
       fetchApi<Problem>('/admin/problems', {
         method: 'POST',
         body: JSON.stringify(request),
@@ -186,16 +187,16 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(request),
       }, NODE_API_URL),
-    
+
     getChapterQuizzes: (chapterId: string) =>
       fetchApi<any[]>(`/admin/quizzes/${chapterId}`, {}, NODE_API_URL),
-    
+
     getCourseQuestions: (courseId: string) =>
       fetchApi<any[]>(`/admin/questions/course/${courseId}`, {}, NODE_API_URL),
 
     getQuestions: (chapterId: string) =>
       fetchApi<any[]>(`/admin/questions/${chapterId}`, {}, NODE_API_URL),
-    
+
     deleteQuiz: (id: string) =>
       fetchApi<void>(`/admin/quizzes/${id}`, { method: 'DELETE' }, NODE_API_URL),
 
@@ -206,7 +207,7 @@ export const api = {
         method: 'POST',
         body: formData,
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       const result: ApiResponse<string> = await response.json();
@@ -218,7 +219,7 @@ export const api = {
   // Contests
   getContests: () => fetchApi<any[]>('/admin/contests', {}, NODE_API_URL),
   getContest: (id: string) => fetchApi<any>(`/contests/${id}`, {}, NODE_API_URL),
-  submitContest: (id: string, data: { answers: any, codingSubmissions: any[], finalCodes?: any, violations: any[], startTime: string | Date }) => 
+  submitContest: (id: string, data: { answers: any, codingSubmissions: any[], finalCodes?: any, violations: any[], startTime: string | Date }) =>
     fetchApi<any>(`/contests/${id}/submit`, {
       method: 'POST',
       body: JSON.stringify(data),

@@ -26,6 +26,7 @@ import { motion, Reorder, AnimatePresence, useDragControls } from 'motion/react'
 interface CurriculumManagerProps {
   onBack: () => void;
   onCreateProblem?: (context: any) => void;
+  onSelectionChange?: (context: any) => void;
 }
 
 const updateNestedOrder = (list: any[], parentId: string, newList: any[]): any[] => {
@@ -295,7 +296,7 @@ const DraggableChapter = React.memo(({
   );
 });
 
-export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, onCreateProblem }) => {
+export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, onCreateProblem, onSelectionChange }) => {
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
@@ -367,7 +368,33 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
       else newSet.add(id);
       return newSet;
     });
-  }, []);
+
+    if (onSelectionChange && selectedCourseId) {
+      const path = findPath(chapters, id);
+      if (path && path.length > 0) {
+        // Construct context from path
+        // Root chapter is at path[0], subfolder at path[1]
+        const context = {
+          courseId: selectedCourseId,
+          chapterId: path[0],
+          subChapterId: path.length > 1 && path[1] !== id ? path[1] : (path.length > 1 ? path[1] : null)
+        };
+        // Refine subchapter - if the target ID is actually a subfolder, it's the subchapter
+        if (path.length > 1) {
+            context.subChapterId = path[path.length - 1];
+            // If it's a sub-sub folder, we might just take the first level for now or the parent strategy
+             const parentId = path[path.length - 2];
+             context.chapterId = path[0];
+             context.subChapterId = id === path[0] ? null : id;
+        } else {
+            context.chapterId = id;
+            context.subChapterId = null;
+        }
+
+        onSelectionChange(context);
+      }
+    }
+  }, [onSelectionChange, selectedCourseId, chapters]);
 
   const findPath = (items: any[], targetId: string, currentPath: string[] = []): string[] | null => {
     for (const item of items) {

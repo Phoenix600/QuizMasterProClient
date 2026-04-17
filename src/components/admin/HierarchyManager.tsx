@@ -392,14 +392,24 @@ export const HierarchyManager: React.FC<HierarchyManagerProps> = ({
     const chapter = findChapter(chaptersInSelectedCourse, id);
     setAdminSelectedChapter(chapter || null);
     setAdminSelectedQuiz(null);
-    fetchQuizzesForChapter(id);
+    if (id) fetchQuizzesForChapter(id);
+
+    // Update Problem Authoring Context
+    if (chapter && adminSelectedCourse) {
+        setProblemInitialContext({
+            courseId: adminSelectedCourse._id,
+            chapterId: chapter.parentId?._id || chapter.parentId || chapter._id,
+            subChapterId: (chapter.parentId?._id || chapter.parentId) ? chapter._id : undefined
+        });
+    }
+
     setExpandedFolders(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) newSet.delete(id);
       else newSet.add(id);
       return newSet;
     });
-  }, [chaptersInSelectedCourse, setAdminSelectedChapter, setAdminSelectedQuiz, fetchQuizzesForChapter]);
+  }, [chaptersInSelectedCourse, setAdminSelectedChapter, setAdminSelectedQuiz, fetchQuizzesForChapter, adminSelectedCourse, setProblemInitialContext]);
 
   const findPath = (items: any[], targetId: string, currentPath: string[] = []): string[] | null => {
     for (const item of items) {
