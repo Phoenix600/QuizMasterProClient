@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ChevronLeft, Layers, Trophy, Clock, AlertCircle, Search, Code
+  ChevronLeft, Layers, Trophy, Clock, AlertCircle, Search, Code, BookOpen
 } from 'lucide-react';
 import * as api from '../../services/api';
 import Editor from '@monaco-editor/react';
@@ -15,10 +15,11 @@ import { HierarchyManager } from '../admin/HierarchyManager';
 import { QuestionAssignmentHub } from '../admin/QuestionAssignmentHub';
 import { QuestionBankEditor } from '../admin/QuestionBankEditor';
 import { AdminModals } from '../admin/AdminModals';
+import { AdminDashboard } from '../../features/codegraph/components/Admin/AdminDashboard';
 
 interface AdminViewProps {
-  adminView: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans';
-  setAdminView: (val: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans') => void;
+  adminView: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans' | 'problems' | 'contests';
+  setAdminView: (val: 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans' | 'problems' | 'contests') => void;
   courses: Course[];
   courseChapters: Record<string, Chapter[]>;
   chapterQuizzes: Record<string, Quiz[]>;
@@ -26,6 +27,8 @@ interface AdminViewProps {
   setAdminSelectedCourse: (val: Course | null) => void;
   adminSelectedChapter: Chapter | null;
   setAdminSelectedChapter: (val: Chapter | null) => void;
+  adminSelectedSubFolder: Chapter | null;
+  setAdminSelectedSubFolder: (val: Chapter | null) => void;
   adminSelectedQuiz: Quiz | null;
   setAdminSelectedQuiz: (val: Quiz | null) => void;
   expandedCourses: Record<string, boolean>;
@@ -70,6 +73,8 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
   const [editingQuizData, setEditingQuizData] = useState<any>(null);
   const [editingChapterData, setEditingChapterData] = useState<any>(null);
   const [editingCourseData, setEditingCourseData] = useState<any>(null);
+  const [adminSelectedProblemId, setAdminSelectedProblemId] = useState<string | number | undefined>(undefined);
+  const [problemInitialContext, setProblemInitialContext] = useState<any>(null);
   
   // Modals / Dropdowns / Local state
   const [previewQuestion, setPreviewQuestion] = useState<any>(null);
@@ -179,44 +184,69 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
       className="space-y-12"
     >
       {/* HEADER SECTION */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <h2 className="text-4xl font-black text-white tracking-tight">
-            {adminView === 'hierarchy' ? 'Manage Hierarchy' : 
-             adminView === 'leaderboard' ? 'Leaderboard' : 
-             adminView === 'logs' ? 'User Login Logs' : 
-             adminView === 'bans' ? 'Suspensions & Bans' :
-             adminView === 'questionBank' ? 'Question Pool' : 'Manage Questions'}
-          </h2>
-          <p className="text-gray-400">
-            {adminView === 'hierarchy' ? 'Manage your courses, chapters, and quizzes.' :
-             adminView === 'leaderboard' ? 'View all student quiz submissions and rankings.' :
-             adminView === 'logs' ? 'Trace user login history, IP addresses, and devices.' :
-             adminView === 'bans' ? 'Track integrity violations and manage student bans.' :
-             adminView === 'questionBank' ? `Question Pool for Chapter: ${props.adminSelectedChapter?.title || 'Not Selected'}` :
-             `Select Questions for Quiz: ${props.adminSelectedQuiz?.title || 'Not Selected'}`}
-          </p>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="space-y-1">
+            <h2 className="text-4xl font-black text-white tracking-tight">
+              {adminView === 'problems' ? 'Problem Authoring' :
+               adminView === 'contests' ? 'Contest Management' :
+               adminView === 'questionBank' ? 'Question Pool' : 'Courses & Curriculum'}
+            </h2>
+            <p className="text-gray-400 font-medium">
+              {adminView === 'hierarchy' ? 'Manage your library of courses and learning materials.' :
+               adminView === 'leaderboard' ? 'View all student quiz submissions and rankings.' :
+               adminView === 'logs' ? 'Trace user login history, IP addresses, and devices.' :
+               adminView === 'bans' ? 'Track integrity violations and manage student bans.' :
+               adminView === 'problems' ? 'Create and manage complex coding challenges.' :
+               adminView === 'contests' ? 'Organize and schedule competitive programming events.' :
+               adminView === 'questionBank' ? `Question Pool for Chapter: ${props.adminSelectedChapter?.title || 'Recursion'}` :
+               `Select Questions for Quiz: ${props.adminSelectedQuiz?.title || 'Not Selected'}`}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {adminView === 'questions' && (
+
+        <div className="flex items-center gap-4 flex-wrap">
+          {['questions', 'problems', 'contests', 'questionBank', 'leaderboard', 'logs', 'bans'].includes(adminView) && (
             <button 
               onClick={() => setAdminView('hierarchy')}
-              className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl text-xs font-black transition-all flex items-center gap-2 border border-white/5 uppercase tracking-widest"
             >
               <ChevronLeft size={16} />
               Back
             </button>
           )}
-          <div className="flex items-center bg-white/5 border border-white/5 rounded-xl p-1 gap-1">
+          
+          <div className="flex items-center bg-[#1a1a1a] border border-white/5 rounded-[1.25rem] p-1.5 gap-1 shadow-2xl">
             <button
               onClick={() => setAdminView('hierarchy')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                adminView === 'hierarchy' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                adminView === 'hierarchy' ? 'bg-white/10 text-white shadow-inner' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               <Layers size={14} />
-              Hierarchy
+              Courses
             </button>
+            <button
+              onClick={() => setAdminView('problems')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'problems' ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
+              }`}
+            >
+              <Code size={14} />
+              Problems
+            </button>
+            <button
+              onClick={() => setAdminView('contests')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'contests' ? 'bg-amber-500/10 border-amber-500/50 text-amber-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
+              }`}
+            >
+              <Trophy size={14} />
+              Contests
+            </button>
+            
+            <div className="w-[1px] h-4 bg-white/5 mx-2" />
+            
             <button
               onClick={() => {
                 setAdminView('questionBank');
@@ -226,17 +256,17 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
                   api.getCourseQuestions(props.adminSelectedCourse._id).then(props.setQuestions);
                 }
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                adminView === 'questionBank' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'questionBank' ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
               }`}
             >
-              <Code size={14} />
+              <Search size={14} />
               Question Pool
             </button>
             <button
               onClick={() => setAdminView('leaderboard')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                adminView === 'leaderboard' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-500 hover:text-gray-300'
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'leaderboard' ? 'bg-amber-500/10 border-amber-500/50 text-amber-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
               }`}
             >
               <Trophy size={14} />
@@ -244,27 +274,26 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
             </button>
             <button
               onClick={() => setAdminView('logs')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                adminView === 'logs' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-500 hover:text-gray-300'
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'logs' ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
               }`}
             >
               <Clock size={14} />
-              User Logs
+              Logs
             </button>
             <button
               onClick={() => setAdminView('bans')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                adminView === 'bans' ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-gray-300'
+              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${
+                adminView === 'bans' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'text-gray-500 hover:text-gray-300 border-transparent'
               }`}
             >
               <AlertCircle size={14} />
-              Suspensions
+              Bans
             </button>
           </div>
         </div>
       </div>
 
-      {/* VIEW COMPONENTS */}
       {adminView === 'hierarchy' ? (
         <HierarchyManager 
           {...hProps}
@@ -276,6 +305,8 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
           setEditingCourseData={setEditingCourseData}
           setEditingChapterData={setEditingChapterData}
           setEditingQuizData={setEditingQuizData}
+          setAdminSelectedProblemId={setAdminSelectedProblemId}
+          setProblemInitialContext={setProblemInitialContext}
         />
       ) : adminView === 'leaderboard' ? (
         <Leaderboard pushToast={pushToast} openConfirm={openConfirm} />
@@ -307,6 +338,12 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
       ) : adminView === 'questionBank' ? (
         <QuestionBankEditor 
           {...hProps}
+          adminSelectedCourse={props.adminSelectedCourse}
+          setAdminSelectedCourse={props.setAdminSelectedCourse}
+          adminSelectedChapter={props.adminSelectedChapter}
+          setAdminSelectedChapter={props.setAdminSelectedChapter}
+          adminSelectedSubFolder={props.adminSelectedSubFolder}
+          setAdminSelectedSubFolder={props.setAdminSelectedSubFolder}
           editingQuestionId={props.editingQuestionId}
           setEditingQuestionId={props.setEditingQuestionId}
           newQuestion={props.newQuestion}
@@ -326,6 +363,22 @@ export const AdminView: React.FC<AdminViewProps> = (props) => {
           openConfirm={openConfirm}
           isCodeFullscreen={isCodeFullscreen}
           setIsCodeFullscreen={setIsCodeFullscreen}
+        />
+      ) : ['problems', 'contests'].includes(adminView) ? (
+        <AdminDashboard 
+          initialTab={adminView as 'problems' | 'contests'}
+          onBack={() => {
+            setAdminView('hierarchy');
+            setAdminSelectedProblemId(undefined);
+            setProblemInitialContext(null);
+          }}
+          initialProblemId={adminSelectedProblemId}
+          initialContext={problemInitialContext}
+          onSuccess={() => {
+            if (props.adminSelectedCourse?._id) {
+              props.fetchChaptersForCourse(props.adminSelectedCourse._id);
+            }
+          }}
         />
       ) : null}
 

@@ -57,11 +57,16 @@ export const createChapter = (
   courseId: string,
   title: string,
   description: string,
+  parentId?: string | null,
   order?: number
-) => (adminApi as any).createChapter(courseId, title, description, order) as Promise<Chapter>;
+) => (adminApi as any).createChapter(courseId, title, description, parentId, order) as Promise<Chapter>;
+
 
 export const updateChapter = (chapterId: string, data: any) =>
   (adminApi as any).updateChapter(chapterId, data) as Promise<Chapter>;
+
+export const bulkUpdateChapters = (chapters: { _id: string, order: number }[]) =>
+  (adminApi as any).bulkUpdateChapters(chapters) as Promise<void>;
 
 export const deleteChapter = (chapterId: string) =>
   (adminApi as any).deleteChapter(chapterId) as Promise<void>;

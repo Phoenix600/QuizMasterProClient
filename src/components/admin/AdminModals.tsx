@@ -368,7 +368,9 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">New Chapter</h4>
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest">
+                {adminSelectedChapter ? `New Sub-folder in ${adminSelectedChapter.title}` : 'New Root Chapter'}
+              </h4>
               <button
                 onClick={() => setShowAddChapter(false)}
                 className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
@@ -380,13 +382,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             <div className="space-y-3">
               <input
                 type="text"
-                placeholder="Chapter title"
+                placeholder="Folder title"
                 value={newChapterData.title}
                 onChange={(e) => setNewChapterData({ ...newChapterData, title: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
               />
               <textarea
-                placeholder="Chapter description"
+                placeholder="Folder description"
                 value={newChapterData.description}
                 onChange={(e) => setNewChapterData({ ...newChapterData, description: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors h-28 resize-none"
@@ -405,10 +407,15 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     return;
                   }
                   setFormError('');
-                  const toastId = pushToast('Adding chapter...', 'loading', 0);
+                  const toastId = pushToast('Adding...', 'loading', 0);
                   try {
-                    await api.createChapter(adminSelectedCourse._id, newChapterData.title.trim(), newChapterData.description.trim());
-                    updateToast(toastId, 'Chapter added successfully', 'success', 2600);
+                    await api.createChapter(
+                      adminSelectedCourse._id, 
+                      newChapterData.title.trim(), 
+                      newChapterData.description.trim(),
+                      adminSelectedChapter?._id
+                    );
+                    updateToast(toastId, 'Added successfully', 'success', 2600);
                     setShowAddChapter(false);
                     setNewChapterData({ title: '', description: '' });
                     fetchChaptersForCourse(adminSelectedCourse._id);
@@ -420,8 +427,9 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                 }}
                 className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all text-sm"
               >
-                Create Chapter
+                Create Folder
               </button>
+
               <button
                 onClick={() => setShowAddChapter(false)}
                 className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"

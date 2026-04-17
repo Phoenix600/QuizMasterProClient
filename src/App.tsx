@@ -41,10 +41,12 @@ import { ResultsView } from './components/views/ResultsView';
 import { LoginView } from './components/views/LoginView';
 import { AdminView } from './components/views/AdminView';
 import { DashboardView } from './components/views/DashboardView';
+import { CodegraphWorkspace } from './features/codegraph/CodegraphWorkspace';
+import { AuthProvider } from './features/auth/context/AuthContext.jsx';
 import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry, QuizMode } from './types';
 
-type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard';
-type AdminTab = 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans';
+type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard' | 'coding';
+type AdminTab = 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans' | 'problems' | 'contests';
 type ToastType = 'success' | 'error' | 'loading';
 
 interface ToastMessage {
@@ -97,7 +99,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
@@ -155,6 +159,7 @@ function AppContent() {
   // Admin selection state
   const [adminSelectedCourse, setAdminSelectedCourse] = useState<Course | null>(null);
   const [adminSelectedChapter, setAdminSelectedChapter] = useState<Chapter | null>(null);
+  const [adminSelectedSubFolder, setAdminSelectedSubFolder] = useState<Chapter | null>(null);
   const [adminSelectedQuiz, setAdminSelectedQuiz] = useState<Quiz | null>(null);
   const [adminView, setAdminView] = useState<AdminTab>('hierarchy');
   
@@ -243,6 +248,7 @@ function AppContent() {
   const [quizQuestionCounts, setQuizQuestionCounts] = useState<Record<string, number>>({});
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [userStats, setUserStats] = useState<any>(null);
+  const [pendingProblemId, setPendingProblemId] = useState<string | null>(null);
 
   // New Admin Form States
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -606,8 +612,8 @@ function AppContent() {
       setIsLoading(true);
       await api.createQuestion({
         ...newQuestion,
-        chapterId: adminSelectedChapter._id,
-        courseId: adminSelectedCourse._id
+        chapterId: adminSelectedSubFolder?._id || adminSelectedChapter?._id || '',
+        courseId: adminSelectedCourse?._id || ''
       });
       
       setNewQuestion({
@@ -623,8 +629,8 @@ function AppContent() {
         numberOfCorrectAnswers: 1,
         order: (questions.length + 1)
       });
-      
-      const questionsData = await api.getQuestions(adminSelectedChapter._id);
+      const targetChapterId = adminSelectedSubFolder?._id || adminSelectedChapter._id;
+      const questionsData = await api.getQuestions(targetChapterId);
       setQuestions(questionsData);
     } catch (error) {
       console.error('Failed to add question:', error);
@@ -635,7 +641,7 @@ function AppContent() {
 
   const handleUpdateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingQuestionId || !adminSelectedChapter) return;
+    if (!editingQuestionId || (!adminSelectedChapter && !adminSelectedSubFolder)) return;
     
     try {
       setIsLoading(true);
@@ -847,6 +853,11 @@ function AppContent() {
     }));
   };
 
+  const handleSelectProblem = (problemId: string) => {
+    setPendingProblemId(problemId);
+    setView('coding');
+  };
+
   const getLanguage = (subject: string | null, questionLanguage?: string) => {
     if (questionLanguage) return questionLanguage.toLowerCase();
     if (!subject) return 'javascript';
@@ -885,6 +896,21 @@ function AppContent() {
     );
   }
 
+  if (view === 'coding' && currentUser) {
+    return (
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <CodegraphWorkspace 
+          onBack={() => {
+            setPendingProblemId(null);
+            setView('dashboard');
+          }} 
+          user={currentUser} 
+          initialProblemId={pendingProblemId || undefined}
+        />
+      </GoogleOAuthProvider>
+    );
+  }
+
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <div className="min-h-screen bg-[#141414] text-gray-200 font-sans selection:bg-orange-500/30">
@@ -915,6 +941,16 @@ function AppContent() {
               >
                 <LayoutDashboard size={18} />
                 <span className="hidden sm:inline">Dashboard</span>
+              </button>
+            )}
+            {currentUser && (
+               <button 
+                disabled={view === 'quiz' && !isSubmitted}
+                onClick={() => setView('coding')}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'coding' ? 'bg-orange-500 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Code size={18} />
+                <span className="hidden sm:inline">Coding</span>
               </button>
             )}
             {currentUser ? (
@@ -1015,6 +1051,7 @@ function AppContent() {
               expandedChapters={expandedChapters}
               toggleChapterExpansion={toggleChapterExpansion}
               startQuiz={startQuiz}
+              onSelectProblem={handleSelectProblem}
               fetchChaptersForCourse={fetchChaptersForCourse}
             />
           )}
@@ -1081,7 +1118,7 @@ function AppContent() {
           )}
 
           {view === 'admin' && isAdmin && (
-            <AdminView
+            <AdminView 
               adminView={adminView}
               setAdminView={setAdminView}
               courses={courses}
@@ -1091,6 +1128,8 @@ function AppContent() {
               setAdminSelectedCourse={setAdminSelectedCourse}
               adminSelectedChapter={adminSelectedChapter}
               setAdminSelectedChapter={setAdminSelectedChapter}
+              adminSelectedSubFolder={adminSelectedSubFolder}
+              setAdminSelectedSubFolder={setAdminSelectedSubFolder}
               adminSelectedQuiz={adminSelectedQuiz}
               setAdminSelectedQuiz={setAdminSelectedQuiz}
               expandedCourses={expandedCourses}

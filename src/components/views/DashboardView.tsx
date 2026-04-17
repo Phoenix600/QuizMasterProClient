@@ -11,7 +11,8 @@ import {
   Clock,
   ChevronRight,
   Zap,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Code
 } from 'lucide-react';
 import { StreakCalendar } from './StreakCalendar';
 
@@ -243,6 +244,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, s
                 className="w-full py-4 bg-white/5 hover:bg-orange-500 text-white font-bold rounded-2xl transition-all border border-white/5 hover:border-orange-500/50"
               >
                 Find New Quiz
+              </button>
+              
+              <button 
+                onClick={() => setView('coding')}
+                className="w-full py-4 mt-4 bg-orange-500/10 hover:bg-orange-500 text-orange-500 hover:text-white font-bold rounded-2xl transition-all border border-orange-500/20 hover:border-orange-500 flex items-center justify-center gap-2 group"
+              >
+                <Code className="group-hover:scale-110 transition-transform" size={20} />
+                Coding Workspace
               </button>
             </div>
           </div>

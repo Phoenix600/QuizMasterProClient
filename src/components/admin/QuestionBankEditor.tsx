@@ -22,6 +22,8 @@ interface QuestionBankEditorProps {
   setAdminSelectedCourse: (val: Course | null) => void;
   adminSelectedChapter: Chapter | null;
   setAdminSelectedChapter: (val: Chapter | null) => void;
+  adminSelectedSubFolder: Chapter | null;
+  setAdminSelectedSubFolder: (val: Chapter | null) => void;
   fetchChaptersForCourse: (id: string) => void;
   setQuestions: (val: Question[]) => void;
   showCourseDrop: boolean;
@@ -43,6 +45,7 @@ export const QuestionBankEditor: React.FC<QuestionBankEditorProps> = ({
   questions, courses, courseChapters,
   adminSelectedCourse, setAdminSelectedCourse,
   adminSelectedChapter, setAdminSelectedChapter,
+  adminSelectedSubFolder, setAdminSelectedSubFolder,
   fetchChaptersForCourse, setQuestions,
   showCourseDrop, setShowCourseDrop,
   showChapterDrop, setShowChapterDrop,
@@ -52,6 +55,49 @@ export const QuestionBankEditor: React.FC<QuestionBankEditorProps> = ({
 }) => {
   const [showLangDrop, setShowLangDrop] = React.useState(false);
   const [showFilterDrop, setShowFilterDrop] = React.useState(false);
+  const [showSubDrop, setShowSubDrop] = React.useState(false);
+
+  // Helper to extract string ID from various formats
+  const normalizeId = (idObj: any): string => {
+    if (!idObj) return '';
+    if (typeof idObj === 'string') return idObj;
+    if (typeof idObj === 'number') return String(idObj);
+    if (idObj.$oid) return String(idObj.$oid);
+    if (idObj._id) return normalizeId(idObj._id);
+    if (Array.isArray(idObj) && idObj.length > 0) return normalizeId(idObj[0]);
+    if (typeof idObj === 'object' && Object.keys(idObj).length === 0) return '';
+    return typeof idObj === 'object' ? '' : String(idObj);
+  };
+
+  // Helper to flatten nested chapter tree from API
+  const flattenChapters = (tree: any[], pId: string = ''): any[] => {
+    let result: any[] = [];
+    tree.forEach(chapter => {
+      const chapterId = normalizeId(chapter._id);
+      const { subChapters, ...chapterData } = chapter;
+      const currentParentId = normalizeId(chapterData.parentId) || pId;
+      result.push({ ...chapterData, _id: chapterId, parentId: currentParentId });
+      if (subChapters && subChapters.length > 0) {
+        result = [...result, ...flattenChapters(subChapters, chapterId)];
+      }
+    });
+    return result;
+  };
+
+  const allFlatChapters = React.useMemo(() => {
+    const rawChapters = courseChapters[adminSelectedCourse?._id || ''] || [];
+    return flattenChapters(rawChapters);
+  }, [courseChapters, adminSelectedCourse?._id]);
+
+  const topLevelChapters = React.useMemo(() => {
+    return allFlatChapters.filter(ch => !ch.parentId || ch.parentId === '');
+  }, [allFlatChapters]);
+
+  const subFolders = React.useMemo(() => {
+    if (!adminSelectedChapter) return [];
+    const chapterId = normalizeId(adminSelectedChapter._id);
+    return allFlatChapters.filter(ch => ch.parentId === chapterId && normalizeId(ch._id) !== chapterId);
+  }, [allFlatChapters, adminSelectedChapter]);
   
   const languages = [
     { value: 'javascript', label: 'JavaScript' },
@@ -113,6 +159,7 @@ export const QuestionBankEditor: React.FC<QuestionBankEditorProps> = ({
                                 setAdminSelectedCourse(c);
                                 fetchChaptersForCourse(c._id);
                                 setAdminSelectedChapter(null);
+                                setAdminSelectedSubFolder(null);
                                 api.getCourseQuestions(c._id).then(setQuestions);
                                 setPoolChapterFilter('all');
                                 setShowCourseDrop(false);
@@ -165,14 +212,15 @@ export const QuestionBankEditor: React.FC<QuestionBankEditorProps> = ({
                         className="absolute z-20 top-full left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl"
                       >
                         <div className="max-h-[300px] overflow-y-auto custom-scrollbar-blue">
-                          {(courseChapters[adminSelectedCourse?._id] || []).length === 0 && (
+                          {topLevelChapters.length === 0 && (
                             <div className="p-8 text-center text-gray-500 text-[10px] font-bold uppercase">No chapters available</div>
                           )}
-                          {(courseChapters[adminSelectedCourse?._id] || []).map(ch => (
+                          {topLevelChapters.map(ch => (
                             <button
                               key={ch._id}
                               onClick={() => {
                                 setAdminSelectedChapter(ch);
+                                setAdminSelectedSubFolder(null); // Reset subfolder
                                 api.getQuestions(ch._id).then(setQuestions);
                                 setShowChapterDrop(false);
                               }}
@@ -182,6 +230,64 @@ export const QuestionBankEditor: React.FC<QuestionBankEditorProps> = ({
                             >
                               <span className="text-xs font-bold uppercase tracking-widest">{ch.title}</span>
                               {adminSelectedChapter?._id === ch._id && <CheckCircle2 size={14} />}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <ChevronRight size={18} className="text-gray-800" />
+
+              <div className="relative z-[40] min-w-[280px]">
+                <button
+                  type="button"
+                  onClick={() => setShowSubDrop(!showSubDrop)}
+                  disabled={!adminSelectedChapter || subFolders.length === 0}
+                  className={`w-full flex items-center justify-between border rounded-2xl pl-12 pr-6 py-3.5 transition-all group relative ${
+                    !adminSelectedChapter || subFolders.length === 0
+                      ? 'bg-white/5 border-white/5 opacity-30 cursor-not-allowed' 
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 cursor-pointer'
+                  }`}
+                >
+                  <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
+                  <span className="text-xs font-black text-white uppercase tracking-widest truncate max-w-[180px]">
+                    {adminSelectedSubFolder?.title || 'Select Sub-folder'}
+                  </span>
+                  <div className="flex flex-col gap-0.5 opacity-40 group-hover:opacity-100">
+                    <ChevronUp size={10} className="text-emerald-500" />
+                    <ChevronDown size={10} className="text-emerald-500" />
+                  </div>
+                </button>
+
+                <AnimatePresence>
+                  {showSubDrop && adminSelectedChapter && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowSubDrop(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute z-20 top-full left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl"
+                      >
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar-emerald">
+                          {subFolders.map(folder => (
+                            <button
+                              key={folder._id}
+                              type="button"
+                              onClick={() => {
+                                setAdminSelectedSubFolder(folder);
+                                api.getQuestions(folder._id).then(setQuestions);
+                                setShowSubDrop(false);
+                              }}
+                              className={`w-full text-left px-5 py-4 rounded-xl transition-all flex items-center justify-between group/item ${
+                                adminSelectedSubFolder?._id === folder._id ? 'bg-emerald-500/10 text-emerald-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <span className="text-xs font-bold uppercase tracking-widest">{folder.title}</span>
+                              {adminSelectedSubFolder?._id === folder._id && <CheckCircle2 size={14} />}
                             </button>
                           ))}
                         </div>

@@ -15,10 +15,13 @@ export interface Course {
   title: string;
   description: string;
   isPublished: boolean;
+  type: 'QUIZ' | 'PROGRAMMING';
   chapterCount?: number;
   completedChapterCount?: number;
   quizCount?: number;
   completedQuizCount?: number;
+  problemCount?: number;
+  completedProblemCount?: number;
   totalQuestions?: number;
   progress?: number;
 }
@@ -31,7 +34,23 @@ export interface Chapter {
   order: number;
   quizCount?: number;
   completedQuizCount?: number;
+  problemCount?: number;
+  completedProblemCount?: number;
   isCompleted?: boolean;
+  problems?: Problem[];
+  parentId?: string | any | null;
+  subChapters?: Chapter[];
+  quizzes?: Quiz[];
+}
+
+
+export interface Problem {
+  _id: string;
+  chapterId: string;
+  title: string;
+  description: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  active: boolean;
 }
 
 export interface Quiz {

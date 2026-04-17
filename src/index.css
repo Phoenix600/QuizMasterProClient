@@ -85,3 +85,65 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #0a0a0a;
 }
+
+/* MDEditor Theme Overrides */
+.w-md-editor {
+  box-shadow: none !important;
+}
+
+/* Only make transparent when NOT in fullscreen */
+.w-md-editor:not(.w-md-editor-fullscreen) {
+  background-color: transparent !important;
+}
+
+.w-md-editor:not(.w-md-editor-fullscreen) .w-md-editor-content,
+.w-md-editor:not(.w-md-editor-fullscreen) .wmde-markdown-var {
+  background-color: transparent !important;
+  --color-canvas-default: transparent !important;
+}
+
+/* Force Solid Background in Fullscreen */
+.w-md-editor-fullscreen {
+  background-color: #0A0A0A !important;
+  z-index: 99999 !important;
+}
+
+.w-md-editor-fullscreen .w-md-editor-content,
+.w-md-editor-fullscreen .w-md-editor-preview,
+.w-md-editor-fullscreen .wmde-markdown-var {
+  background-color: #0A0A0A !important;
+  --color-canvas-default: #0A0A0A !important;
+  --color-fg-default: #d4d4d8 !important;
+}
+
+.w-md-editor-toolbar {
+  background-color: #18181b !important;
+  border-bottom: 1px solid #27272a !important;
+  padding: 8px 12px !important;
+}
+
+.w-md-editor-toolbar button {
+  color: #71717a !important;
+}
+
+.w-md-editor-toolbar button:hover {
+  color: #f97316 !important;
+  background-color: rgba(39, 39, 42, 0.5) !important;
+}
+
+.w-md-editor-text-pre > code, 
+.w-md-editor-text-input {
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+.w-md-editor-preview {
+  border-left: 1px solid rgba(39, 39, 42, 1) !important;
+  padding: 20px !important;
+}
+
+/* Hide MDEditor logo/status bar for cleaner look */
+.w-md-editor-bar {
+  display: none !important;
+}

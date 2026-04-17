@@ -25,13 +25,19 @@ export const getChapters = async (courseId) => {
   return response.data;
 };
 
-export const createChapter = async (courseId, title, description, order = 1) => {
-  const response = await apiClient.post(ENDPOINTS.ADMIN.CHAPTERS_BASE, { courseId, title, description, order });
+export const createChapter = async (courseId, title, description, parentId = null, order = 1) => {
+  const response = await apiClient.post(ENDPOINTS.ADMIN.CHAPTERS_BASE, { courseId, title, description, parentId, order });
   return response.data;
 };
 
+
 export const updateChapter = async (chapterId, data) => {
-  const response = await apiClient.patch(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${chapterId}`, data);
+  const response = await apiClient.put(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${chapterId}`, data);
+  return response.data;
+};
+
+export const bulkUpdateChapters = async (chapters) => {
+  const response = await apiClient.put(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/bulk/reorder`, { chapters });
   return response.data;
 };
 
