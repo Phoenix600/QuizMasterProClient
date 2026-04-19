@@ -1,7 +1,7 @@
 import { ApiResponse, CodeDraft, Problem, Submission, TestCase } from '../types.ts';
 
 export const SPRING_API_URL = import.meta.env.VITE_SPRING_API_URL || 'http://localhost:8080';
-export const NODE_API_URL = import.meta.env.VITE_NODE_API_URL || 'http://localhost:5001/api';
+export const NODE_API_URL = (import.meta.env.VITE_API_URL ?? '') + '/api';
 
 const pendingRequests = new Map<string, Promise<any>>();
 
