@@ -30,7 +30,7 @@ interface CurriculumManagerProps {
 
 const updateNestedOrder = (list: any[], parentId: string, newList: any[]): any[] => {
   return list.map(item => {
-    if (item._id === parentId) {
+    if (String(item._id) === String(parentId)) {
       return { ...item, subChapters: newList };
     }
     if (item.subChapters?.length) {
@@ -40,7 +40,7 @@ const updateNestedOrder = (list: any[], parentId: string, newList: any[]): any[]
   });
 };
 
-const DraggableChapter = React.memo(({ 
+export const DraggableChapter = ({ 
   chapter, 
   level = 0,
   isExpanded,
@@ -48,7 +48,7 @@ const DraggableChapter = React.memo(({
   isOnActivePath,
   activePathIds,
   expandedFolders,
-  toggleFolder,
+  onToggle,
   onReorder,
   onDelete,
   onEdit,
@@ -59,7 +59,9 @@ const DraggableChapter = React.memo(({
   setSelectedItemId
 }: any) => {
   const dragControls = useDragControls();
-  const hasChildren = (chapter.subChapters && chapter.subChapters.length > 0) || (chapter.problems && chapter.problems.length > 0);
+  const hasChildren = (chapter.subChapters && chapter.subChapters.length > 0) || 
+                      (chapter.problems && chapter.problems.length > 0) ||
+                      (chapter.quizzes && chapter.quizzes.length > 0);
 
   return (
     <Reorder.Item 
@@ -79,11 +81,19 @@ const DraggableChapter = React.memo(({
       }}
       className="select-none relative"
     >
-      {/* Horizontal Connector Line for nested folders */}
+      {/* Horizontal Connector Line */}
       {level > 0 && (
         <div className={cn(
           "absolute left-0 top-[22px] w-4 h-[1.5px] transition-colors duration-300",
           isOnActivePath ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" : "bg-zinc-800/50"
+        )} />
+      )}
+
+      {/* Vertical Connection Line - Only orange if on path to a child */}
+      {level > 0 && (
+        <div className={cn(
+          "absolute left-0 top-0 bottom-0 w-[1.5px] -ml-[23px]",
+          isOnActivePath ? "bg-orange-500/50" : "bg-zinc-800/50"
         )} />
       )}
       <div 
@@ -93,21 +103,32 @@ const DraggableChapter = React.memo(({
           level === 0 && "bg-zinc-900/40 border border-zinc-800/50 mb-1 py-3 px-4",
           isSelected && "bg-orange-500/10 border-orange-500/20"
         )}
-        onClick={() => toggleFolder(chapter._id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(String(chapter._id), (chapter.siblings || []).map((s: any) => String(s._id)));
+        }}
       >
         <div className="flex items-center gap-1">
            <div 
              className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-zinc-700 hover:text-zinc-400 opacity-50 group-hover:opacity-100 transition-opacity"
-             onPointerDown={(e) => dragControls.start(e)}
+             onPointerDown={(e) => {
+                e.stopPropagation();
+                dragControls.start(e);
+             }}
+             onClick={(e) => e.stopPropagation()}
            >
               <GripVertical size={14} />
            </div>
-           {hasChildren ? (
-            isExpanded ? <ChevronDown size={level === 0 ? 18 : 14} className={cn(isOnActivePath ? "text-orange-500" : "text-zinc-500")} /> : <ChevronRight size={level === 0 ? 18 : 14} className="text-zinc-500" />
-          ) : (
-            <div className={level === 0 ? "w-[18px]" : "w-[14px]"} />
-          )}
+           
+           <div className="flex items-center justify-center w-5">
+             {hasChildren ? (
+              isExpanded ? <ChevronDown size={level === 0 ? 18 : 14} className={cn(isOnActivePath ? "text-orange-500" : "text-zinc-500")} /> : <ChevronRight size={level === 0 ? 18 : 14} className="text-zinc-500" />
+            ) : (
+              <div className="w-4" />
+            )}
+           </div>
         </div>
+        
         <Folder 
           size={level === 0 ? 20 : 16} 
           fill={isSelected ? "currentColor" : (isOnActivePath ? "rgba(249, 115, 22, 0.2)" : "none")}
@@ -117,15 +138,16 @@ const DraggableChapter = React.memo(({
             isSelected && "text-orange-400"
           )} 
         />
+        
         <span className={cn(
-          "font-medium flex-1 transition-colors",
+          "font-medium flex-1 transition-colors truncate",
           level === 0 ? "text-base font-semibold text-zinc-100" : "text-sm text-zinc-300",
           isOnActivePath && "text-orange-100"
         )}>
           {chapter.title}
         </span>
         
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
           {level < 1 && (
             <button 
                 onClick={(e) => {
@@ -143,7 +165,7 @@ const DraggableChapter = React.memo(({
                   e.stopPropagation();
                   onAddProblem(chapter, level);
               }}
-              className="p-1 hover:text-orange-500 text-zinc-500"
+              className="p-1 hover:text-orange-500 text-zinc-500 transition-colors"
               title="Add Coding Problem"
           >
             <Code2 size={14} />
@@ -163,7 +185,10 @@ const DraggableChapter = React.memo(({
           <button 
               onClick={(e) => {
                   e.stopPropagation();
-                  onEdit(chapter);
+                  const id = String(chapter._id || chapter.id || '');
+                  if (id) {
+                    onEdit(id, chapter);
+                  }
               }}
               className="p-1 hover:text-zinc-100 text-zinc-500" 
               title="Edit Folder"
@@ -173,7 +198,10 @@ const DraggableChapter = React.memo(({
           <button 
               onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(chapter._id);
+                  const id = String(chapter._id || chapter.id || '');
+                  if (id) {
+                    onDelete(id);
+                  }
               }}
               className="p-1 hover:text-red-500 text-zinc-500"
               title="Delete Folder"
@@ -184,10 +212,7 @@ const DraggableChapter = React.memo(({
       </div>
 
       {isExpanded && (
-        <div className={cn(
-          "border-l ml-[23px] mt-1 space-y-1 transition-colors duration-300",
-          isOnActivePath ? "border-orange-500/50" : "border-zinc-800/50"
-        )}>
+        <div className="ml-[23px] mt-1 space-y-1 transition-colors duration-300">
           {chapter.subChapters && chapter.subChapters.length > 0 && (
             <Reorder.Group 
               axis="y" 
@@ -195,29 +220,27 @@ const DraggableChapter = React.memo(({
               onReorder={(newList) => onReorder(newList, chapter._id)}
               className="space-y-1"
             >
-              <AnimatePresence mode="popLayout">
-                {chapter.subChapters.map((sub: any) => (
-                   <DraggableChapter 
-                    key={sub._id}
-                    chapter={sub}
-                    level={level + 1}
-                    isExpanded={expandedFolders.has(sub._id)}
-                    isSelected={selectedItemId === sub._id}
-                    isOnActivePath={activePathIds.has(sub._id)}
-                    activePathIds={activePathIds}
-                    expandedFolders={expandedFolders}
-                    toggleFolder={toggleFolder}
-                    onReorder={onReorder}
-                    onDelete={onDelete}
-                    onEdit={onEdit}
-                    onAddSubFolder={onAddSubFolder}
-                    onAddProblem={onAddProblem}
-                    onAddQuiz={onAddQuiz}
-                    selectedItemId={selectedItemId}
-                    setSelectedItemId={setSelectedItemId}
-                  />
-                ))}
-              </AnimatePresence>
+              {chapter.subChapters.map((sub: any) => (
+                 <DraggableChapter 
+                  key={sub._id}
+                  chapter={{ ...sub, siblings: chapter.subChapters }}
+                  level={level + 1}
+                  isExpanded={expandedFolders.has(String(sub._id))}
+                  isSelected={String(selectedItemId) === String(sub._id)}
+                  isOnActivePath={activePathIds.has(String(sub._id))}
+                  activePathIds={activePathIds}
+                  expandedFolders={expandedFolders}
+                  onToggle={onToggle}
+                  onReorder={onReorder}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onAddSubFolder={onAddSubFolder}
+                  onAddProblem={onAddProblem}
+                  onAddQuiz={onAddQuiz}
+                  selectedItemId={selectedItemId}
+                  setSelectedItemId={setSelectedItemId}
+                />
+              ))}
             </Reorder.Group>
           )}
           
@@ -283,17 +306,7 @@ const DraggableChapter = React.memo(({
       )}
     </Reorder.Item>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.chapter._id === nextProps.chapter._id &&
-    prevProps.chapter.title === nextProps.chapter.title &&
-    prevProps.isExpanded === nextProps.isExpanded &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isOnActivePath === nextProps.isOnActivePath &&
-    prevProps.chapter.subChapters?.length === nextProps.chapter.subChapters?.length &&
-    prevProps.chapter.problems?.length === nextProps.chapter.problems?.length
-  );
-});
+};
 
 export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, onCreateProblem }) => {
   const [courses, setCourses] = useState<any[]>([]);
@@ -302,16 +315,21 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
   const [isLoading, setIsLoading] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [activePathIds, setActivePathIds] = useState<Set<string>>(new Set());
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [hasOrderChanged, setHasOrderChanged] = useState(false);
+  const activeEditingIdRef = React.useRef<string | null>(null);
 
   // Form states
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [courseForm, setCourseForm] = useState({ title: '', description: '', type: 'MIXED' });
   
   const [showChapterModal, setShowChapterModal] = useState(false);
-  const [chapterForm, setChapterForm] = useState({ title: '', description: '', parentId: null as string | null });
+  const [chapterForm, setChapterForm] = useState({ 
+    id: null as string | null,
+    title: '', 
+    description: '', 
+    parentId: null as string | null 
+  });
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
 
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -341,13 +359,31 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     }
   };
 
+  // Normalize chapter data to ensure consistent ID access (_id and id)
+  const normalizeChapters = (items: any[]): any[] => {
+    if (!items || !Array.isArray(items)) return [];
+    return items.map(item => {
+      const id = String(item._id || item.id || '');
+      if (!id || id === 'undefined') {
+        console.error('Found folder without valid ID:', item.title);
+      }
+      return {
+        ...item,
+        _id: id,
+        id: id,
+        subChapters: item.subChapters ? normalizeChapters(item.subChapters) : []
+      };
+    });
+  };
+
   const fetchChapters = async (courseId: string) => {
     try {
       setIsLoading(true);
       const data = await api.getChapters(courseId);
-      setChapters(data);
+      const normalizedData = normalizeChapters(data || []);
+      setChapters(normalizedData);
     } catch (err) {
-      toast.error('Failed to fetch curriculum');
+      toast.error('Failed to fetch chapters');
     } finally {
       setIsLoading(false);
     }
@@ -359,59 +395,67 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     }
   }, [selectedCourseId]);
 
-  const toggleFolder = React.useCallback((id: string) => {
-    setSelectedItemId(id);
+  const toggleFolder = React.useCallback((id: any, siblingIds: string[] = []) => {
+    const stringId = String(id);
+    setSelectedItemId(stringId);
     setExpandedFolders(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) newSet.delete(id);
-      else newSet.add(id);
+      if (newSet.has(stringId)) {
+        newSet.delete(stringId);
+      } else {
+        // Strict Accordion: Close all siblings when opening a new one
+        if (siblingIds && siblingIds.length > 0) {
+          siblingIds.forEach(sId => {
+            const sidStr = String(sId);
+            if (sidStr !== stringId) {
+              newSet.delete(sidStr);
+            }
+          });
+        }
+        newSet.add(stringId);
+      }
       return newSet;
     });
   }, []);
 
-  const findPath = (items: any[], targetId: string, currentPath: string[] = []): string[] | null => {
+  const findPath = React.useCallback((items: any[], targetId: string, currentPath: string[] = []): string[] | null => {
+    if (!items || !targetId) return null;
+    const targetIdStr = String(targetId);
+
     for (const item of items) {
-      if (item._id === targetId) return [...currentPath, item._id];
-      if (item.subChapters) {
-        const res = findPath(item.subChapters, targetId, [...currentPath, item._id]);
-        if (res) return res;
+      const itemId = String(item._id);
+      
+      // Check if this item is the target
+      if (itemId === targetIdStr) {
+        return [...currentPath, itemId];
       }
-      if (item.problems?.some((p: any) => p._id === targetId)) {
-        return [...currentPath, item._id, targetId];
+
+      // Check sub-chapters
+      if (item.subChapters && item.subChapters.length > 0) {
+        const path = findPath(item.subChapters, targetIdStr, [...currentPath, itemId]);
+        if (path) return path;
       }
-      if (item.quizzes?.some((q: any) => q._id === targetId)) {
-        return [...currentPath, item._id, targetId];
+
+      // Check problems
+      if (item.problems && item.problems.length > 0) {
+        const hasProb = item.problems.some((p: any) => String(p._id) === targetIdStr);
+        if (hasProb) return [...currentPath, itemId, targetIdStr];
+      }
+
+      // Check quizzes
+      if (item.quizzes && item.quizzes.length > 0) {
+        const hasQuiz = item.quizzes.some((q: any) => String(q._id) === targetIdStr);
+        if (hasQuiz) return [...currentPath, itemId, targetIdStr];
       }
     }
     return null;
-  };
+  }, []);
 
-  // Update active path only when selection changes or chapters are freshly loaded
-  // Avoid running this during every frame of a drag (onReorder)
-  useEffect(() => {
-    if (selectedItemId && chapters.length > 0) {
-      const path = findPath(chapters, selectedItemId);
-      const newPathSet = new Set(path || []);
-      
-      // Only update if the set is actually different to avoid extra renders
-      setActivePathIds(prev => {
-        if (prev.size !== newPathSet.size) return newPathSet;
-        const areEqual = Array.from(newPathSet).every(id => prev.has(id));
-        return areEqual ? prev : newPathSet;
-      });
-    } else if (!selectedItemId) {
-      setActivePathIds(new Set());
-    }
-  }, [selectedItemId]); 
-  
-  // Also run when chapters change, but NOT during active reordering
-  // We'll trust selection doesn't change hierarchy level during drag reorder
-  useEffect(() => {
-    if (selectedItemId && !hasOrderChanged) {
-        const path = findPath(chapters, selectedItemId);
-        setActivePathIds(new Set(path || []));
-    }
-  }, [chapters, selectedItemId, hasOrderChanged]);
+  const activePathIds = React.useMemo(() => {
+    if (!selectedItemId || chapters.length === 0) return new Set<string>();
+    const path = findPath(chapters, selectedItemId);
+    return new Set(path || []);
+  }, [chapters, selectedItemId, findPath]);
 
   const handleCreateCourse = React.useCallback(async () => {
     try {
@@ -424,12 +468,48 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     }
   }, [courseForm, fetchCourses]);
 
+  const handleEditChapter = React.useCallback((id: string, ch: any) => {
+    if (!id || id === 'undefined') {
+      toast.error('Cannot edit: Invalid folder identifier');
+      return;
+    }
+    
+    activeEditingIdRef.current = id;
+    setEditingChapterId(id);
+    setChapterForm({ 
+      id: id,
+      title: ch.title, 
+      description: ch.description || '', 
+      parentId: ch.parentId ? String(ch.parentId._id || ch.parentId) : null 
+    });
+    setShowChapterModal(true);
+  }, []);
+
   const handleCreateChapter = React.useCallback(async () => {
     if (!selectedCourseId) return;
+    
     try {
-      if (editingChapterId) {
-        await api.admin.updateChapter(editingChapterId, { title: chapterForm.title, description: chapterForm.description });
-        toast.success('Chapter updated');
+      const activeId = chapterForm.id || editingChapterId || activeEditingIdRef.current;
+      if (activeId) {
+        // Double check ID validity right before API call
+        const safeId = String(activeId);
+        if (safeId === 'undefined' || !safeId || safeId === 'null') {
+          toast.error('Update failed: Invalid identifier. Current Ref: ' + activeEditingIdRef.current);
+          return;
+        }
+
+        console.log('--- CURRICULUM API CALL ---');
+        console.log('Action: Update Folder');
+        console.log('ID:', safeId);
+        console.log('Payload:', { title: chapterForm.title, description: chapterForm.description });
+
+        await api.admin.updateChapter(safeId, { 
+          _id: safeId, // Payload mirror
+          id: safeId,  // Payload mirror
+          title: chapterForm.title, 
+          description: chapterForm.description 
+        });
+        toast.success('Folder updated');
       } else {
         await api.admin.createChapter(
           selectedCourseId, 
@@ -438,13 +518,13 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
           chapterForm.parentId, 
           chapterForm.description
         );
-        toast.success('Chapter created');
+        toast.success('Folder created');
       }
       setShowChapterModal(false);
       setEditingChapterId(null);
       fetchChapters(selectedCourseId);
-    } catch (err) {
-      toast.error('Failed to save chapter');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save folder');
     }
   }, [selectedCourseId, editingChapterId, chapterForm, fetchChapters]);
 
@@ -464,17 +544,15 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     }
   }, [selectedCourseId, targetChapterId, quizForm, fetchChapters]);
 
-  const handleDeleteChapter = React.useCallback(async (chapterId: string) => {
-    if (!window.confirm('Are you sure you want to delete this folder and EVERYTHING inside it (sub-folders, quizzes, problems)? This cannot be undone.')) return;
+  const handleDeleteChapter = React.useCallback(async (chapterId: any) => {
+    if (!window.confirm('Are you sure you want to delete this folder and all its contents?')) return;
     try {
-      setIsLoading(true);
-      await api.admin.deleteChapter(chapterId);
-      toast.success('Folder deleted');
+      const id = String(chapterId._id || chapterId);
+      await api.admin.deleteChapter(id);
+      toast.success('Chapter deleted');
       if (selectedCourseId) fetchChapters(selectedCourseId);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete folder');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      toast.error('Failed to delete chapter');
     }
   }, [selectedCourseId, fetchChapters]);
 
@@ -505,12 +583,38 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
   };
 
   const onReorder = React.useCallback((newList: any[], parentId: string | null) => {
+    // Normalize even on reorder to maintain ID integrity
+    const normalizedList = normalizeChapters(newList);
     if (parentId === null) {
-      setChapters(newList);
+      setChapters(normalizedList);
     } else {
-      setChapters(prev => updateNestedOrder(prev, parentId, newList));
+      setChapters(prev => updateNestedOrder(prev, parentId, normalizedList));
     }
     setHasOrderChanged(true);
+  }, []);
+
+
+  const handleAddSubFolder = React.useCallback((parentId: any) => {
+    const id = String(parentId._id || parentId);
+    setChapterForm({ title: '', description: '', parentId: id });
+    setShowChapterModal(true);
+  }, []);
+
+  const handleAddProblem = React.useCallback((ch: any, level: number) => {
+    if (!selectedCourseId) return;
+    const context = {
+        courseId: selectedCourseId,
+        chapterId: level === 0 ? ch._id : (ch.parentId?._id || ch.parentId),
+        subChapterId: level > 0 ? ch._id : null
+    };
+    if (onCreateProblem) onCreateProblem(context);
+    else toast.info('Navigate to Problem Authoring to add problems');
+  }, [selectedCourseId, onCreateProblem]);
+
+  const handleAddQuiz = React.useCallback((chapterId: string) => {
+    setTargetChapterId(chapterId);
+    setQuizForm({ title: '', description: '', timeLimit: 15, passingScore: 70, questionCount: 10 });
+    setShowQuizModal(true);
   }, []);
 
   return (
@@ -522,7 +626,7 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
               <BookOpen className="w-6 h-6 text-orange-500" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Curriculum Architect</h1>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Curriculum Architect <span className="text-xs text-zinc-600 font-mono">v.2.1</span></h1>
               <p className="text-sm text-zinc-500">Design courses, chapters, and nested programming modules</p>
             </div>
           </div>
@@ -616,39 +720,19 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
                         {chapters.map(chapter => (
                           <DraggableChapter 
                             key={chapter._id}
-                            chapter={chapter}
-                            isExpanded={expandedFolders.has(chapter._id)}
-                            isSelected={selectedItemId === chapter._id}
-                            isOnActivePath={activePathIds.has(chapter._id)}
+                            chapter={{ ...chapter, siblings: chapters }}
+                            isExpanded={expandedFolders.has(String(chapter._id))}
+                            isSelected={String(selectedItemId) === String(chapter._id)}
+                            isOnActivePath={activePathIds.has(String(chapter._id))}
                             activePathIds={activePathIds}
                             expandedFolders={expandedFolders}
-                            toggleFolder={toggleFolder}
+                            onToggle={toggleFolder}
                             onReorder={onReorder}
                             onDelete={handleDeleteChapter}
-                            onEdit={React.useCallback((ch: any) => {
-                              setEditingChapterId(ch._id);
-                              setChapterForm({ title: ch.title, description: ch.description || '', parentId: ch.parentId });
-                              setShowChapterModal(true);
-                            }, [])}
-                            onAddSubFolder={React.useCallback((parentId: string) => {
-                              setChapterForm({ title: '', description: '', parentId: parentId });
-                              setShowChapterModal(true);
-                            }, [])}
-                            onAddProblem={React.useCallback((ch: any, level: number) => {
-                              if (!selectedCourseId) return;
-                              const context = {
-                                  courseId: selectedCourseId,
-                                  chapterId: level === 0 ? ch._id : (ch.parentId?._id || ch.parentId),
-                                  subChapterId: level > 0 ? ch._id : null
-                              };
-                              if (onCreateProblem) onCreateProblem(context);
-                              else toast.info('Navigate to Problem Authoring to add problems');
-                            }, [selectedCourseId, onCreateProblem])}
-                            onAddQuiz={React.useCallback((chapterId: string) => {
-                              setTargetChapterId(chapterId);
-                              setQuizForm({ title: '', description: '', timeLimit: 15, passingScore: 70, questionCount: 10 });
-                              setShowQuizModal(true);
-                            }, [])}
+                            onEdit={handleEditChapter}
+                            onAddSubFolder={handleAddSubFolder}
+                            onAddProblem={handleAddProblem}
+                            onAddQuiz={handleAddQuiz}
                             selectedItemId={selectedItemId}
                             setSelectedItemId={setSelectedItemId}
                           />
@@ -712,7 +796,7 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
       )}
 
       {showChapterModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+          <div key={editingChapterId || 'new'} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
               <div className="bg-[#111111] border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
                   <div className="p-6 border-b border-zinc-800">
                       <h3 className="text-lg font-bold text-white">

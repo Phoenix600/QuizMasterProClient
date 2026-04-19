@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
 import { cn } from '../lib/utils';
+import { NODE_API_URL } from '../lib/api';
 
 // Global Worker Configuration
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -166,7 +167,6 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ url, title = "Presentation
         let finalUrl = url;
 
         // Use our own internal backend proxy to avoid 522 errors and CORS issues
-        const NODE_API_URL = 'http://localhost:5001/api';
         finalUrl = `${NODE_API_URL}/proxy/pdf?url=${encodeURIComponent(url)}`;
 
         const cache = await caches.open(CACHE_NAME);

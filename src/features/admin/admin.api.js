@@ -32,7 +32,13 @@ export const createChapter = async (courseId, title, description, parentId = nul
 
 
 export const updateChapter = async (chapterId, data) => {
-  const response = await apiClient.put(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${chapterId}`, data);
+  // Self-healing: If ID is missing, try to find it in the data object
+  const finalId = chapterId || data._id || data.id;
+  
+  if (!finalId || String(finalId) === 'undefined') {
+    throw new Error('[LEGACY-API] Update failed: Invalid or missing Chapter ID');
+  }
+  const response = await apiClient.put(`${ENDPOINTS.ADMIN.CHAPTERS_BASE}/${finalId}`, data);
   return response.data;
 };
 

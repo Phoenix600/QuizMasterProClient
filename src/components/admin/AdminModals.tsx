@@ -14,7 +14,7 @@ interface AdminModalsProps {
   setShowAddChapter: (val: boolean) => void;
   newChapterData: { title: string; description: string };
   setNewChapterData: (val: { title: string; description: string }) => void;
-  editingChapterData: { chapterId: string, courseId: string, title: string, description: string } | null;
+  editingChapterData: { chapterId?: string, _id?: string, id?: string, courseId: string, title: string, description: string } | null;
   setEditingChapterData: (val: any) => void;
   showAddQuiz: boolean;
   setShowAddQuiz: (val: boolean) => void;
@@ -496,7 +496,8 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                   setFormError('');
                   const toastId = pushToast('Updating chapter...', 'loading', 0);
                   try {
-                    await api.updateChapter(editingChapterData.chapterId, {
+                    const actualId = editingChapterData.chapterId || editingChapterData._id || editingChapterData.id;
+                    await api.updateChapter(actualId, {
                       title: editingChapterData.title.trim(),
                       description: editingChapterData.description.trim(),
                     });

@@ -8,6 +8,12 @@ const apiClient = axios.create({
 // Attach JWT token to every request
 apiClient.interceptors.request.use(
   (config) => {
+    // Global Guard: Block "undefined" in URLs
+    if (config.url && (config.url.includes('undefined') || config.url.includes('null'))) {
+      console.warn('Blocked Axios request with malformed URL:', config.url);
+      throw new axios.Cancel(`Security: Blocked malformed URL: ${config.url}`);
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

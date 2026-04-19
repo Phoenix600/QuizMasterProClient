@@ -96,6 +96,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
+import { Toaster, toast } from 'sonner';
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -913,6 +915,7 @@ function AppContent() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <Toaster theme="dark" position="bottom-right" richColors closeButton />
       <div className="min-h-screen bg-[#141414] text-gray-200 font-sans selection:bg-orange-500/30">
       {/* Header */}
       <header className="border-b border-white/5 bg-[#1a1a1a]/50 backdrop-blur-md sticky top-0 z-50">

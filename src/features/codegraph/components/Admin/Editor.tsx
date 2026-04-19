@@ -9,6 +9,7 @@ import MonacoEditor from '@monaco-editor/react';
 import MDEditor from '@uiw/react-md-editor';
 import { registerCustomThemes, THEME_OPTIONS } from '../../lib/monaco-themes.ts';
 import { api } from '../../lib/api';
+import rehypeRaw from 'rehype-raw';
 import { toast } from 'sonner';
 import { ImageOverlay } from '../Common/ImageOverlay';
 import EditorialAuthoring from './EditorialAuthoring.tsx';
@@ -308,6 +309,9 @@ export const Editor: React.FC<EditorProps> = ({
                 preview="edit"
                 height={400}
                 className="!bg-transparent !border-none custom-md-editor"
+                previewOptions={{
+                  rehypePlugins: [[rehypeRaw as any, { allowDangerousHtml: true }]],
+                }}
               />
             </div>
 
@@ -503,6 +507,9 @@ export const Editor: React.FC<EditorProps> = ({
                 preview="edit"
                 height={200}
                 className="!bg-transparent !border-none custom-md-editor"
+                previewOptions={{
+                  rehypePlugins: [[rehypeRaw as any, { allowDangerousHtml: true }]],
+                }}
               />
             </div>
 
@@ -663,6 +670,9 @@ export const Editor: React.FC<EditorProps> = ({
                 height="100%"
                 preview="live"
                 className="h-full"
+                previewOptions={{
+                  rehypePlugins: [[rehypeRaw as any, { allowDangerousHtml: true }]],
+                }}
               />
            </div>
            <div className="h-10 bg-zinc-900/50 border-t border-zinc-800 flex items-center px-8">

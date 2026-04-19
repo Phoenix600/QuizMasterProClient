@@ -392,14 +392,20 @@ export const HierarchyManager: React.FC<HierarchyManagerProps> = ({
     const chapter = findChapter(chaptersInSelectedCourse, id);
     setAdminSelectedChapter(chapter || null);
     setAdminSelectedQuiz(null);
-    fetchQuizzesForChapter(id);
+    
+    // Only fetch quizzes if the folder is currently collapsed (being opened)
+    const isExpanding = !expandedFolders.has(id);
+    if (isExpanding) {
+      fetchQuizzesForChapter(id);
+    }
+
     setExpandedFolders(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) newSet.delete(id);
       else newSet.add(id);
       return newSet;
     });
-  }, [chaptersInSelectedCourse, setAdminSelectedChapter, setAdminSelectedQuiz, fetchQuizzesForChapter]);
+  }, [chaptersInSelectedCourse, setAdminSelectedChapter, setAdminSelectedQuiz, fetchQuizzesForChapter, expandedFolders]);
 
   const findPath = (items: any[], targetId: string, currentPath: string[] = []): string[] | null => {
     for (const item of items) {

@@ -39,6 +39,7 @@ import {
 import { motion, AnimatePresence, useDragControls } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import VideoPlayer from './VideoPlayer';
 import { PdfViewer } from './PdfViewer';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -108,6 +109,54 @@ export default function ContentArea({
   const [error, setError] = React.useState<string | null>(null);
   const [overlayImage, setOverlayImage] = React.useState<string | null>(null);
 
+  const markdownComponents: any = {
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <div className="rounded-xl overflow-hidden my-6 border border-zinc-800 shadow-2xl">
+          <SyntaxHighlighter
+            style={vscDarkPlus}
+            language={match[1]}
+            PreTag="div"
+            customStyle={{ margin: 0, padding: '1.5rem', background: '#09090b', fontSize: isStudyMode ? '15px' : '14px' }}
+            {...props}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      ) : (
+        <code className="bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.9em] border border-orange-500/20" {...props}>
+          {children}
+        </code>
+      )
+    },
+    h1: ({ children }: any) => <h1 className={cn("font-black text-zinc-100 mt-8 mb-4 tracking-tight border-b border-zinc-800 pb-2", isStudyMode ? "text-3xl" : "text-2xl")}>{children}</h1>,
+    h2: ({ children }: any) => <h2 className={cn("font-bold text-zinc-100 mt-6 mb-4 tracking-tight", isStudyMode ? "text-2xl" : "text-xl")}>{children}</h2>,
+    h3: ({ children }: any) => <h3 className={cn("font-bold text-orange-500/90 mt-5 mb-2", isStudyMode ? "text-xl" : "text-lg")}>{children}</h3>,
+    h4: ({ children }: any) => <h4 className={cn("font-bold text-zinc-200 mt-4 mb-2", isStudyMode ? "text-lg" : "text-md")}>{children}</h4>,
+    p: ({ children }: any) => <p className={cn("mb-4 text-zinc-200 leading-relaxed", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</p>,
+    ul: ({ children }: any) => <ul className={cn("list-disc pl-5 mb-6 space-y-2 text-zinc-200", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</ul>,
+    ol: ({ children }: any) => <ol className={cn("list-decimal pl-5 mb-6 space-y-2 text-zinc-200", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</ol>,
+    strong: ({ children }: any) => <strong className="font-bold text-zinc-100">{children}</strong>,
+    em: ({ children }: any) => <em className="italic text-zinc-400">{children}</em>,
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-4 border-orange-500/50 bg-orange-500/5 px-6 py-4 rounded-r-xl italic my-6 text-zinc-200">
+        {children}
+      </blockquote>
+    ),
+    table: ({ children }: any) => (
+      <div className="my-8 overflow-x-auto rounded-xl border border-zinc-800 shadow-lg bg-zinc-900/20 backdrop-blur-sm">
+        <table className={cn("w-full text-left border-collapse", isStudyMode ? "text-[16px]" : "text-[14px]")}>
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }: any) => <thead className="bg-zinc-800/50 text-zinc-400 uppercase text-[10px] font-black tracking-widest">{children}</thead>,
+    th: ({ children }: any) => <th className="px-6 py-4 border-b border-zinc-800 font-black">{children}</th>,
+    td: ({ children }: any) => <td className="px-6 py-4 border-b border-zinc-800/50 text-zinc-300">{children}</td>,
+    tr: ({ children }: any) => <tr className="hover:bg-zinc-800/30 transition-colors">{children}</tr>,
+  };
+
   // Fetch Problem Data - Only on ID change
   React.useEffect(() => {
     // RESET ALL INTERNAL STATE ON PROBLEM CHANGE
@@ -143,7 +192,7 @@ export default function ContentArea({
               setTestCases(testCasesToUse.filter((tc: any) => tc.isSample));
               return;
             }
-            
+
             try {
               const cases = await api.getSampleTestCases(problemId);
               setTestCases(cases);
@@ -316,8 +365,8 @@ export default function ContentArea({
                         : "text-zinc-500 hover:text-zinc-300"
                     )}
                   >
-                     {activeEditorialType === type && <div className="w-1 h-1 rounded-full bg-orange-500" />}
-                     {type.charAt(0) + type.slice(1).toLowerCase()}
+                    {activeEditorialType === type && <div className="w-1 h-1 rounded-full bg-orange-500" />}
+                    {type.charAt(0) + type.slice(1).toLowerCase()}
                   </button>
                 );
               })}
@@ -354,7 +403,7 @@ export default function ContentArea({
                   "font-bold text-zinc-100 transition-all duration-300",
                   isStudyMode ? "text-3xl" : "text-xl"
                 )}>
-                  {problem?.title || "Loading..." }
+                  {problem?.title || "Loading..."}
                 </h1>
                 {isSolved && !isContestMode && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 animate-in fade-in zoom-in duration-300">
@@ -415,42 +464,8 @@ export default function ContentArea({
                 >
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                          <div className="rounded-xl overflow-hidden my-6 border border-zinc-800 shadow-2xl">
-                            <SyntaxHighlighter
-                              style={vscDarkPlus}
-                              language={match[1]}
-                              PreTag="div"
-                              customStyle={{ margin: 0, padding: '1.5rem', background: '#09090b', fontSize: '13px' }}
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          </div>
-                        ) : (
-                          <code className="bg-zinc-800/80 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.9em] border border-zinc-700/50" {...props}>
-                            {children}
-                          </code>
-                        )
-                      },
-                      h1: ({ children }) => <h1 className="text-2xl font-black text-zinc-100 mt-8 mb-4 tracking-tight border-b border-zinc-800 pb-2">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-xl font-bold text-zinc-100 mt-6 mb-3 tracking-tight">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-lg font-bold text-orange-500/90 mt-5 mb-2">{children}</h3>,
-                      h4: ({ children }) => <h4 className="text-md font-bold text-zinc-200 mt-4 mb-2">{children}</h4>,
-                      p: ({ children }) => <p className="mb-4 text-zinc-300 leading-relaxed text-[13px]">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ol>,
-                      strong: ({ children }) => <strong className="font-bold text-zinc-100">{children}</strong>,
-                      em: ({ children }) => <em className="italic text-zinc-400">{children}</em>,
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-orange-500/50 bg-orange-500/5 px-6 py-4 rounded-r-xl italic my-6 text-zinc-300">
-                          {children}
-                        </blockquote>
-                      ),
-                    }}
+                    rehypePlugins={[rehypeRaw]}
+                    components={markdownComponents}
                   >
                     {problem?.description || ''}
                   </ReactMarkdown>
@@ -489,8 +504,9 @@ export default function ContentArea({
                           <div className={cn("flex flex-col gap-1 transition-all pt-4 border-t border-zinc-800/50", isStudyMode ? "text-base" : "text-sm")}>
                             <span className="font-semibold text-zinc-500 text-[11px] tracking-wide font-sans">Explanation:</span>
                             <div className="text-zinc-200 font-sans leading-relaxed">
-                              <ReactMarkdown 
+                              <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw]}
                                 components={{
                                   code({ node, inline, className, children, ...props }: any) {
                                     return (
@@ -619,7 +635,7 @@ export default function ContentArea({
 
                 if (!solution && !problem?.editorialVideoUrl) {
                   return (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="h-80 flex flex-col items-center justify-center border border-zinc-800/50 rounded-3xl bg-gradient-to-b from-zinc-900/20 to-black/40 text-zinc-500 shadow-2xl relative overflow-hidden group"
@@ -643,7 +659,7 @@ export default function ContentArea({
                 }
 
                 return (
-                  <div 
+                  <div
                     ref={studyGridRef}
                     className={cn(
                       "transition-all duration-500",
@@ -656,58 +672,58 @@ export default function ContentArea({
                         "transition-all duration-500 z-10 overflow-visible",
                         isStudyMode ? "lg:sticky lg:top-6 p-6 flex flex-col" : "mb-12"
                       )}>
-                      {isStudyMode ? (
-                        <motion.div 
-                          drag={isStudyMode ? "y" : false}
-                          dragControls={dragControls}
-                          dragListener={false}
-                          dragConstraints={studyGridRef}
-                          dragMomentum={false}
-                          dragElastic={0}
-                          className="relative group h-fit"
-                        >
-                          {/* Unified Greyish-Orange Chassis Frame */}
-                          <div className="relative rounded-[32px] p-1 pb-10 bg-gradient-to-br from-zinc-500/40 via-orange-950/20 to-zinc-800/40 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden border-b-4 border-orange-500/20 hover:border-orange-500/40 transition-colors">
-                            {/* Inner Surface Glass */}
-                            <div className="absolute inset-0 bg-black rounded-[28px]" />
-                            
-                            {/* Top Tagging Area */}
-                            <div className="absolute top-4 left-5 z-20 pointer-events-none">
-                              <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-orange-500/20 shadow-2xl">
-                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                <span className="text-[10px] font-semibold text-zinc-100 tracking-wide">Tutorial</span>
+                        {isStudyMode ? (
+                          <motion.div
+                            drag={isStudyMode ? "y" : false}
+                            dragControls={dragControls}
+                            dragListener={false}
+                            dragConstraints={studyGridRef}
+                            dragMomentum={false}
+                            dragElastic={0}
+                            className="relative group h-fit"
+                          >
+                            {/* Unified Greyish-Orange Chassis Frame */}
+                            <div className="relative rounded-[32px] p-1 pb-10 bg-gradient-to-br from-zinc-500/40 via-orange-950/20 to-zinc-800/40 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden border-b-4 border-orange-500/20 hover:border-orange-500/40 transition-colors">
+                              {/* Inner Surface Glass */}
+                              <div className="absolute inset-0 bg-black rounded-[28px]" />
+
+                              {/* Top Tagging Area */}
+                              <div className="absolute top-4 left-5 z-20 pointer-events-none">
+                                <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-orange-500/20 shadow-2xl">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                  <span className="text-[10px] font-semibold text-zinc-100 tracking-wide">Tutorial</span>
+                                </div>
+                              </div>
+
+                              {/* The Video content area */}
+                              <div className="relative aspect-video rounded-[26px] overflow-hidden border border-white/5 bg-black mt-2 mx-1">
+                                <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
+                              </div>
+
+                              {/* Reinforced Bottom Drag Handle Bar */}
+                              <div
+                                onPointerDown={(e) => dragControls.start(e)}
+                                className="absolute bottom-0 left-0 right-0 h-10 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-orange-500/5 transition-all group/handle"
+                              >
+                                <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/20 border border-transparent group-hover/handle:border-orange-500/20 transition-all">
+                                  <Activity size={14} className="text-orange-500" />
+                                  <span className="text-[10px] font-semibold text-zinc-400 tracking-widest uppercase">Reposition player</span>
+                                </div>
                               </div>
                             </div>
-
-                            {/* The Video content area */}
-                            <div className="relative aspect-video rounded-[26px] overflow-hidden border border-white/5 bg-black mt-2 mx-1">
-                               <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
-                            </div>
-
-                            {/* Reinforced Bottom Drag Handle Bar */}
-                            <div 
-                              onPointerDown={(e) => dragControls.start(e)}
-                              className="absolute bottom-0 left-0 right-0 h-10 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-orange-500/5 transition-all group/handle"
-                            >
-                              <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/20 border border-transparent group-hover/handle:border-orange-500/20 transition-all">
-                                <Activity size={14} className="text-orange-500" />
-                                <span className="text-[10px] font-semibold text-zinc-400 tracking-widest uppercase">Reposition player</span>
+                          </motion.div>
+                        ) : (
+                          <div className="relative aspect-video rounded-3xl overflow-hidden border border-zinc-800 bg-black shadow-2xl group/normal">
+                            <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
+                            <div className="absolute top-4 left-4 pointer-events-none">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
+                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                <span className="text-[10px] font-semibold text-zinc-100 uppercase tracking-tighter opacity-80">Video Tutorial</span>
                               </div>
                             </div>
                           </div>
-                        </motion.div>
-                      ) : (
-                        <div className="relative aspect-video rounded-3xl overflow-hidden border border-zinc-800 bg-black shadow-2xl group/normal">
-                          <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
-                          <div className="absolute top-4 left-4 pointer-events-none">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
-                              <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                              <span className="text-[10px] font-semibold text-zinc-100 uppercase tracking-tighter opacity-80">Video Tutorial</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
                     )}
 
                     {/* Content Section (Right Column in Study Mode) */}
@@ -720,15 +736,15 @@ export default function ContentArea({
                           {/* 1. Hero Content */}
                           <div className="space-y-6">
                             <h1 className="text-5xl font-bold text-white tracking-tight">
-                              {problem?.title || "Problem Title"} <br/>
+                              {problem?.title || "Problem Title"} <br />
                               <span className="text-orange-500 opacity-90 text-[0.8em] font-semibold">Mastery Path</span>
                             </h1>
                             <div className="flex items-center gap-4">
                               <span className={cn(
                                 "text-[11px] font-semibold px-4 py-1.5 rounded-full tracking-wide transition-all duration-500",
                                 problem?.difficulty === 'EASY' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.15)]" :
-                                problem?.difficulty === 'MEDIUM' ? "bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.15)]" :
-                                "bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
+                                  problem?.difficulty === 'MEDIUM' ? "bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.15)]" :
+                                    "bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
                               )}>
                                 {problem?.difficulty ? (problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase()) : 'Medium'}
                               </span>
@@ -743,45 +759,11 @@ export default function ContentArea({
                           </div>
 
                           {/* 2. Main Description */}
-                          <div className="text-zinc-100 prose prose-invert prose-lg max-w-none leading-relaxed">
+                          <div className="text-zinc-100 max-w-none leading-relaxed">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
-                              components={{
-                                code({ node, inline, className, children, ...props }: any) {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  return !inline && match ? (
-                                    <div className="rounded-xl overflow-hidden my-6 border border-zinc-800 shadow-2xl">
-                                      <SyntaxHighlighter
-                                        style={vscDarkPlus}
-                                        language={match[1]}
-                                        PreTag="div"
-                                        customStyle={{ margin: 0, padding: '1.5rem', background: '#09090b', fontSize: '13px' }}
-                                        {...props}
-                                      >
-                                        {String(children).replace(/\n$/, '')}
-                                      </SyntaxHighlighter>
-                                    </div>
-                                  ) : (
-                                    <code className="bg-zinc-800/80 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.9em] border border-zinc-700/50" {...props}>
-                                      {children}
-                                    </code>
-                                  )
-                                },
-                                h1: ({ children }) => <h1 className="text-2xl font-black text-zinc-100 mt-8 mb-4 tracking-tight border-b border-zinc-800 pb-2">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-xl font-bold text-zinc-100 mt-6 mb-3 tracking-tight">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-lg font-bold text-orange-500/90 mt-5 mb-2">{children}</h3>,
-                                h4: ({ children }) => <h4 className="text-md font-bold text-zinc-200 mt-4 mb-2">{children}</h4>,
-                                p: ({ children }) => <p className="mb-4 text-zinc-300 leading-relaxed text-[13px]">{children}</p>,
-                                ul: ({ children }) => <ul className="list-disc pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ol>,
-                                strong: ({ children }) => <strong className="font-bold text-zinc-100">{children}</strong>,
-                                em: ({ children }) => <em className="italic text-zinc-400">{children}</em>,
-                                blockquote: ({ children }) => (
-                                  <blockquote className="border-l-4 border-orange-500/50 bg-orange-500/5 px-6 py-4 rounded-r-xl italic my-6 text-zinc-300">
-                                    {children}
-                                  </blockquote>
-                                ),
-                              }}
+                              rehypePlugins={[rehypeRaw]}
+                              components={markdownComponents}
                             >
                               {problem?.description || "Loading problem details..."}
                             </ReactMarkdown>
@@ -810,11 +792,13 @@ export default function ContentArea({
                                   </div>
                                 </div>
                                 {tc.explanation && (
-                                  <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-xl">
-                                    <p className="text-sm text-zinc-200 leading-relaxed opacity-100">
-                                      <span className="text-orange-500 font-semibold mr-2 tracking-wide">Explanation:</span>
-                                      {tc.explanation}
-                                    </p>
+                                  <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+                                    <div className={cn("text-zinc-200 leading-relaxed", isStudyMode ? "text-[18px]" : "text-sm")}>
+                                      <span className="text-orange-500 font-bold mr-2 tracking-wide uppercase text-[10px]">Explanation:</span>
+                                      <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                                        {tc.explanation}
+                                      </ReactMarkdown>
+                                    </div>
                                   </div>
                                 )}
                               </section>
@@ -829,9 +813,9 @@ export default function ContentArea({
                         {/* 1. Intuition */}
                         {solution?.intuition && (
                           <section className="space-y-6">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1 h-6 bg-orange-600 rounded-full shadow-[0_0_10px_rgba(234,88,12,0.5)]" />
-                              <h2 className="text-xl font-bold text-white tracking-tight">Intuition</h2>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("w-1.5 h-7 bg-orange-600 rounded-full shadow-[0_0_15px_rgba(234,88,12,0.6)]", isStudyMode ? "h-9" : "h-7")} />
+                              <h2 className={cn("font-semibold text-white tracking-tight", isStudyMode ? "text-3xl" : "text-xl")}>Intuition</h2>
                             </div>
                             <div className={cn(
                               "text-zinc-200 prose prose-invert prose-sm max-w-none leading-relaxed",
@@ -839,42 +823,8 @@ export default function ContentArea({
                             )}>
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
-                                components={{
-                                  code({ node, inline, className, children, ...props }: any) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    return !inline && match ? (
-                                      <div className="rounded-xl overflow-hidden my-6 border border-zinc-800 shadow-2xl">
-                                        <SyntaxHighlighter
-                                          style={vscDarkPlus}
-                                          language={match[1]}
-                                          PreTag="div"
-                                          customStyle={{ margin: 0, padding: '1.5rem', background: '#09090b', fontSize: '13px' }}
-                                          {...props}
-                                        >
-                                          {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                      </div>
-                                    ) : (
-                                      <code className="bg-zinc-800/80 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.9em] border border-zinc-700/50" {...props}>
-                                        {children}
-                                      </code>
-                                    )
-                                  },
-                                  h1: ({ children }) => <h1 className="text-2xl font-black text-zinc-100 mt-8 mb-4 tracking-tight border-b border-zinc-800 pb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-xl font-bold text-zinc-100 mt-6 mb-3 tracking-tight">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-lg font-bold text-orange-500/90 mt-5 mb-2">{children}</h3>,
-                                  h4: ({ children }) => <h4 className="text-md font-bold text-zinc-200 mt-4 mb-2">{children}</h4>,
-                                  p: ({ children }) => <p className="mb-4 text-zinc-300 leading-relaxed text-[13px]">{children}</p>,
-                                  ul: ({ children }) => <ul className="list-disc pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ol>,
-                                  strong: ({ children }) => <strong className="font-bold text-zinc-100">{children}</strong>,
-                                  em: ({ children }) => <em className="italic text-zinc-400">{children}</em>,
-                                  blockquote: ({ children }) => (
-                                    <blockquote className="border-l-4 border-orange-500/50 bg-orange-500/5 px-6 py-4 rounded-r-xl italic my-6 text-zinc-300">
-                                      {children}
-                                    </blockquote>
-                                  ),
-                                }}
+                                rehypePlugins={[rehypeRaw]}
+                                components={markdownComponents}
                               >
                                 {solution.intuition}
                               </ReactMarkdown>
@@ -885,9 +835,9 @@ export default function ContentArea({
                         {/* 2. Approach */}
                         {solution?.approach && (
                           <section className="space-y-6">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1 h-6 bg-orange-600 rounded-full shadow-[0_0_10px_rgba(234,88,12,0.5)]" />
-                              <h2 className="text-xl font-bold text-white tracking-tight">Approach</h2>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("w-1.5 h-7 bg-orange-600 rounded-full shadow-[0_0_15px_rgba(234,88,12,0.6)]", isStudyMode ? "h-9" : "h-7")} />
+                              <h2 className={cn("font-semibold text-white tracking-tight", isStudyMode ? "text-3xl" : "text-xl")}>Approach</h2>
                             </div>
                             <div className={cn(
                               "text-zinc-200 prose prose-invert prose-sm max-w-none leading-relaxed",
@@ -895,42 +845,8 @@ export default function ContentArea({
                             )}>
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
-                                components={{
-                                  code({ node, inline, className, children, ...props }: any) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    return !inline && match ? (
-                                      <div className="rounded-xl overflow-hidden my-6 border border-zinc-800 shadow-2xl">
-                                        <SyntaxHighlighter
-                                          style={vscDarkPlus}
-                                          language={match[1]}
-                                          PreTag="div"
-                                          customStyle={{ margin: 0, padding: '1.5rem', background: '#09090b', fontSize: '13px' }}
-                                          {...props}
-                                        >
-                                          {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                      </div>
-                                    ) : (
-                                      <code className="bg-zinc-800/80 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.9em] border border-zinc-700/50" {...props}>
-                                        {children}
-                                      </code>
-                                    )
-                                  },
-                                  h1: ({ children }) => <h1 className="text-2xl font-black text-zinc-100 mt-8 mb-4 tracking-tight border-b border-zinc-800 pb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-xl font-bold text-zinc-100 mt-6 mb-3 tracking-tight">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-lg font-bold text-orange-500/90 mt-5 mb-2">{children}</h3>,
-                                  h4: ({ children }) => <h4 className="text-md font-bold text-zinc-200 mt-4 mb-2">{children}</h4>,
-                                  p: ({ children }) => <p className="mb-4 text-zinc-300 leading-relaxed text-[13px]">{children}</p>,
-                                  ul: ({ children }) => <ul className="list-disc pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-6 space-y-2 text-zinc-300 text-[13px]">{children}</ol>,
-                                  strong: ({ children }) => <strong className="font-bold text-zinc-100">{children}</strong>,
-                                  em: ({ children }) => <em className="italic text-zinc-400">{children}</em>,
-                                  blockquote: ({ children }) => (
-                                    <blockquote className="border-l-4 border-orange-500/50 bg-orange-500/5 px-6 py-4 rounded-r-xl italic my-6 text-zinc-300">
-                                      {children}
-                                    </blockquote>
-                                  ),
-                                }}
+                                rehypePlugins={[rehypeRaw]}
+                                components={markdownComponents}
                               >
                                 {solution.approach}
                               </ReactMarkdown>
@@ -948,9 +864,9 @@ export default function ContentArea({
                       {(solution?.implementations && solution.implementations.length > 0) && (
                         <section className="space-y-6">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1 h-6 bg-orange-600 rounded-full shadow-[0_0_10px_rgba(234,88,12,0.5)]" />
-                              <h2 className="text-xl font-bold text-white tracking-tight">Implementation</h2>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("w-1.5 h-7 bg-orange-600 rounded-full shadow-[0_0_15px_rgba(234,88,12,0.6)]", isStudyMode ? "h-9" : "h-7")} />
+                              <h2 className={cn("font-semibold text-white tracking-tight", isStudyMode ? "text-3xl" : "text-xl")}>Implementation</h2>
                             </div>
 
                             <div className="flex items-center gap-4">
@@ -1042,10 +958,10 @@ export default function ContentArea({
                             {solution?.complexity?.time && (
                               <div className="space-y-3">
                                 <div className="flex items-center gap-3 text-zinc-500 mb-1">
-                                  <Clock size={18} className="text-orange-500" />
-                                  <span className="text-xs font-semibold tracking-wider">Time Complexity</span>
+                                  <Clock size={isStudyMode ? 24 : 18} className="text-orange-500" />
+                                  <span className={cn("font-black uppercase tracking-[0.2em]", isStudyMode ? "text-[14px]" : "text-[10px]")}>Time Complexity</span>
                                 </div>
-                                <p className="text-4xl font-semibold text-white tabular-nums tracking-tighter">{solution.complexity.time}</p>
+                                <p className={cn("font-black text-white tabular-nums tracking-tighter tabular-nums", isStudyMode ? "text-6xl" : "text-4xl")}>{solution.complexity.time}</p>
                                 <p className="text-xs text-zinc-500 font-medium leading-relaxed">The algorithm processes all elements exactly once, achieving maximum theoretical efficiency.</p>
                               </div>
                             )}
@@ -1057,11 +973,11 @@ export default function ContentArea({
                             {solution?.complexity?.space && (
                               <div className="space-y-3">
                                 <div className="flex items-center gap-3 text-zinc-500 mb-1">
-                                  <Cpu size={18} className="text-orange-500" />
-                                  <span className="text-xs font-semibold tracking-wider">Space Complexity</span>
+                                  <Layers size={isStudyMode ? 24 : 18} className="text-orange-500" />
+                                  <span className={cn("font-black uppercase tracking-[0.2em]", isStudyMode ? "text-[14px]" : "text-[10px]")}>Space Complexity</span>
                                 </div>
-                                <p className="text-4xl font-semibold text-white tabular-nums tracking-tighter">{solution.complexity.space}</p>
-                                <p className="text-xs text-zinc-500 font-medium leading-relaxed">In-place transformation minimizes memory overhead by reusing the input structure.</p>
+                                <p className={cn("font-black text-white tabular-nums tracking-tighter tabular-nums", isStudyMode ? "text-6xl" : "text-4xl")}>{solution.complexity.space}</p>
+                                <p className="text-xs text-zinc-500 font-medium leading-relaxed">Memory consumption is optimized by utilizing in-place operations and efficient data structures.</p>
                               </div>
                             )}
                           </div>
@@ -1375,7 +1291,7 @@ export default function ContentArea({
                               <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" strokeDasharray="2,2" />
                             </svg>
 
-                            <div 
+                            <div
                               className="absolute -translate-x-1/2 -translate-y-1/2 group/marker transition-all duration-1000 ease-in-out"
                               style={{ left: `${timePos}%`, top: `${(timeY / 40) * 100}%` }}
                             >
@@ -1458,7 +1374,7 @@ export default function ContentArea({
                               <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" strokeDasharray="2,2" />
                             </svg>
 
-                            <div 
+                            <div
                               className="absolute -translate-x-1/2 -translate-y-1/2 group/marker transition-all duration-1000 ease-in-out"
                               style={{ left: `${spacePos}%`, top: `${(spaceY / 40) * 100}%` }}
                             >
