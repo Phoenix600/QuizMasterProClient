@@ -203,18 +203,7 @@ export default function Sidebar({ isVisible, selectedProblemId, onToggle, onProf
   const isAdmin = user?.role === 'ADMIN';
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Global search shortcut listener
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        onOpen?.();
-        setTimeout(() => searchInputRef.current?.focus(), 150);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onOpen]);
+
 
   // Auto-expand/scroll separately to avoid re-fetching
   React.useEffect(() => {
@@ -413,7 +402,7 @@ export default function Sidebar({ isVisible, selectedProblemId, onToggle, onProf
                     if (e.target.value.trim() && !isVisible) onOpen?.();
                   }}
                   type="text"
-                  placeholder="Search (Press /)..."
+                  placeholder="Search..."
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md py-1.5 pl-8 pr-3 text-xs text-zinc-300 focus:outline-none focus:border-zinc-700 transition-colors"
                 />
               </div>

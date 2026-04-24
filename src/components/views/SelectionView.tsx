@@ -109,7 +109,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                   {/* Top Section: Fixed height to keep everything below it aligned */}
                   <div className="min-h-[160px] flex flex-col">
                     <div className="flex items-start justify-between min-h-[80px]">
-                      <h3 className="text-3xl font-black text-white leading-tight break-words group-hover:text-orange-500 transition-colors">
+                      <h3 className="text-3xl font-bold text-white leading-tight break-words group-hover:text-orange-500 transition-colors">
                         {course.title}
                       </h3>
                       {course.quizCount! > 0 && course.completedQuizCount === course.quizCount && (
@@ -141,7 +141,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                             <CheckCircle2 size={10} className="text-emerald-500 ml-0.5" />
                           )}
                         </div>
-                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">Chapters</span>
+                        <span className="text-gray-600 text-[11px] font-semibold tracking-tight mt-1 opacity-60">Chapters</span>
                       </div>
 
                       <div className="flex flex-col items-center justify-center text-center px-1 border-x border-white/5">
@@ -154,7 +154,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                             <CheckCircle2 size={10} className="text-emerald-500 ml-0.5" />
                           )}
                         </div>
-                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">
+                        <span className="text-gray-600 text-[11px] font-semibold tracking-tight mt-1 opacity-60">
                           {course.type === 'PROGRAMMING' ? 'Problems' : 'Quizzes'}
                         </span>
                       </div>
@@ -163,14 +163,14 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                         <span className="text-white font-bold text-xl leading-none">
                           {course.totalQuestions || 0}
                         </span>
-                        <span className="text-gray-600 text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-60">Questions</span>
+                        <span className="text-gray-600 text-[11px] font-semibold tracking-tight mt-1 opacity-60">Questions</span>
                       </div>
                     </div>
 
                     {/* Progress Bar Container */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-[10px] font-black tracking-widest uppercase">
-                        <span className="text-gray-500">Overall Progress</span>
+                      <div className="flex items-center justify-between text-[10px] font-semibold tracking-normal">
+                        <span className="text-gray-500">Overall progress</span>
                         <span className={`font-bold ${course.progress === 100 ? 'text-emerald-500' : 'text-orange-500'}`}>
                           {course.progress || 0}%
                         </span>
@@ -189,8 +189,8 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                   </div>
                   
                   {/* Bottom Indicator */}
-                  <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 group-hover:text-orange-500/50 transition-colors">
-                    <span>Explore Chapters</span>
+                  <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between text-[10px] font-semibold text-gray-600 group-hover:text-orange-500/50 transition-colors">
+                    <span>Explore chapters</span>
                     <ChevronDown size={14} className="-rotate-90" />
                   </div>
                 </div>
@@ -218,13 +218,13 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                         <h3 className="text-xl font-bold text-white">{chapter.title}</h3>
                         {chapter.isCompleted && (
                           <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1.5">
-                            <span className="text-[8px] font-black text-emerald-500 tracking-tighter uppercase mt-0.5">Chapter Completed</span>
+                            <span className="text-[9px] font-semibold text-emerald-500 tracking-tight mt-0.5">Chapter completed</span>
                             <CheckCircle2 size={10} className="text-emerald-500" />
                           </div>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                        <span className="text-[11px] font-semibold tracking-normal text-gray-500">
                           {selectedCourse.type === 'PROGRAMMING' 
                             ? `${chapter.problems?.length || 0} ${chapter.problems?.length === 1 ? 'Problem' : 'Problems'}`
                             : `${chapter.quizCount || 0} ${chapter.quizCount === 1 ? 'Quiz' : 'Quizzes'}`}
@@ -232,8 +232,8 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                         {((selectedCourse.type === 'PROGRAMMING' ? chapter.problemCount : chapter.quizCount) || 0) > 0 && (
                           <>
                             <div className="w-1 h-1 rounded-full bg-white/10" />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${chapter.isCompleted ? 'text-emerald-500' : 'text-orange-500/80'}`}>
-                              {selectedCourse.type === 'PROGRAMMING' ? chapter.completedProblemCount || 0 : chapter.completedQuizCount || 0} Completed
+                            <span className={`text-[11px] font-semibold tracking-tight ${chapter.isCompleted ? 'text-emerald-500' : 'text-orange-500/80'}`}>
+                              {selectedCourse.type === 'PROGRAMMING' ? chapter.completedProblemCount || 0 : chapter.completedQuizCount || 0} completed
                             </span>
                           </>
                         )}
@@ -272,12 +272,12 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                                       {problem.title}
                                     </h4>
                                     <span className={cn(
-                                      "text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-tighter",
+                                      "text-[9px] font-semibold px-1.5 py-0.5 rounded border tracking-tight",
                                       problem.difficulty === 'EASY' ? "border-emerald-500/20 text-emerald-500 bg-emerald-500/5" :
-                                      problem.difficulty === 'MEDIUM' ? "border-orange-500/20 text-orange-500 bg-orange-500/5" :
+                                      problem.difficulty === 'MEDIUM' ? "border-orange-500/20 text-orange-400 bg-orange-500/5" :
                                       "border-red-500/20 text-red-500 bg-red-500/5"
                                     )}>
-                                      {problem.difficulty}
+                                      {problem.difficulty === 'EASY' ? 'Easy' : problem.difficulty === 'MEDIUM' ? 'Medium' : 'Hard'}
                                     </span>
                                   </div>
                                   <p className="text-xs text-gray-500 mt-1 font-medium line-clamp-1">Coding Problem</p>
@@ -319,8 +319,8 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                                     <CheckCircle2 size={12} className="text-emerald-500" />
-                                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tight">
-                                      PASSED
+                                    <span className="text-[10px] font-bold text-emerald-500 tracking-tight">
+                                      Passed
                                     </span>
                                   </div>
                                 </div>
@@ -333,7 +333,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
                           ))
                         )}
                         {((selectedCourse.type === 'PROGRAMMING' ? (!chapter.problems || chapter.problems.length === 0) : (!chapterQuizzes[chapter._id] || chapterQuizzes[chapter._id].length === 0))) && (
-                          <div className="col-span-full py-8 text-center text-gray-600 italic">
+                          <div className="col-span-full py-8 text-center text-gray-600">
                             No {selectedCourse.type === 'PROGRAMMING' ? 'problems' : 'quizzes'} available for this chapter yet.
                           </div>
                         )}
@@ -370,7 +370,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs text-orange-500 font-bold uppercase tracking-widest mb-1">Choose Mode</p>
+                  <p className="text-xs text-orange-500 font-bold tracking-tight mb-1">Choose Mode</p>
                   <h3 className="text-xl font-bold text-white">{pendingQuiz.quiz.title}</h3>
                 </div>
                 <button onClick={() => setPendingQuiz(null)} className="p-2 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all">

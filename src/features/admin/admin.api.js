@@ -56,8 +56,8 @@ export const getQuizzes = async (chapterId) => {
   return response.data;
 };
 
-export const createQuiz = async (chapterId, courseId, title, description, questionCount, passingScore, timeLimit) => {
-  const response = await apiClient.post(ENDPOINTS.ADMIN.QUIZZES_BASE, { chapterId, courseId, title, description, questionCount, passingScore, timeLimit });
+export const createQuiz = async (data) => {
+  const response = await apiClient.post(ENDPOINTS.ADMIN.QUIZZES_BASE, data);
   return response.data;
 };
 

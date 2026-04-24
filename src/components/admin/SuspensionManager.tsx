@@ -52,11 +52,11 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-[0.3em] ml-1">
+            <div className="flex items-center gap-2 text-[10px] font-semibold text-red-500 tracking-tight ml-1">
               <AlertCircle size={14} />
               {logsType === 'banned' ? 'Account Suspensions' : 'Integrity Warnings'}
             </div>
-            <h3 className="text-3xl font-black text-white tracking-tight">
+            <h3 className="text-3xl font-semibold text-white tracking-tight">
               {logsType === 'banned' ? 'Suspension Logs' : 'Student Warnings'}
             </h3>
           </div>
@@ -66,8 +66,8 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
             <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5 mr-4">
               <button
                 onClick={() => setLogsType('banned')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  logsType === 'banned' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-500 hover:text-white'
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all ${
+                  logsType === 'banned' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-zinc-500 hover:text-white'
                 }`}
               >
                 <AlertCircle size={14} />
@@ -75,8 +75,8 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
               </button>
               <button
                 onClick={() => setLogsType('warnings')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  logsType === 'warnings' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all ${
+                  logsType === 'warnings' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-zinc-500 hover:text-white'
                 }`}
               >
                 <RefreshCw size={14} />
@@ -108,11 +108,11 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
           <table className="w-full border-separate border-spacing-y-4">
             <thead>
               <tr className="text-left">
-                <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest pl-20">Student</th>
-                <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Reason / Status</th>
-                <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Level</th>
-                <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Last Event</th>
-                <th className="px-6 pb-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right pr-12">Controls</th>
+                <th className="px-6 pb-2 text-[10px] font-semibold text-zinc-500 tracking-tight pl-20">Student</th>
+                <th className="px-6 pb-2 text-[10px] font-semibold text-zinc-500 tracking-tight">Reason / Status</th>
+                <th className="px-6 pb-2 text-[10px] font-semibold text-zinc-500 tracking-tight">Level</th>
+                <th className="px-6 pb-2 text-[10px] font-semibold text-zinc-500 tracking-tight">Last Event</th>
+                <th className="px-6 pb-2 text-[10px] font-semibold text-zinc-500 tracking-tight text-right pr-12">Controls</th>
               </tr>
             </thead>
             <tbody>
@@ -124,8 +124,8 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
                         {log.userName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[13px] font-black text-gray-200 group-hover:text-white transition-all">{log.userName}</span>
-                        <span className="text-[10px] text-gray-600 font-bold tracking-tight">{log.userEmail}</span>
+                        <span className="text-[13px] font-semibold text-zinc-200 group-hover:text-white transition-all">{log.userName}</span>
+                        <span className="text-[10px] text-zinc-600 font-semibold tracking-tight">{log.userEmail}</span>
                       </div>
                     </div>
                   </td>
@@ -143,12 +143,12 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
                     </p>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${log.action === 'ban' ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-tight ${log.action === 'ban' ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
                       {log.action === 'ban' ? 'Suspended' : `Strike ${log.violationCount}/4`}
                     </span>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
-                    <span className="text-[11px] text-gray-500 font-bold">{new Date(log.createdAt).toLocaleString()}</span>
+                    <span className="text-[11px] text-zinc-500 font-semibold">{new Date(log.createdAt).toLocaleString()}</span>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] rounded-r-2xl border-r border-t border-b border-white/[0.02] text-right pr-6">
                     <button
@@ -157,7 +157,7 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
                         log.action === 'ban' 
                           ? 'bg-red-500/10 hover:bg-red-500 border-red-500/20 text-red-500' 
                           : 'bg-orange-500/10 hover:bg-orange-500 border-orange-500/20 text-orange-500'
-                      } hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border active:scale-95`}
+                      } hover:text-white px-4 py-2 rounded-xl text-[10px] font-semibold tracking-tight transition-all border active:scale-95`}
                     >
                       {log.action === 'ban' ? 'Unban Student' : 'Reset Strikes'}
                     </button>
@@ -169,7 +169,7 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
                   <td colSpan={5} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-30">
                       <CheckCircle2 size={48} className="text-gray-500" />
-                      <p className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">
+                      <p className="text-sm font-semibold tracking-tight text-zinc-500">
                         {logsType === 'banned' ? 'No students are suspended' : 'No students have current warnings'}
                       </p>
                     </div>
@@ -184,7 +184,7 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
           <div className="flex items-center justify-between mt-12 px-4 py-6 border-t border-white/[0.03]">
             <div className="flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${logsType === 'banned' ? 'bg-red-500' : 'bg-orange-500'}`} />
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+              <p className="text-zinc-500 text-xs font-semibold tracking-tight">
                 Showing <span className="text-white">{banLogs.length}</span> {logsType === 'banned' ? 'Suspensions' : 'Warnings'}
               </p>
             </div>
@@ -196,7 +196,7 @@ export const SuspensionManager: React.FC<SuspensionManagerProps> = ({ pushToast 
               >
                 <ChevronLeft size={18} />
               </button>
-              <div className="px-6 py-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
+              <div className="px-6 py-2 text-[11px] font-semibold text-zinc-500 tracking-tight">
                 Page <span className={logsType === 'banned' ? 'text-red-500' : 'text-orange-500'}>{banLogsPage}</span> <span className="mx-2 opacity-30">|</span> Total {Math.max(1, banLogsTotalPages)}
               </div>
               <button

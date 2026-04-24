@@ -5,9 +5,13 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'student';
+  membershipType?: 'enquiry' | 'premium';
+  trialDurationDays?: number;
+  batchId?: any;
   isBanned?: boolean;
   banReason?: string;
   violationCount?: number;
+  createdAt: string;
 }
 
 export interface Course {

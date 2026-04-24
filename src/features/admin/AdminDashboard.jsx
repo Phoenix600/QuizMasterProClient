@@ -180,10 +180,10 @@ const AdminDashboard = () => {
     <div className="space-y-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">
+          <h2 className="text-4xl font-bold text-white tracking-tight">
             {adminView === 'hierarchy' ? 'Admin Dashboard' : 'Question Management'}
           </h2>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+          <p className="text-gray-500 font-bold text-xs tracking-tight">
             {adminView === 'hierarchy' 
               ? 'Manage your courses, chapters, and quizzes.' 
               : `Editing questions for ${adminSelectedQuiz?.title}`}
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center">
                     <ChevronLeft size={32} />
                   </div>
-                  <p className="text-sm font-bold uppercase tracking-widest">Select a course to view chapters</p>
+                  <p className="text-sm font-bold tracking-tight">Select a course to view chapters</p>
                 </div>
               ) : (
                 <>
@@ -371,7 +371,7 @@ const AdminDashboard = () => {
                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center">
                     <ChevronLeft size={32} />
                   </div>
-                  <p className="text-sm font-bold uppercase tracking-widest">Select a chapter to view quizzes</p>
+                  <p className="text-sm font-bold tracking-tight">Select a chapter to view quizzes</p>
                 </div>
               ) : (
                 <>
@@ -385,7 +385,7 @@ const AdminDashboard = () => {
                       />
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-[10px] text-gray-500 uppercase">Time (m)</label>
+                          <label className="text-[10px] text-gray-500">Time (m)</label>
                           <input 
                             type="number" 
                             value={newQuizData.timeLimit}
@@ -394,7 +394,7 @@ const AdminDashboard = () => {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] text-gray-500 uppercase">Pass %</label>
+                          <label className="text-[10px] text-gray-500">Pass %</label>
                           <input 
                             type="number" 
                             value={newQuizData.passingScore}

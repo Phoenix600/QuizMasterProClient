@@ -27,6 +27,9 @@ export const register = (name: string, email: string, password: string) =>
 export const googleLogin = (idToken: string) =>
   (authApi as any).googleLogin(idToken) as Promise<{ user: User; token: string }>;
 
+export const getProfile = () =>
+  (authApi as any).getProfile() as Promise<User>;
+
 /* ------------------------------------------------------------------ */
 /* Browsing (courses / chapters / quizzes) — shared auth-only routes   */
 /* ------------------------------------------------------------------ */
@@ -74,6 +77,9 @@ export const deleteChapter = (chapterId: string) =>
 export const createQuiz = (data: {
   chapterId: string;
   courseId: string;
+  subChapterId?: string | null;
+  topicId?: string | null;
+  problemId?: string | null;
   title: string;
   description: string;
   questionCount: number;
@@ -81,16 +87,7 @@ export const createQuiz = (data: {
   timeLimit: number;
   questions?: string[];
 }) =>
-  (adminApi as any).createQuiz(
-    data.chapterId,
-    data.courseId,
-    data.title,
-    data.description,
-    data.questionCount,
-    data.passingScore,
-    data.timeLimit,
-    data.questions
-  ) as Promise<Quiz>;
+  (adminApi as any).createQuiz(data) as Promise<Quiz>;
 
 export const updateQuiz = (quizId: string, quizData: Partial<Quiz>) =>
   (adminApi as any).updateQuiz(quizId, quizData) as Promise<Quiz>;
@@ -184,6 +181,40 @@ export const getBanLogs = (page: number = 1, limit: number = 10, search: string 
 
 export const unbanUser = (userId: string) =>
   apiClient.post(`/admin/bans/unban/${userId}`).then((r) => r.data);
+
+/* ------------------------------------------------------------------ */
+/* Batches                                                              */
+/* ------------------------------------------------------------------ */
+
+export const getBatches = () =>
+  apiClient.get('/batches').then((r) => r.data);
+
+export const createBatch = (data: { name: string; description?: string }) =>
+  apiClient.post('/admin/batches', data).then((r) => r.data);
+
+export const updateBatch = (id: string, data: any) =>
+  apiClient.patch(`/admin/batches/${id}`, data).then((r) => r.data);
+
+export const deleteBatch = (id: string) =>
+  apiClient.delete(`/admin/batches/${id}`).then((r) => r.data);
+
+/* ------------------------------------------------------------------ */
+/* User Profile                                                       */
+/* ------------------------------------------------------------------ */
+
+export const updateProfile = (data: any) =>
+  apiClient.patch('/auth/profile', data).then((r) => r.data);
+
+/* ------------------------------------------------------------------ */
+/* Admin User Management                                              */
+/* ------------------------------------------------------------------ */
+
+export const getUsers = (page: number = 1, limit: number = 10, search: string = '', batchId: string = '') =>
+  apiClient.get(`/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&batchId=${batchId}`)
+    .then((r) => r.data as { users: any[]; pagination: { total: number; page: number; pages: number } });
+
+export const adminUpdateUser = (id: string, data: any) =>
+  apiClient.patch(`/admin/users/${id}`, data).then((r) => r.data);
 
 /* ------------------------------------------------------------------ */
 /* No-op kept for backward compatibility with any call sites            */

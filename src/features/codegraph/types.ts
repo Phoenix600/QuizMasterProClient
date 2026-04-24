@@ -5,7 +5,7 @@ export interface Project {
   startDate: string;
   endDate?: string;
   isOngoing?: boolean;
-  description: string;
+  highlights: string;
 }
 
 export interface WorkExperience {
@@ -23,28 +23,47 @@ export interface UserProfile {
   name: string;
   username: string;
   email: string;
-  location: string;
+  phone?: string;
+  location: {
+    city: string;
+    pinCode: string;
+    state: string;
+    country: string;
+  };
   avatarUrl: string;
+  profilePicture?: string;
   bio: string;
   skills: {
-    languages: string;
-    frameworks: string;
-    databases: string;
-    tools: string;
+    languages: string[];
+    frameworks: string[];
+    databases: string[];
+    tools: string[];
   };
   education: {
-    university: string;
-    degree: string;
-    currentRole: string;
+    collegeName: string;
+    branch: string;
+    graduationYear: string;
+    degree?: string;
+    currentRole?: string;
   };
-  social: {
+  socialLinks: {
     github: string;
     linkedin: string;
     twitter: string;
+    others: string;
+    resume: string;
+  };
+  codingProfiles: {
+    leetcode: string;
+    hackerrank: string;
+    codeforces: string;
+    geeksforgeeks: string;
+    others: string;
   };
   workExperience: WorkExperience[];
   projects: Project[];
   streak: number;
+  batchId?: string | { name: string };
 }
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';

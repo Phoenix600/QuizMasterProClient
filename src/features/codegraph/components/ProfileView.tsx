@@ -1,33 +1,26 @@
 import React from 'react';
 import { 
-  ArrowLeft, 
   User, 
-  BarChart3, 
   Camera, 
-  Github, 
-  Twitter, 
-  Linkedin, 
-  Link as LinkIcon, 
-  FileText,
-  Code2,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Plus,
+  Mail,
+  GraduationCap,
+  Building2,
   Calendar,
-  Eye,
-  EyeOff,
-  GripVertical,
-  ChevronsUpDown,
-  Check
+  Phone,
+  MapPin,
+  Globe,
+  Hash,
+  Save,
+  CheckCircle2,
+  BookOpen,
+  Briefcase
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { motion } from 'motion/react';
-
+import { motion, AnimatePresence } from 'motion/react';
 import { DUMMY_USER } from '../constants';
-
-import Toast from './Toast';
 import { UserProfile } from '../types';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
 interface ProfileViewProps {
   user: UserProfile;
@@ -35,633 +28,317 @@ interface ProfileViewProps {
   onBack: () => void;
 }
 
-interface WorkExperience {
-  id: string;
-  company: string;
-  mode: string;
-  role: string;
-  startDate: string;
-  endDate?: string;
-  isOngoing?: boolean;
-  description: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  role: string;
-  startDate: string;
-  endDate?: string;
-  isOngoing?: boolean;
-  description: string;
-}
-
-const InputField = ({ label, placeholder, value, onChange, type = "text", icon: Icon, required, disabled }: { label: string, placeholder: string, value?: string, onChange?: (val: string) => void, type?: string, icon?: any, required?: boolean, disabled?: boolean }) => (
+const ProfileInput = ({ 
+  label, 
+  placeholder, 
+  value, 
+  onChange, 
+  icon: Icon, 
+  disabled,
+  readOnly,
+  info
+}: { 
+  label: string, 
+  placeholder: string, 
+  value?: string, 
+  onChange?: (val: string) => void, 
+  icon?: any,
+  disabled?: boolean,
+  readOnly?: boolean,
+  info?: string
+}) => (
   <div className={cn("space-y-1.5 w-full", disabled && "opacity-50")}>
-    <label className="text-xs font-medium text-zinc-500">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <div className="relative">
-      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={14} />}
+    <div className="flex justify-between items-center">
+      <label className="text-[11px] font-semibold text-zinc-500 tracking-tight">{label}</label>
+      {info && <span className="text-[9px] text-zinc-600 font-medium italic">{info}</span>}
+    </div>
+    <div className="relative group">
+      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-orange-500/70 transition-colors" size={16} />}
       <input 
-        type={type}
-        value={value}
+        value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        disabled={disabled}
+        readOnly={readOnly}
         className={cn(
-          "w-full bg-zinc-900/50 border border-zinc-800 rounded-md py-2 px-3 text-sm text-zinc-200 focus:outline-none focus:border-orange-500/50 transition-colors placeholder:text-zinc-600",
-          Icon && "pl-9",
-          type === "date" && "appearance-none [color-scheme:dark]",
-          disabled && "cursor-not-allowed"
+          "w-full bg-zinc-900/40 border border-zinc-800/60 rounded-xl py-3 px-4 text-sm text-zinc-200 transition-all outline-none",
+          Icon && "pl-11",
+          readOnly ? "cursor-default border-zinc-800/40" : "focus:border-orange-500/30 focus:bg-zinc-900/60"
         )}
       />
     </div>
   </div>
 );
 
-const CheckboxField = ({ label, checked, onChange }: { label: string, checked: boolean, onChange: (checked: boolean) => void }) => (
-  <label className="flex items-center gap-2 cursor-pointer group">
-    <div className={cn(
-      "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-      checked ? "bg-orange-500 border-orange-500" : "bg-zinc-900 border-zinc-800 group-hover:border-zinc-700"
-    )}>
-      {checked && <Check size={12} className="text-white" />}
-    </div>
-    <input 
-      type="checkbox" 
-      className="hidden" 
-      checked={checked} 
-      onChange={(e) => onChange(e.target.checked)} 
-    />
-    <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">{label}</span>
-  </label>
-);
-
-const SelectField = ({ label, placeholder, value, required }: { label: string, placeholder: string, value?: string, required?: boolean }) => (
-  <div className="space-y-1.5 flex-1 min-w-[240px]">
-    <label className="text-xs font-medium text-zinc-500">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <button className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md py-2 px-3 text-sm text-zinc-400 flex items-center justify-between hover:border-zinc-700 transition-colors">
-      <span className={cn("truncate", value && "text-zinc-200")}>{value || placeholder}</span>
-      <ChevronDown size={14} className="text-zinc-600" />
-    </button>
-  </div>
-);
-
-const TextAreaField = ({ label, placeholder, value, onChange, count, max }: { label: string, placeholder: string, value?: string, onChange?: (val: string) => void, count: number, max: number }) => (
-  <div className="space-y-1.5 w-full">
-    <label className="text-xs font-medium text-zinc-500">{label} ({count}/{max})</label>
-    <textarea 
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-      rows={4}
-      className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md py-2 px-3 text-sm text-zinc-200 focus:outline-none focus:border-orange-500/50 transition-colors placeholder:text-zinc-600 resize-none"
-    />
-  </div>
-);
-
-const Section = ({ title, children, onSave }: { title: string, children: React.ReactNode, onSave?: () => void }) => (
-  <div className="space-y-4">
-    <h2 className="text-sm font-bold text-zinc-200 tracking-tight">{title}</h2>
-    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-6">
-      {children}
-      {onSave && (
-        <div className="flex justify-end">
-          <button className="bg-orange-600/10 hover:bg-orange-600/20 text-orange-500 text-xs font-bold py-2 px-6 rounded-md border border-orange-500/20 transition-all">
-            Save Changes
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-const ProgressItem = ({ title, completed, total, visible }: { title: string, completed: number, total: number, visible: boolean }) => {
-  const percentage = Math.round((completed / total) * 100);
-  
-  return (
-    <div className="group flex items-center gap-4 py-4 border-b border-zinc-800/50 last:border-0">
-      <div className="p-1.5 bg-zinc-900/50 border border-zinc-800 rounded-md text-zinc-600 group-hover:text-zinc-400 transition-colors cursor-grab active:cursor-grabbing">
-        <ChevronsUpDown size={14} />
-      </div>
-      
-      <div className="flex-1 space-y-2">
-        <div className="flex justify-between items-end">
-          <h4 className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors">{title}</h4>
-          <span className="text-xs font-mono text-zinc-500">
-            {completed}/{total} ({percentage}%)
-          </span>
-        </div>
-        
-        <div className="h-1.5 w-full bg-zinc-800/50 rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="h-full bg-orange-600/80 rounded-full"
-          />
-        </div>
-      </div>
-      
-      <button className={cn(
-        "p-1.5 rounded-md transition-colors",
-        visible ? "text-orange-500/70 hover:text-orange-500" : "text-zinc-600 hover:text-zinc-400"
-      )}>
-        {visible ? <Eye size={16} /> : <EyeOff size={16} />}
-      </button>
-    </div>
-  );
-};
-
 export default function ProfileView({ user, onSave, onBack }: ProfileViewProps) {
-  const [activeTab, setActiveTab] = React.useState('Profile details');
-  const [profileData, setProfileData] = React.useState(user);
-  const [workExperiences, setWorkExperiences] = React.useState<WorkExperience[]>(user.workExperience);
-  const [projects, setProjects] = React.useState<Project[]>(user.projects);
-  const [showToast, setShowToast] = React.useState(false);
-
-  const handleSave = () => {
-    const updatedUser: UserProfile = {
-      ...profileData,
-      workExperience: workExperiences,
-      projects: projects,
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'profile'>('profile');
+  
+  // Robust initialization for nested fields
+  const [profileData, setProfileData] = React.useState<UserProfile>(() => {
+    const base = { ...DUMMY_USER, ...user };
+    return {
+      ...base,
+      location: {
+        city: user?.location?.city || DUMMY_USER.location.city,
+        pinCode: user?.location?.pinCode || DUMMY_USER.location.pinCode,
+        state: user?.location?.state || DUMMY_USER.location.state,
+        country: user?.location?.country || DUMMY_USER.location.country,
+      },
+      education: {
+        collegeName: user?.education?.collegeName || DUMMY_USER.education.collegeName,
+        branch: user?.education?.branch || DUMMY_USER.education.branch,
+        graduationYear: user?.education?.graduationYear || DUMMY_USER.education.graduationYear,
+        degree: user?.education?.degree || DUMMY_USER.education.degree,
+        currentRole: user?.education?.currentRole || DUMMY_USER.education.currentRole,
+      }
     };
-    setShowToast(true);
-    // Delay onSave to allow toast to be seen
-    setTimeout(() => {
-      onSave(updatedUser);
-    }, 1500);
-  };
+  });
 
-  const updateWorkExperience = (id: string, field: keyof WorkExperience, value: any) => {
-    setWorkExperiences(workExperiences.map(exp => exp.id === id ? { ...exp, [field]: value } : exp));
-  };
-
-  const updateProject = (id: string, field: keyof Project, value: any) => {
-    setProjects(projects.map(proj => proj.id === id ? { ...proj, [field]: value } : proj));
-  };
-
-  const handleAddExperience = () => {
-    const newId = (workExperiences.length + 1).toString();
-    setWorkExperiences([...workExperiences, { id: newId, company: '', mode: '', role: '', startDate: '', endDate: '', isOngoing: false, description: '' }]);
-  };
-
-  const handleRemoveExperience = (id: string) => {
-    if (workExperiences.length > 1) {
-      setWorkExperiences(workExperiences.filter(exp => exp.id !== id));
+  // Sync state if user prop changes (e.g. after fresh fetch in workspace)
+  React.useEffect(() => {
+    if (user) {
+      setProfileData(prev => ({
+        ...prev,
+        ...user,
+        location: {
+          city: user.location?.city || prev.location.city,
+          pinCode: user.location?.pinCode || prev.location.pinCode,
+          state: user.location?.state || prev.location.state,
+          country: user.location?.country || prev.location.country,
+        },
+        education: {
+          collegeName: user.education?.collegeName || prev.education.collegeName,
+          branch: user.education?.branch || prev.education.branch,
+          graduationYear: user.education?.graduationYear || prev.education.graduationYear,
+          degree: user.education?.degree || prev.education.degree,
+          currentRole: user.education?.currentRole || prev.education.currentRole,
+        }
+      }));
     }
+  }, [user]);
+
+  const updateEducation = (field: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      education: { ...prev.education, [field]: value }
+    }));
   };
 
-  const handleAddProject = () => {
-    const newId = (projects.length + 1).toString();
-    setProjects([...projects, { id: newId, title: '', role: '', startDate: '', endDate: '', isOngoing: false, description: '' }]);
+  const updateLocation = (field: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      location: { ...prev.location, [field]: value }
+    }));
   };
-
-  const handleRemoveProject = (id: string) => {
-    if (projects.length > 1) {
-      setProjects(projects.filter(proj => proj.id !== id));
-    }
-  };
-
-  const toggleWorkOngoing = (id: string) => {
-    setWorkExperiences(workExperiences.map(exp => 
-      exp.id === id ? { ...exp, isOngoing: !exp.isOngoing, endDate: exp.isOngoing ? exp.endDate : '' } : exp
-    ));
-  };
-
-  const toggleProjectOngoing = (id: string) => {
-    setProjects(projects.map(proj => 
-      proj.id === id ? { ...proj, isOngoing: !proj.isOngoing, endDate: proj.isOngoing ? proj.endDate : '' } : proj
-    ));
-  };
-
-  const tabs = [
-    { id: 'Profile details', icon: User },
-    { id: 'Progress', icon: BarChart3 },
-  ];
-
-  const courses = [
-    { title: "DSA", completed: 81, total: 435, visible: true },
-    { title: "DSA (Concept Revision)", completed: 12, total: 198, visible: false },
-    { title: "DSA (Quick Revision)", completed: 2, total: 79, visible: false },
-    { title: "OOPS", completed: 1, total: 51, visible: false },
-    { title: "SQL (Basics to Production Engineering Level)", completed: 0, total: 258, visible: false },
-    { title: "SQL", completed: 0, total: 232, visible: false },
-    { title: "Low Level Design (LLD)", completed: 4, total: 71, visible: false },
-    { title: "Computer Networks", completed: 2, total: 50, visible: false },
-  ];
 
   return (
-    <div className="flex h-screen bg-[#0A0A0A] text-zinc-300 font-sans overflow-hidden">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r border-zinc-800 flex flex-col p-4 space-y-6 shrink-0">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-zinc-500 hover:text-zinc-200 transition-colors px-3 py-2 rounded-md hover:bg-zinc-900"
-        >
-          <ArrowLeft size={16} />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-
-        <nav className="space-y-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+    <div className="h-full w-full bg-[#0A0A0A] overflow-y-auto custom-scrollbar">
+      <div className="max-w-5xl mx-auto px-8 py-12 space-y-10">
+        
+        {/* Header Section */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+              Your <span className="text-orange-500">Profile</span> Settings
+            </h1>
+            <p className="text-sm text-zinc-500 font-medium">Keep your academic and contact details up to date.</p>
+          </div>
+          
+          <div className="bg-zinc-900/50 p-1 rounded-2xl border border-zinc-800/50 flex items-center gap-1">
+            <button 
+              onClick={() => setActiveTab('overview')}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
-                activeTab === tab.id 
-                  ? "bg-zinc-800/50 text-white border border-zinc-700/50 shadow-lg" 
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900"
+                "px-6 py-2 rounded-xl text-xs font-semibold transition-all",
+                activeTab === 'overview' ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
               )}
             >
-              <tab.icon size={18} className={activeTab === tab.id ? "text-orange-500" : ""} />
-              <span className="text-sm font-bold tracking-tight">{tab.id}</span>
+              Overview
             </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#0A0A0A]">
-        <div className="max-w-4xl mx-auto p-8 space-y-10">
-          
-          {activeTab === 'Profile details' ? (
-            <>
-              {/* Profile Photo Section */}
-              <Section title="Profile Photo">
-                <div className="flex items-center gap-6">
-                  <div className="relative group">
-                    <div className="w-20 h-20 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={DUMMY_USER.avatarUrl} 
-                        alt="avatar" 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                        <Camera size={20} className="text-white" />
-                      </div>
-                    </div>
-                    <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-orange-600 rounded-md flex items-center justify-center text-white shadow-lg">
-                      <Camera size={12} />
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-zinc-200">Upload a Picture</h3>
-                    <p className="text-xs text-zinc-500">PNG, JPG, JPEG (Max. 1MB)</p>
-                    <div className="pt-3 flex gap-2">
-                      {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 cursor-pointer hover:border-orange-500/50 transition-colors overflow-hidden">
-                          <img 
-                            src={`https://picsum.photos/seed/avatar${i}/32/32`} 
-                            alt="avatar" 
-                            className="w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-2 italic">Not ready with a photo? Use an avatar instead</p>
-                  </div>
-                </div>
-              </Section>
-
-              {/* Personal Details Section */}
-              <Section title="Personal details" onSave={handleSave}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField 
-                    label="Name" 
-                    placeholder="Enter your name" 
-                    value={profileData.name} 
-                    onChange={(val) => setProfileData({ ...profileData, name: val })}
-                  />
-                  <InputField 
-                    label="Email ID" 
-                    placeholder="Enter your email" 
-                    value={profileData.email} 
-                    type="email" 
-                    onChange={(val) => setProfileData({ ...profileData, email: val })}
-                  />
-                  <div className="flex gap-4 flex-1">
-                    <div className="w-24">
-                      <SelectField label="Mobile Number" placeholder="Select" />
-                    </div>
-                    <div className="flex-1 pt-6">
-                      <input 
-                        placeholder="Enter your mobile num"
-                        className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md py-2 px-3 text-sm text-zinc-200 focus:outline-none focus:border-orange-500/50 transition-colors placeholder:text-zinc-600"
-                      />
-                    </div>
-                  </div>
-                  <InputField 
-                    label="Location" 
-                    placeholder="Enter your location" 
-                    value={profileData.location} 
-                    onChange={(val) => setProfileData({ ...profileData, location: val })}
-                  />
-                  <SelectField label="Education year" placeholder="Choose Your Graduation Year" />
-                  <SelectField label="Education" placeholder={profileData.education.university} />
-                </div>
-              </Section>
-
-              {/* About Me Section */}
-              <Section title="About Me" onSave={handleSave}>
-                <TextAreaField 
-                  label="Bio" 
-                  placeholder="Tell us about yourself..." 
-                  value={profileData.bio}
-                  onChange={(val) => setProfileData({ ...profileData, bio: val })}
-                  count={profileData.bio.length} 
-                  max={500} 
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={cn(
+                "px-8 py-2 rounded-xl text-xs font-semibold transition-all relative overflow-hidden group",
+                activeTab === 'profile' ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              {activeTab === 'profile' && (
+                <motion.div 
+                  layoutId="active-tab-indicator"
+                  className="absolute inset-0 bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.3)]"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
-              </Section>
+              )}
+              <span className="relative z-10">Profile</span>
+            </button>
+          </div>
+        </div>
 
-              {/* Social Links Section */}
-              <Section title="Social Links" onSave={handleSave}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField 
-                    label="GitHub" 
-                    placeholder="Add your GitHub URL" 
-                    icon={Github} 
-                    value={profileData.social.github} 
-                    onChange={(val) => setProfileData({ ...profileData, social: { ...profileData.social, github: val } })}
-                  />
-                  <InputField 
-                    label="X (formerly twitter)" 
-                    placeholder="Add your Twitter URL" 
-                    icon={Twitter} 
-                    value={profileData.social.twitter} 
-                    onChange={(val) => setProfileData({ ...profileData, social: { ...profileData.social, twitter: val } })}
-                  />
-                  <InputField 
-                    label="LinkedIn" 
-                    placeholder="Add your LinkedIn URL" 
-                    icon={Linkedin} 
-                    value={profileData.social.linkedin} 
-                    onChange={(val) => setProfileData({ ...profileData, social: { ...profileData.social, linkedin: val } })}
-                  />
-                  <InputField label="Others" placeholder="Add your others URL" icon={LinkIcon} />
-                  <InputField label="Resume" placeholder="Add your Resume URL" icon={FileText} />
-                </div>
-              </Section>
-
-              {/* Skills Section */}
-              <Section title="Skills" onSave={handleSave}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField 
-                    label="Languages" 
-                    placeholder="e.g. C++, Java, Python" 
-                    value={profileData.skills.languages} 
-                    onChange={(val) => setProfileData({ ...profileData, skills: { ...profileData.skills, languages: val } })}
-                  />
-                  <InputField 
-                    label="Frameworks" 
-                    placeholder="e.g. React, Node.js" 
-                    value={profileData.skills.frameworks} 
-                    onChange={(val) => setProfileData({ ...profileData, skills: { ...profileData.skills, frameworks: val } })}
-                  />
-                  <InputField 
-                    label="Databases" 
-                    placeholder="e.g. MongoDB, PostgreSQL" 
-                    value={profileData.skills.databases} 
-                    onChange={(val) => setProfileData({ ...profileData, skills: { ...profileData.skills, databases: val } })}
-                  />
-                  <InputField 
-                    label="Tools" 
-                    placeholder="e.g. Git, Docker, AWS" 
-                    value={profileData.skills.tools} 
-                    onChange={(val) => setProfileData({ ...profileData, skills: { ...profileData.skills, tools: val } })}
-                  />
-                </div>
-              </Section>
-
-              {/* Coding Profile Section */}
-              <Section title="Coding Profile" onSave={handleSave}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField label="Leetcode" placeholder="Add your Leetcode profile URL" icon={Code2} />
-                  <InputField label="Hackerrank" placeholder="Add your Hackerrank profile URL" icon={Code2} />
-                  <InputField label="Codeforces" placeholder="Add your Codeforces profile URL" icon={Code2} />
-                  <InputField label="GeeksForGeeks" placeholder="Add your GeeksForGeeks profile URL" icon={Code2} />
-                  <InputField label="Others" placeholder="Add your other contest profile URL" icon={Code2} />
-                </div>
-              </Section>
-
-              {/* Work Experience Section */}
-              <Section title="Work Experience" onSave={handleSave}>
-                <div className="space-y-10">
-                  {workExperiences.map((exp, index) => (
-                    <div key={exp.id} className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <ChevronUp size={16} className="text-zinc-400" />
-                          <span className="text-sm font-bold text-zinc-200">Work Experience {index + 1}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {workExperiences.length > 1 && (
-                            <button 
-                              onClick={() => handleRemoveExperience(exp.id)}
-                              className="p-1.5 bg-zinc-800/50 border border-zinc-700 rounded-md text-zinc-500 hover:text-zinc-300 transition-colors"
-                            >
-                              <X size={14} />
-                            </button>
-                          )}
-                          {index === workExperiences.length - 1 && (
-                            <button 
-                              onClick={handleAddExperience}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 border border-zinc-700 rounded-md text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors"
-                            >
-                              <Plus size={12} />
-                              <span>Add more</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField 
-                          label="Company" 
-                          placeholder="Enter company name" 
-                          value={exp.company} 
-                          onChange={(val) => updateWorkExperience(exp.id, 'company', val)}
-                          required 
-                        />
-                        <SelectField label="Mode" placeholder="Select mode" value={exp.mode} required />
-                        <InputField 
-                          label="Role" 
-                          placeholder="Enter your role" 
-                          value={exp.role} 
-                          onChange={(val) => updateWorkExperience(exp.id, 'role', val)}
-                          required 
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <InputField 
-                            label="Start Date" 
-                            placeholder="Select start date" 
-                            value={exp.startDate} 
-                            type="date" 
-                            icon={Calendar} 
-                            onChange={(val) => updateWorkExperience(exp.id, 'startDate', val)}
-                            required 
-                          />
-                          <div className="space-y-2">
-                            <InputField 
-                              label="End Date" 
-                              placeholder="Select end date" 
-                              value={exp.endDate} 
-                              type="date" 
-                              icon={Calendar} 
-                              onChange={(val) => updateWorkExperience(exp.id, 'endDate', val)}
-                              required={!exp.isOngoing} 
-                              disabled={exp.isOngoing} 
-                            />
-                            <CheckboxField 
-                              label="Currently working here" 
-                              checked={exp.isOngoing || false} 
-                              onChange={() => toggleWorkOngoing(exp.id)} 
-                            />
-                          </div>
-                        </div>
-                        <div className="md:col-span-2">
-                          <TextAreaField 
-                            label="Description" 
-                            placeholder="Enter job description" 
-                            value={exp.description} 
-                            onChange={(val) => updateWorkExperience(exp.id, 'description', val)}
-                            count={exp.description.length} 
-                            max={500} 
-                          />
-                        </div>
-                      </div>
-                      {index < workExperiences.length - 1 && (
-                        <div className="h-px bg-zinc-800/50 w-full mt-10" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* Projects Section */}
-              <Section title="Projects" onSave={handleSave}>
-                <div className="space-y-10">
-                  {projects.map((proj, index) => (
-                    <div key={proj.id} className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <ChevronUp size={16} className="text-zinc-400" />
-                          <span className="text-sm font-bold text-zinc-200">Project {index + 1}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {projects.length > 1 && (
-                            <button 
-                              onClick={() => handleRemoveProject(proj.id)}
-                              className="p-1.5 bg-zinc-800/50 border border-zinc-700 rounded-md text-zinc-500 hover:text-zinc-300 transition-colors"
-                            >
-                              <X size={14} />
-                            </button>
-                          )}
-                          {index === projects.length - 1 && (
-                            <button 
-                              onClick={handleAddProject}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 border border-zinc-700 rounded-md text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors"
-                            >
-                              <Plus size={12} />
-                              <span>Add more</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField 
-                          label="Project Title" 
-                          placeholder="Enter project title" 
-                          value={proj.title} 
-                          onChange={(val) => updateProject(proj.id, 'title', val)}
-                          required 
-                        />
-                        <InputField 
-                          label="Role" 
-                          placeholder="Enter your role in project" 
-                          value={proj.role} 
-                          onChange={(val) => updateProject(proj.id, 'role', val)}
-                          required 
-                        />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <InputField 
-                            label="Start Date" 
-                            placeholder="Select start date" 
-                            value={proj.startDate} 
-                            type="date" 
-                            icon={Calendar} 
-                            onChange={(val) => updateProject(proj.id, 'startDate', val)}
-                            required 
-                          />
-                          <div className="space-y-2">
-                            <InputField 
-                              label="End Date" 
-                              placeholder="Select end date" 
-                              value={proj.endDate} 
-                              type="date" 
-                              icon={Calendar} 
-                              onChange={(val) => updateProject(proj.id, 'endDate', val)}
-                              required={!proj.isOngoing} 
-                              disabled={proj.isOngoing} 
-                            />
-                            <CheckboxField 
-                              label="Ongoing project" 
-                              checked={proj.isOngoing || false} 
-                              onChange={() => toggleProjectOngoing(proj.id)} 
-                            />
-                          </div>
-                        </div>
-                        <div className="md:col-span-2">
-                          <TextAreaField 
-                            label="Project Highlights / Bullet Points" 
-                            placeholder="Enter project details as bullet points..." 
-                            value={proj.description} 
-                            onChange={(val) => updateProject(proj.id, 'description', val)}
-                            count={proj.description.length} 
-                            max={500} 
-                          />
-                        </div>
-                      </div>
-                      {index < projects.length - 1 && (
-                        <div className="h-px bg-zinc-800/50 w-full mt-10" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            </>
-          ) : (
-            <Section title="Course Progress">
-              <div className="space-y-2">
-                {courses.map((course, idx) => (
-                  <motion.div
-                    key={course.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                  >
-                    <ProgressItem {...course} />
-                  </motion.div>
-                ))}
+        {/* Hero Card */}
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-transparent rounded-[2.5rem] blur-2xl group-hover:bg-orange-600/10 transition-all duration-500" />
+          <div className="relative bg-zinc-900/30 border border-zinc-800/40 rounded-[2.5rem] p-8 flex items-center gap-8 backdrop-blur-xl">
+            <div className="relative group/avatar">
+              <div className="w-28 h-28 rounded-[2rem] bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
+                {profileData.avatarUrl ? (
+                  <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={48} className="text-zinc-800" />
+                )}
               </div>
-            </Section>
-          )}
+              <button className="absolute -bottom-1 -right-1 w-9 h-9 bg-orange-600 hover:bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-xl transition-all hover:scale-110 active:scale-95">
+                <Camera size={18} />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-white tracking-tight">{profileData.name}</h2>
+              <div className="flex items-center gap-4 text-sm font-medium">
+                <div className="flex items-center gap-2 text-zinc-500 hover:text-zinc-300 transition-colors cursor-default">
+                  <Mail size={14} className="text-orange-500/70" />
+                  {profileData.email}
+                </div>
+                <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
+                <div className="flex items-center gap-2 text-green-500/80 bg-green-500/5 px-3 py-1 rounded-full border border-green-500/10">
+                  <CheckCircle2 size={14} />
+                  Verified Student
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Academic Profile Card */}
+          <div className="bg-zinc-900/20 border border-zinc-800/40 rounded-[2.5rem] p-8 space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-500">
+                <GraduationCap size={20} />
+              </div>
+              <h3 className="text-lg font-semibold text-white tracking-tight">Academic Profile</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <ProfileInput 
+                label="College / University" 
+                placeholder="Enter college name" 
+                icon={Building2}
+                value={profileData.education.collegeName}
+                onChange={(val) => updateEducation('collegeName', val)}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <ProfileInput 
+                  label="Branch / Major" 
+                  placeholder="CSE, ECE, etc." 
+                  value={profileData.education.branch}
+                  onChange={(val) => updateEducation('branch', val)}
+                />
+                <ProfileInput 
+                  label="Graduation Year" 
+                  placeholder="2025" 
+                  value={profileData.education.graduationYear}
+                  onChange={(val) => updateEducation('graduationYear', val)}
+                />
+              </div>
+              <ProfileInput 
+                label="Assigned Batch" 
+                placeholder="Batch name" 
+                icon={Hash}
+                readOnly
+                info="Managed by Admin"
+                value={typeof profileData.batchId === 'object' ? (profileData.batchId as any)?.name : profileData.batchId || 'Not Assigned'}
+              />
+            </div>
+          </div>
+
+          {/* Connect & Location Card */}
+          <div className="bg-zinc-900/20 border border-zinc-800/40 rounded-[2.5rem] p-8 space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-purple-500/10 rounded-xl border border-purple-500/20 text-purple-500">
+                <MapPin size={20} />
+              </div>
+              <h3 className="text-lg font-semibold text-white tracking-tight">Connect & Location</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <ProfileInput 
+                label="Phone Number" 
+                placeholder="+91 0000000000" 
+                icon={Phone}
+                value={profileData.phone}
+                onChange={(val) => setProfileData({ ...profileData, phone: val })}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <ProfileInput 
+                  label="City" 
+                  placeholder="Enter city" 
+                  value={profileData.location.city}
+                  onChange={(val) => updateLocation('city', val)}
+                />
+                <ProfileInput 
+                  label="Pin Code" 
+                  placeholder="440022" 
+                  value={profileData.location.pinCode}
+                  onChange={(val) => updateLocation('pinCode', val)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <ProfileInput 
+                  label="State" 
+                  placeholder="Enter state" 
+                  icon={Briefcase}
+                  value={profileData.location.state}
+                  onChange={(val) => updateLocation('state', val)}
+                />
+                <ProfileInput 
+                  label="Country" 
+                  placeholder="Enter country" 
+                  icon={Globe}
+                  value={profileData.location.country}
+                  onChange={(val) => updateLocation('country', val)}
+                />
+              </div>
+            </div>
+          </div>
 
         </div>
-      </main>
 
-      <Toast 
-        message="Profile updated successfully!" 
-        isVisible={showToast} 
-        onClose={() => setShowToast(false)} 
-      />
+        {/* Footer Actions */}
+        <div className="flex justify-end pt-4 pb-12">
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onSave(profileData)}
+            className="flex items-center gap-3 px-10 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold shadow-[0_10px_30px_rgba(234,88,12,0.3)] transition-all"
+          >
+            <Save size={18} />
+            Save Profile Data
+          </motion.button>
+        </div>
+
+        <div className="text-center pb-8 border-t border-zinc-900 pt-8">
+           <p className="text-[10px] text-zinc-700 font-semibold tracking-widest uppercase">
+             © 2026 ProQuiz Master. All rights reserved.
+           </p>
+        </div>
+
+      </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #18181b;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #27272a;
+        }
+      `}</style>
     </div>
   );
 }

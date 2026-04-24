@@ -156,7 +156,7 @@ const ContestManager = () => {
            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-100 hover:bg-white text-black rounded-xl text-xs font-bold transition-all shadow-lg shadow-white/5 active:scale-95"
          >
            <Plus size={16} />
-           CREATE CONTEST
+           Create Contest
          </button>
        </div>
 
@@ -179,21 +179,21 @@ const ContestManager = () => {
                     <p className="text-xs text-zinc-500 line-clamp-1">{contest.description}</p>
                   </div>
                   {contest.isPublished ? (
-                    <div className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500">LIVE</div>
+                    <div className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500">Live</div>
                   ) : (
-                    <div className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-zinc-500">DRAFT</div>
+                    <div className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-zinc-500">Draft</div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 py-2 border-y border-zinc-800/50">
-                   <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-600 uppercase">MCQs</span>
-                      <p className="text-sm text-zinc-300 font-mono">{contest.mcqQuestions?.length || 0} Questions</p>
-                   </div>
-                   <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-600 uppercase">Coding</span>
-                      <p className="text-sm text-zinc-300 font-mono">{contest.codingProblems?.length || 0} Problems</p>
-                   </div>
+                    <div className="space-y-1">
+                       <span className="text-[10px] font-bold text-zinc-600">MCQs</span>
+                       <p className="text-sm text-zinc-300 font-mono">{contest.mcqQuestions?.length || 0} Questions</p>
+                    </div>
+                    <div className="space-y-1">
+                       <span className="text-[10px] font-bold text-zinc-600">Coding</span>
+                       <p className="text-sm text-zinc-300 font-mono">{contest.codingProblems?.length || 0} Problems</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-2">

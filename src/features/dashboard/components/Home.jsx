@@ -42,12 +42,12 @@ const Home = ({ onStart, currentUser }) => {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-10"
           >
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-orange-500 uppercase tracking-widest">
+            <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-orange-500 tracking-tight">
               <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
               New Quizzes Available
             </div>
             
-            <h2 className="text-6xl md:text-8xl font-black text-white leading-[0.9] tracking-tighter uppercase italic">
+            <h2 className="text-6xl md:text-8xl font-bold text-white leading-[0.9] tracking-tight">
               Master Your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
                 Tech Skills
@@ -67,7 +67,7 @@ const Home = ({ onStart, currentUser }) => {
               >
                 {currentUser ? 'Explore Quizzes' : 'Get Started Now'}
               </Button>
-              <div className="flex items-center gap-4 text-gray-500 font-bold uppercase tracking-widest text-xs">
+              <div className="flex items-center gap-4 text-gray-500 font-bold text-xs tracking-tight">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map(i => (
                     <div key={i} className="w-10 h-10 rounded-full border-2 border-[#141414] bg-white/10 flex items-center justify-center overflow-hidden">
@@ -131,7 +131,7 @@ const Home = ({ onStart, currentUser }) => {
               <div className={`w-14 h-14 ${feature.bg} ${feature.color} rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
                 <feature.icon size={28} />
               </div>
-              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">
+              <h3 className="text-2xl font-bold text-white tracking-tight mb-4">
                 {feature.title}
               </h3>
               <p className="text-gray-400 text-sm leading-relaxed font-medium">
@@ -146,20 +146,20 @@ const Home = ({ onStart, currentUser }) => {
       <section className="bg-white/[0.02] border border-white/5 rounded-[4rem] p-12 md:p-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
           <div className="space-y-2">
-            <div className="text-5xl font-black text-white italic tracking-tighter">50+</div>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Courses</div>
+            <div className="text-5xl font-bold text-white tracking-tight">50+</div>
+            <div className="text-xs font-bold text-gray-500 tracking-tight">Courses</div>
           </div>
           <div className="space-y-2">
-            <div className="text-5xl font-black text-white italic tracking-tighter">200+</div>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Quizzes</div>
+            <div className="text-5xl font-bold text-white tracking-tight">200+</div>
+            <div className="text-xs font-bold text-gray-500 tracking-tight">Quizzes</div>
           </div>
           <div className="space-y-2">
-            <div className="text-5xl font-black text-white italic tracking-tighter">10k+</div>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Questions</div>
+            <div className="text-5xl font-bold text-white tracking-tight">10k+</div>
+            <div className="text-xs font-bold text-gray-500 tracking-tight">Questions</div>
           </div>
           <div className="space-y-2">
-            <div className="text-5xl font-black text-white italic tracking-tighter">2k+</div>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Learners</div>
+            <div className="text-5xl font-bold text-white tracking-tight">2k+</div>
+            <div className="text-xs font-bold text-gray-500 tracking-tight">Learners</div>
           </div>
         </div>
       </section>

@@ -14,7 +14,7 @@ import {
   Maximize2,
   Minimize2,
   Loader2,
-  AlertCircle,
+
   CheckCircle2,
   Sun,
   Moon,
@@ -73,7 +73,7 @@ export default function ContentArea({
   const [activeEditorialType, setActiveEditorialType] = React.useState<SolutionType>('BRUTE');
   const [activeImplLang, setActiveImplLang] = React.useState<string>('java');
   const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [quizAnswer, setQuizAnswer] = React.useState<string | null>(null);
+
   const [editorTheme, setEditorTheme] = React.useState(() => {
     return localStorage.getItem('codegraph-theme') || 'vs-dark';
   });
@@ -162,7 +162,7 @@ export default function ContentArea({
     // RESET ALL INTERNAL STATE ON PROBLEM CHANGE
     // This ensures that even if the component doesn't re-mount, the UI is fresh
     setActiveTab('Description');
-    setQuizAnswer(null);
+
     setSelectedSubmission(null);
     setSubmissions([]);
     setSubmissionPage(0);
@@ -498,7 +498,7 @@ export default function ContentArea({
                         </div>
                         <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-base" : "text-sm")}>
                           <span className="font-semibold text-zinc-500 text-[11px] tracking-wide">Output:</span>
-                          <span className="text-zinc-100 break-all">{testCase.expectedOutput}</span>
+                          <span className="text-zinc-100 break-all whitespace-pre-wrap">{testCase.expectedOutput?.toString().trim().replace(/ +/g, '\n')}</span>
                         </div>
                         {testCase.explanation && (
                           <div className={cn("flex flex-col gap-1 transition-all pt-4 border-t border-zinc-800/50", isStudyMode ? "text-base" : "text-sm")}>
@@ -527,90 +527,32 @@ export default function ContentArea({
                   ))}
                 </div>
 
+
+
                 <div className="mt-12 pt-8 border-t border-zinc-800/50">
                   <div className="flex items-center gap-2 mb-6">
-                    <Sparkles size={16} className="text-orange-500" />
-                    <h3 className="text-base font-bold text-zinc-100">{problem?.quizQuestion || "Conceptual Check"}</h3>
+                    <div className="w-1 h-4 bg-orange-500/50 rounded-full" />
+                    <h3 className="text-xs font-black text-zinc-100 uppercase tracking-[0.2em]">Constraints</h3>
                   </div>
-
-                  <div className="space-y-6">
-                    <div className="grid gap-2 text-xs">
-                      <div className="flex items-center gap-4">
-                        <span className="font-semibold text-zinc-500 min-w-[70px] tracking-wide">Question:</span>
-                        <span className="text-zinc-100 font-mono">Select the correct complexity</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(problem?.quizOptions?.split(',') || ['O(n)', 'O(n log n)', 'O(n^2)', 'O(1)']).map((option) => (
-                        <button
-                          key={option}
-                          onClick={() => setQuizAnswer(option.trim())}
-                          className={cn(
-                            "flex items-center gap-4 px-6 py-5 rounded-2xl border transition-all duration-300 relative group overflow-hidden",
-                            quizAnswer === option.trim()
-                              ? (option.trim() === problem?.quizCorrectAnswer
-                                ? "bg-emerald-500/5 border-emerald-500/40 text-emerald-500 ring-1 ring-emerald-500/20"
-                                : "bg-red-500/5 border-red-500/40 text-red-500 ring-1 ring-red-500/20")
-                              : "bg-zinc-900/40 border-zinc-800/60 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/60 hover:text-zinc-300"
+                  <ul className="space-y-4">
+                    {[
+                      "The outer class must contain a private field x.",
+                      "The inner class must be non-static.",
+                      "-10^4 <= x, factor <= 10^4"
+                    ].map((constraint, i) => (
+                      <li key={i} className="flex items-start gap-3 group">
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-700 mt-1.5 group-hover:bg-orange-500 transition-colors" />
+                        <span className="text-zinc-300 text-sm leading-relaxed font-medium">
+                          {constraint.split(/(x|factor|-?10\^4|<=)/g).map((part, j) => 
+                            ['x', 'factor', '10^4', '-10^4', '<='].includes(part.trim()) ? (
+                              <code key={j} className="bg-orange-500/10 px-1.5 py-0.5 rounded text-orange-400 font-mono text-[0.85em] border border-orange-500/20 mx-0.5">
+                                {part.trim()}
+                              </code>
+                            ) : part
                           )}
-                        >
-                          {/* Radio style indicator */}
-                          <div className={cn(
-                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0",
-                            quizAnswer === option.trim()
-                              ? (option.trim() === problem?.quizCorrectAnswer ? "border-emerald-500" : "border-red-500")
-                              : "border-zinc-700 group-hover:border-zinc-500"
-                          )}>
-                            {quizAnswer === option.trim() && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className={cn(
-                                  "w-2.5 h-2.5 rounded-full",
-                                  option.trim() === problem?.quizCorrectAnswer ? "bg-emerald-500" : "bg-orange-500"
-                                )}
-                              />
-                            )}
-                          </div>
-                          <span className="font-bold text-sm tracking-tight">{option.trim()}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <AnimatePresence>
-                      {quizAnswer && quizAnswer !== problem?.quizCorrectAnswer && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="flex items-center gap-2 text-xs font-black text-red-500 uppercase tracking-[0.2em] pt-4"
-                        >
-                          <AlertCircle size={16} />
-                          <span>Incorrect. Try again!</span>
-                        </motion.div>
-                      )}
-                      {quizAnswer === problem?.quizCorrectAnswer && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="flex items-center gap-2 text-xs font-black text-emerald-500 uppercase tracking-[0.2em] pt-4"
-                        >
-                          <CheckCircle2 size={16} />
-                          <span>Correct! Knowledge Mastered.</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                <div className="mt-10 pt-6 border-t border-zinc-800/50">
-                  <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Constraints</h3>
-                  <ul className="list-disc list-inside text-zinc-500 text-xs space-y-2">
-                    <li>The outer class must contain a private field <code className="text-zinc-600 font-mono">x</code>.</li>
-                    <li>The inner class must be non-static.</li>
-                    <li><code className="text-zinc-600 font-mono">-10^4 &lt;= x, factor &lt;= 10^4</code></li>
+                        </span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -682,22 +624,48 @@ export default function ContentArea({
                             dragElastic={0}
                             className="relative group h-fit"
                           >
-                            {/* Unified Greyish-Orange Chassis Frame */}
-                            <div className="relative rounded-[32px] p-1 pb-10 bg-gradient-to-br from-zinc-500/40 via-orange-950/20 to-zinc-800/40 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden border-b-4 border-orange-500/20 hover:border-orange-500/40 transition-colors">
-                              {/* Inner Surface Glass */}
-                              <div className="absolute inset-0 bg-black rounded-[28px]" />
+                            {/* Premium Cinema-Grade Chassis Frame */}
+                            <div className="relative rounded-[40px] p-1.5 pb-10 bg-zinc-900 border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,1),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden transition-all duration-500 hover:border-orange-500/30">
+                              
+                              {/* The Notch (Top Handle) */}
+                              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-zinc-800 rounded-b-2xl border-x border-b border-white/5 flex items-center justify-center z-30">
+                                <div className="w-8 h-1 bg-zinc-700 rounded-full opacity-50" />
+                              </div>
 
-                              {/* Top Tagging Area */}
-                              <div className="absolute top-4 left-5 z-20 pointer-events-none">
-                                <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-orange-500/20 shadow-2xl">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                  <span className="text-[10px] font-semibold text-zinc-100 tracking-wide">Tutorial</span>
+                              {/* Inner Surface Glass */}
+                              <div className="absolute inset-0 bg-black rounded-[36px]" />
+
+                              {/* Top Tagging Area (Floating) */}
+                              <div className="absolute top-8 left-8 z-20 pointer-events-none">
+                                <div className="flex items-center gap-2.5 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-orange-500/20 shadow-2xl">
+                                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                                  <span className="text-[11px] font-bold text-zinc-100 tracking-wide">Live Tutorial</span>
                                 </div>
                               </div>
 
                               {/* The Video content area */}
-                              <div className="relative aspect-video rounded-[26px] overflow-hidden border border-white/5 bg-black mt-2 mx-1">
+                              <div className="relative aspect-video rounded-[32px] overflow-hidden border border-white/5 bg-black mt-4 mx-1.5">
                                 <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
+                                
+                                {/* Center Play Button Overlay (Visual only) */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                                  <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(59,130,246,0.6)] border-4 border-white/20">
+                                    <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-white border-b-[12px] border-b-transparent ml-2" />
+                                  </div>
+                                </div>
+
+                                {/* Instructor Webcam Feed (PiP) */}
+                                <div className="absolute bottom-4 right-4 w-40 aspect-[4/5] rounded-2xl border-2 border-orange-500/40 overflow-hidden shadow-2xl z-20 group/cam transition-all duration-500 hover:scale-105 hover:border-orange-500/80">
+                                  <img 
+                                    src="https://images.unsplash.com/photo-1552058544-f2b08422138a?auto=format&fit=crop&q=80&w=400" 
+                                    alt="Instructor" 
+                                    className="w-full h-full object-cover grayscale-[0.2] brightness-110"
+                                  />
+                                  <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-md rounded-md border border-white/10">
+                                    <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                                    <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live</span>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* Reinforced Bottom Drag Handle Bar */}
@@ -707,7 +675,7 @@ export default function ContentArea({
                               >
                                 <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/20 border border-transparent group-hover/handle:border-orange-500/20 transition-all">
                                   <Activity size={14} className="text-orange-500" />
-                                  <span className="text-[10px] font-semibold text-zinc-400 tracking-widest uppercase">Reposition player</span>
+                                  <span className="text-[10px] font-semibold text-zinc-400 tracking-widest uppercase">Reposition Master</span>
                                 </div>
                               </div>
                             </div>
@@ -787,7 +755,7 @@ export default function ContentArea({
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Expected Output</label>
                                     <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-pre-wrap overflow-y-auto custom-scrollbar">
-                                      {tc.expectedOutput}
+                                      {tc.expectedOutput?.toString().trim().replace(/ +/g, '\n')}
                                     </pre>
                                   </div>
                                 </div>

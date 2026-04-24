@@ -28,7 +28,7 @@ const CourseList = ({ courses, onSelectCourse }) => {
             </div>
 
             <div className="flex-grow">
-              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 group-hover:text-orange-500 transition-colors">
+              <h3 className="text-2xl font-bold text-white tracking-tight mb-4 group-hover:text-orange-500 transition-colors">
                 {course.title}
               </h3>
               <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
@@ -37,7 +37,7 @@ const CourseList = ({ courses, onSelectCourse }) => {
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 tracking-tight">
                 <Trophy size={14} className="text-orange-500" />
                 {course.quizzesCount || 0} Quizzes
               </div>

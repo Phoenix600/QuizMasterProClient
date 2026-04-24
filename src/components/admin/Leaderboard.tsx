@@ -117,8 +117,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
               <div key={label} className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${color}`}>{icon}</div>
                 <div>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{label}</p>
-                  <p className="text-2xl font-black text-white">{value}</p>
+                  <p className="text-xs text-zinc-500 font-semibold tracking-tight">{label}</p>
+                  <p className="text-2xl font-semibold text-white">{value}</p>
                 </div>
               </div>
             ))}
@@ -162,7 +162,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                   <div className="max-h-[300px] overflow-y-auto custom-scrollbar-orange pr-1">
                     <button
                       onClick={() => { setLbQuizFilter(''); setShowQuizDrop(false); }}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${!lbQuizFilter ? 'bg-amber-500/10 text-amber-500' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${!lbQuizFilter ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
                     >
                       All Quizzes
                       {!lbQuizFilter && <CheckCircle2 size={12} />}
@@ -171,7 +171,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                       <button
                         key={t}
                         onClick={() => { setLbQuizFilter(t); setShowQuizDrop(false); }}
-                        className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${lbQuizFilter === t ? 'bg-amber-500/10 text-amber-500' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                        className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${lbQuizFilter === t ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
                       >
                         {t}
                         {lbQuizFilter === t && <CheckCircle2 size={12} />}
@@ -214,7 +214,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                       <button
                         key={m.label}
                         onClick={() => { setLbModeFilter(m.val); setShowModeDrop(false); }}
-                        className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${lbModeFilter === m.val ? 'bg-amber-500/10 text-amber-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                        className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${lbModeFilter === m.val ? 'bg-amber-500/10 text-amber-400' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
                       >
                         {m.label}
                         {lbModeFilter === m.val && <CheckCircle2 size={12} />}
@@ -246,14 +246,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
             setLbDateFrom(today);
             setLbDateTo(today);
           }}
-          className="px-3 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+          className="px-3 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-xs font-semibold transition-all whitespace-nowrap"
         >
           Today
         </button>
         {(lbSearch || lbQuizFilter || lbDateFrom || lbDateTo) && (
           <button
             onClick={() => { setLbSearch(''); setLbQuizFilter(''); setLbDateFrom(''); setLbDateTo(''); }}
-            className="px-3 py-2.5 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white rounded-xl text-xs font-bold transition-all"
+            className="px-3 py-2.5 bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white rounded-xl text-xs font-semibold transition-all"
           >
             Clear
           </button>
@@ -261,7 +261,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
         <button
           onClick={loadLeaderboard}
           disabled={lbLoading}
-          className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+          className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
         >
           <RefreshCw size={14} className={lbLoading ? 'animate-spin' : ''} />
           Refresh
@@ -269,7 +269,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
         {lbEntries.length > 0 && (
           <button
             onClick={handleDeleteAllRecords}
-            className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
           >
             <Trash2 size={14} />
             {(lbSearch || lbQuizFilter || lbDateFrom || lbDateTo) ? `Delete Filtered (${filteredLBEntries.length})` : 'Clear All'}
@@ -279,12 +279,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
 
       {/* Sort mode */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">Sort by:</span>
+        <span className="text-xs text-zinc-500 font-semibold tracking-tight">Sort by:</span>
         <div className="flex items-center bg-white/5 border border-white/5 rounded-xl p-1 gap-1">
           <button
             onClick={() => setLbSort('merit')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              lbSort === 'merit' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-500 hover:text-gray-300'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              lbSort === 'merit' ? 'bg-amber-500/20 text-amber-400' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <Medal size={12} />
@@ -292,8 +292,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
           </button>
           <button
             onClick={() => setLbSort('date')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              lbSort === 'date' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-500 hover:text-gray-300'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              lbSort === 'date' ? 'bg-blue-500/20 text-blue-400' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <Clock size={12} />
@@ -334,7 +334,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                 <thead>
                   <tr className="border-b border-white/5">
                     {['#', 'Student', 'Quiz', 'Score', '% Score', 'Status', 'Mode', 'Time', 'Date', 'Action'].map(h => (
-                      <th key={h} className="px-5 py-4 text-left text-[11px] font-bold text-gray-500 uppercase tracking-widest">{h}</th>
+                      <th key={h} className="px-5 py-4 text-left text-[11px] font-semibold text-zinc-500 tracking-tight">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -356,7 +356,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                     return (
                       <tr key={idx} className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                         <td className="px-5 py-4">
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold ${
                             globalIdx === 0 ? 'bg-amber-500/20 text-amber-400' :
                             globalIdx === 1 ? 'bg-gray-400/10 text-gray-300' :
                             globalIdx === 2 ? 'bg-orange-700/20 text-orange-500' :
@@ -364,23 +364,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                           }`}>{globalIdx + 1}</span>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="font-bold text-white">{entry.userName}</p>
-                          <p className="text-[11px] text-gray-500">{entry.userEmail}</p>
+                          <p className="font-semibold text-white">{entry.userName}</p>
+                          <p className="text-[11px] text-zinc-500">{entry.userEmail}</p>
                         </td>
                         <td className="px-5 py-4">
                           <p className="text-gray-300 font-medium max-w-[180px] truncate">{entry.quizTitle}</p>
                         </td>
-                        <td className="px-5 py-4 text-gray-300 font-bold">{entry.score}/{entry.totalQuestions}</td>
-                        <td className="px-5 py-4 font-black text-white">{Math.round(entry.percentage)}%</td>
+                        <td className="px-5 py-4 text-zinc-300 font-semibold">{entry.score}/{entry.totalQuestions}</td>
+                        <td className="px-5 py-4 font-semibold text-white">{Math.round(entry.percentage)}%</td>
                         <td className="px-5 py-4">
                           {entry.isPassed ? (
-                            <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border border-emerald-500/20">PASSED</span>
+                            <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold px-2 py-1 rounded-md tracking-tight border border-emerald-500/20">Passed</span>
                           ) : (
-                            <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border border-red-500/20">FAILED</span>
+                            <span className="bg-red-500/10 text-red-500 text-[10px] font-semibold px-2 py-1 rounded-md tracking-tight border border-red-500/20">Failed</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border ${
+                          <span className={`text-[10px] font-semibold px-2 py-1 rounded-md tracking-tight border ${
                             entry.mode === 'training' 
                               ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
                               : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
@@ -390,8 +390,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                         </td>
                         <td className="px-5 py-4 text-gray-400 font-medium">{timeStr}</td>
                         <td className="px-5 py-4">
-                          <p className="text-white font-bold">{date}</p>
-                          <p className="text-[10px] text-gray-600 font-medium uppercase tracking-tighter">{time}</p>
+                          <p className="text-white font-semibold">{date}</p>
+                          <p className="text-[10px] text-zinc-600 font-medium tracking-tight">{time}</p>
                         </td>
                         <td className="px-5 py-4">
                           <button
@@ -419,12 +419,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                   <button
                     onClick={() => setLbPage(1)}
                     disabled={safePage === 1}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >«</button>
                   <button
                     onClick={() => setLbPage(p => Math.max(1, p - 1))}
                     disabled={safePage === 1}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >‹</button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
@@ -440,10 +440,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                         <button
                           key={item}
                           onClick={() => setLbPage(item as number)}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
                             safePage === item
                               ? 'bg-amber-500/20 text-amber-400'
-                              : 'text-gray-500 hover:text-white hover:bg-white/5'
+                              : 'text-zinc-500 hover:text-white hover:bg-white/5'
                           }`}
                         >{item}</button>
                       )
@@ -451,12 +451,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ pushToast, openConfirm
                   <button
                     onClick={() => setLbPage(p => Math.min(totalPages, p + 1))}
                     disabled={safePage === totalPages}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >›</button>
                   <button
                     onClick={() => setLbPage(totalPages)}
                     disabled={safePage === totalPages}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >»</button>
                 </div>
               </div>

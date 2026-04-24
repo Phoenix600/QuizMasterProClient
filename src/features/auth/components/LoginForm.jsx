@@ -42,7 +42,7 @@ const LoginForm = ({ onAuthSuccess }) => {
           <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 mx-auto transform rotate-12 group-hover:rotate-0 transition-transform">
             {isRegistering ? <UserPlus className="text-white" size={32} /> : <LogIn className="text-white" size={32} />}
           </div>
-          <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">
+          <h2 className="text-3xl font-bold text-white tracking-tight">
             {isRegistering ? 'Create Account' : 'Welcome Back'}
           </h2>
           <p className="text-gray-400 text-sm">

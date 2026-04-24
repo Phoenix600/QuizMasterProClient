@@ -1,4 +1,4 @@
-import { ApiResponse, CodeDraft, Problem, Submission, TestCase } from '../types.ts';
+import { ApiResponse, CodeDraft, Problem, Submission, TestCase, UserProfile } from '../types.ts';
 
 export const SPRING_API_URL = import.meta.env.VITE_SPRING_API_URL || 'http://localhost:8080';
 export const NODE_API_URL = (import.meta.env.VITE_API_URL ?? '') + '/api';
@@ -239,5 +239,12 @@ export const api = {
     }, NODE_API_URL),
   createContest: (data: any) => fetchApi<any>('/admin/contests', { method: 'POST', body: JSON.stringify(data) }, NODE_API_URL),
   updateContest: (id: string, data: any) => fetchApi<any>(`/admin/contests/${id}`, { method: 'PUT', body: JSON.stringify(data) }, NODE_API_URL),
-  deleteContest: (id: string) => fetchApi<void>(`/admin/contests/${id}`, { method: 'DELETE' }, NODE_API_URL)
+  deleteContest: (id: string) => fetchApi<void>(`/admin/contests/${id}`, { method: 'DELETE' }, NODE_API_URL),
+  
+  // Profile
+  getProfile: () => fetchApi<UserProfile>('/auth/profile', {}, NODE_API_URL),
+  updateProfile: (data: any) => fetchApi<any>('/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  }, NODE_API_URL)
 };

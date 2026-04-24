@@ -17,7 +17,7 @@ import {
 import { motion, Reorder, useDragControls, AnimatePresence } from 'motion/react';
 import { cn } from '../../features/codegraph/lib/utils';
 import * as api from '../../services/api';
-import { Quiz } from '../../types';
+import { Quiz, Chapter } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,12 +39,13 @@ interface CurriculumNodeProps {
   onToggle: (id: string) => void;
   activePath: string[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, node?: CurriculumNode) => void;
   // Admin callbacks
   adminSelectedCourse: any;
   adminSelectedChapter: any;
   setAdminSelectedChapter: (v: any) => void;
   setAdminSelectedQuiz: (v: any) => void;
+  setAdminSelectedSubFolder?: (v: any) => void;
   setAdminView: (v: any) => void;
   setShowAddChapter: (v: boolean) => void;
   setEditingChapterData: (v: any) => void;
@@ -65,7 +66,7 @@ const nid = (id: any): string => String(id);
 const CurriculumNodeItem = React.memo(({
   node, level, openNodes, onToggle, activePath, selectedId, onSelect,
   adminSelectedCourse, adminSelectedChapter, setAdminSelectedChapter,
-  setAdminSelectedQuiz, setAdminView, setShowAddChapter, setEditingChapterData,
+  setAdminSelectedQuiz, setAdminSelectedSubFolder, setAdminView, setShowAddChapter, setEditingChapterData,
   setProblemInitialContext, setAdminSelectedProblemId, openConfirm,
   fetchChaptersForCourse, pushToast, handleReorder,
 }: CurriculumNodeProps) => {
@@ -116,13 +117,21 @@ const CurriculumNodeItem = React.memo(({
             tabIndex={0}
             onClick={() => {
               onToggle(nodeId);   // Exact Sidebar: onToggle(node.id)
-              onSelect(nodeId);
+              onSelect(nodeId, node);
+              if (node.type === 'chapter' && node.data) {
+                setAdminSelectedChapter(node.data);
+                setAdminSelectedQuiz(null); // Clear quiz selection when a chapter is clicked
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onToggle(nodeId);
-                onSelect(nodeId);
+                onSelect(nodeId, node);
+                if (node.type === 'chapter' && node.data) {
+                  setAdminSelectedChapter(node.data);
+                  setAdminSelectedQuiz(null); // Clear quiz selection when a chapter is selected
+                }
               }
             }}
             className={cn(
@@ -173,27 +182,47 @@ const CurriculumNodeItem = React.memo(({
 
             {/* Admin action buttons */}
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity ml-auto flex-shrink-0">
-              {level < 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const item = node.data;
-                    setAdminSelectedChapter(item);
-                    onSelect(nid(item._id));
-                    setAdminSelectedQuiz({
-                      _id: 'new', title: 'New Quiz', description: '',
-                      chapterId: node.id, courseId: adminSelectedCourse?._id,
-                      questions: [], questionCount: 0, passingScore: 70,
-                      timeLimit: 15, isPublished: false,
-                    } as Quiz);
-                    setAdminView('questions');
-                  }}
-                  className="p-1 hover:text-orange-500 text-zinc-500 rounded transition-all"
-                  title="Add Quiz"
-                >
-                  <Brain size={12} />
-                </button>
-              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const item = node.data;
+                  setAdminSelectedChapter(item);
+                  onSelect(nid(item._id));
+
+                  // Determine Hierarchy Context (mimics Problem logic)
+                  const context = {
+                    courseId: adminSelectedCourse?._id,
+                    chapterId: level === 0 ? node.id : (item.parentId?._id || item.parentId),
+                    subChapterId: level === 1 ? node.id : (level > 1 ? (item.parentId?._id || item.parentId) : null),
+                    topicId: level >= 2 ? node.id : null
+                  };
+
+                  setAdminSelectedQuiz({
+                    _id: 'new', title: 'New Quiz', description: '',
+                    ...context,
+                    questions: [], questionCount: 0, passingScore: 70,
+                    timeLimit: 15, isPublished: false,
+                  } as Quiz);
+
+                  // Update Sub-folder selection in global state for authoring hub dropdown
+                  if (setAdminSelectedSubFolder) {
+                    if (level === 1) setAdminSelectedSubFolder(item);
+                    else if (level > 1 && item.parentId) {
+                        // If it's a topic, the sub-folder is its parent
+                        const subFolder = (item.parentId as any)._id ? item.parentId : { _id: item.parentId };
+                        setAdminSelectedSubFolder(subFolder as Chapter);
+                    } else {
+                        setAdminSelectedSubFolder(null);
+                    }
+                  }
+
+                  setAdminView('questions');
+                }}
+                className="p-1 hover:text-orange-500 text-zinc-500 rounded transition-all"
+                title="Add Quiz"
+              >
+                <Brain size={12} />
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -350,14 +379,38 @@ const CurriculumNodeItem = React.memo(({
           )}>
             <FileText size={13} className={isSelected ? 'text-orange-500' : 'text-zinc-600'} />
             <span className="text-xs font-medium flex-1 truncate">{node.title}</span>
+            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+               <button
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   const item = node.data;
+                   const context = {
+                     courseId: adminSelectedCourse?._id,
+                     chapterId: item.chapterId?._id || item.chapterId,
+                     problemId: item._id
+                   };
+                   setAdminSelectedQuiz({
+                     _id: 'new', title: `Quiz: ${item.title}`, description: '',
+                     ...context,
+                     questions: [], questionCount: 0, passingScore: 70,
+                     timeLimit: 15, isPublished: false,
+                   } as Quiz);
+                   setAdminView('questions');
+                 }}
+                 className="p-1 hover:text-orange-500 text-zinc-500 rounded transition-all"
+                 title="Add Quiz to Problem"
+               >
+                 <Brain size={12} />
+               </button>
+            </div>
             {node.data?.difficulty && (
               <span className={cn(
-                'text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold flex-shrink-0',
+                'text-[9px] px-1.5 py-0.5 rounded border font-semibold flex-shrink-0',
                 node.data.difficulty === 'EASY' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5' :
                   node.data.difficulty === 'MEDIUM' ? 'border-orange-500/30 text-orange-500 bg-orange-500/5' :
                     'border-rose-500/30 text-rose-500 bg-rose-500/5',
               )}>
-                {node.data.difficulty}
+                {node.data.difficulty.charAt(0) + node.data.difficulty.slice(1).toLowerCase()}
               </span>
             )}
           </div>
@@ -382,28 +435,17 @@ const CurriculumNodeItem = React.memo(({
           />
           <div className={cn(
             'flex items-center gap-2 py-1.5 px-3 ml-4 rounded-lg hover:bg-zinc-800/30 transition-all cursor-pointer',
-            isSelected ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30 font-bold' : 'text-zinc-500 hover:text-zinc-300',
+            isSelected ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30 font-semibold' : 'text-zinc-500 hover:text-zinc-300',
           )}>
             <Brain size={13} className={isSelected ? 'text-orange-500' : 'text-zinc-600'} />
             <span className="text-xs font-medium flex-1 truncate">{node.title}</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded border border-zinc-700/50 text-zinc-500 uppercase font-bold flex-shrink-0">
-              {node.data?.questionCount ?? 0}Q
+            <span className="text-[9px] px-1.5 py-0.5 rounded border border-zinc-700/50 text-zinc-400 font-semibold flex-shrink-0">
+              {node.data?.questionCount ?? 0} Qs
             </span>
           </div>
         </div>
       )}
     </Reorder.Item>
-  );
-}, (p, n) => {
-  const pid = nid(p.node.id);
-  const nxtid = nid(n.node.id);
-  return (
-    pid === nxtid &&
-    p.node.title === n.node.title &&
-    !!p.openNodes[pid] === !!n.openNodes[nxtid] &&
-    p.activePath.includes(pid) === n.activePath.includes(nxtid) &&
-    p.selectedId === n.selectedId &&
-    p.node.children?.length === n.node.children?.length
   );
 });
 
@@ -424,6 +466,7 @@ export interface CurriculumTreeProps {
   adminSelectedChapter: any;
   setAdminSelectedChapter: (v: any) => void;
   setAdminSelectedQuiz: (v: any) => void;
+  setAdminSelectedSubFolder: (v: any) => void;
   setAdminView: (v: any) => void;
   setShowAddChapter: (v: boolean) => void;
   setEditingChapterData: (v: any) => void;
@@ -456,6 +499,7 @@ export const CurriculumTree: React.FC<CurriculumTreeProps> = ({
   adminSelectedChapter,
   setAdminSelectedChapter,
   setAdminSelectedQuiz,
+  setAdminSelectedSubFolder,
   setAdminView,
   setShowAddChapter,
   setEditingChapterData,
@@ -494,8 +538,14 @@ export const CurriculumTree: React.FC<CurriculumTreeProps> = ({
 
   const handleSelect = useCallback((id: string, node?: CurriculumNode) => {
     setSelectedId(id);
-    if (node) onNodeSelect?.(id, node);
-  }, [onNodeSelect]);
+    if (node) {
+      onNodeSelect?.(id, node);
+      // Ensure quizzes are fetched for the selected node (Chapter or Sub-folder)
+      if (node.type === 'chapter') {
+        fetchQuizzesForChapter(id);
+      }
+    }
+  }, [onNodeSelect, fetchQuizzesForChapter]);
 
   /** Exact Sidebar auto-expand: on activeNodeId change, open parent chain  */
   useEffect(() => {
@@ -505,8 +555,14 @@ export const CurriculumTree: React.FC<CurriculumTreeProps> = ({
     if (!path) return;
 
     const newOpen: Record<string, boolean> = {};
-    path.forEach(id => { newOpen[id] = true; });
-    setOpenNodes(prev => ({ ...prev, ...newOpen }));
+    // Auto-expand parents only.
+    path.slice(0, -1).forEach(id => { 
+      newOpen[id] = true; 
+    });
+    
+    if (Object.keys(newOpen).length > 0) {
+      setOpenNodes(prev => ({ ...prev, ...newOpen }));
+    }
     setSelectedId(nid(activeNodeId));
   }, [activeNodeId, nodes]);
 
@@ -541,6 +597,7 @@ export const CurriculumTree: React.FC<CurriculumTreeProps> = ({
                 adminSelectedChapter={adminSelectedChapter}
                 setAdminSelectedChapter={setAdminSelectedChapter}
                 setAdminSelectedQuiz={setAdminSelectedQuiz}
+                setAdminSelectedSubFolder={setAdminSelectedSubFolder}
                 setAdminView={setAdminView}
                 setShowAddChapter={setShowAddChapter}
                 setEditingChapterData={setEditingChapterData}

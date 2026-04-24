@@ -22,6 +22,7 @@ import {
 } from 'react-resizable-panels';
 
 import { DUMMY_USER } from './constants.ts';
+import { UserProfile } from './types.ts';
 
 const CustomResizeHandle = ({ direction }: { direction: 'horizontal' | 'vertical' }) => (
   <Separator className={cn(
@@ -36,7 +37,7 @@ const CustomResizeHandle = ({ direction }: { direction: 'horizontal' | 'vertical
   </Separator>
 );
 
-export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack: () => void, user: any, initialProblemId?: string }) {
+export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack: () => void, user?: UserProfile, initialProblemId?: string }) {
   const [isSidebarVisible, setIsSidebarVisible] = React.useState(true);
   const [currentView, setCurrentView] = React.useState<'main' | 'profile' | 'profile-dashboard' | 'admin'>('main');
   const [adminTab, setAdminTab] = React.useState<'problems' | 'contests'>('problems');
@@ -131,21 +132,27 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
           console.warn("Could not fetch solved problems from Node", err);
           return [] as string[];
         });
+        const profilePromise = api.getProfile().catch(err => {
+          console.warn("Could not fetch fresh profile", err);
+          return user || DUMMY_USER;
+        });
         const resumeIdPromise = api.getResumeProblemId().catch(err => {
           console.warn("Could not fetch resume ID", err);
           return null;
         });
 
-        const [fetchedCourses, springSolved, nodeSolved, resumeId] = await Promise.all([
+        const [fetchedCourses, springSolved, nodeSolved, resumeId, freshProfile] = await Promise.all([
           coursesPromise,
           springSolvedPromise,
           nodeSolvedPromise,
-          resumeIdPromise
+          resumeIdPromise,
+          profilePromise
         ]);
   
         if (controller.signal.aborted) return;
         
         setCourses(fetchedCourses);
+        setUserProfile(freshProfile);
 
         // Merge solving data from both sources
         const combinedSolved = new Set<string>([
@@ -316,9 +323,15 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
         <Toaster theme="dark" position="bottom-right" richColors closeButton />
         <ProfileView
           user={userProfile}
-          onSave={(updatedUser) => {
-            setUserProfile(updatedUser);
-            setCurrentView('profile-dashboard');
+          onSave={async (updatedUser) => {
+            try {
+              const savedUser = await api.updateProfile(updatedUser);
+              setUserProfile(savedUser);
+              toast.success('Profile updated successfully!');
+              setCurrentView('profile-dashboard');
+            } catch (err) {
+              toast.error('Failed to update profile. Please try again.');
+            }
           }}
           onBack={() => setCurrentView('profile-dashboard')}
         />
@@ -428,7 +441,7 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
                title="Exit Workspace"
             >
                <ChevronLeft size={18} />
-               <span className="text-[10px] font-bold uppercase tracking-wider">Exit</span>
+               <span className="text-[10px] font-bold tracking-tight">Exit</span>
             </button>
           </div>
 
@@ -448,7 +461,7 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
                 </div>
                 <div className="space-y-1 text-center">
                     <p className="text-sm font-semibold text-zinc-100">Synchronizing Course Curriculum</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Fetching secure challenge data...</p>
+                    <p className="text-[10px] text-zinc-500 tracking-tight font-semibold">Fetching secure challenge data...</p>
                 </div>
             </div>
           ) : selectedContestId && !isContestActive ? (
@@ -470,7 +483,7 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
                 
                 <div className="max-w-md w-full text-center space-y-6">
                     <div className="space-y-2">
-                        <h2 className="text-2xl font-semibold text-white tracking-tight uppercase">Curriculum Empty</h2>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">Curriculum Empty</h2>
                         <p className="text-sm text-zinc-400 leading-relaxed font-medium">
                             This course doesn't have any challenges published yet. Please contact your instructor or check back later.
                         </p>
@@ -482,7 +495,7 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
                             className="group flex items-center gap-2 px-8 py-3 bg-zinc-100 hover:bg-white rounded-full text-black text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-white/5"
                         >
                             <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-                            REFRESH CURRICULUM
+                            Refresh Curriculum
                         </button>
                     </div>
                 </div>
@@ -559,6 +572,12 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
       </main>
 
       <style>{`
+        /* Global Text Selection */
+        ::selection {
+          background: rgba(234, 88, 12, 0.3); /* orange-600 with opacity */
+          color: #fff;
+        }
+        
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

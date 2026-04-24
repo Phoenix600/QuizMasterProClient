@@ -148,18 +148,16 @@ export const DraggableChapter = ({
         </span>
         
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
-          {level < 1 && (
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onAddQuiz(chapter._id);
-                }}
-                className="p-1 hover:text-orange-500 text-zinc-500"
-                title="Add Quiz"
-            >
-              <Brain size={14} />
-            </button>
-          )}
+          <button 
+              onClick={(e) => {
+                  e.stopPropagation();
+                  onAddQuiz(chapter, level);
+              }}
+              className="p-1 hover:text-orange-500 text-zinc-500"
+              title="Add Quiz"
+          >
+            <Brain size={14} />
+          </button>
           <button 
               onClick={(e) => {
                   e.stopPropagation();
@@ -262,14 +260,24 @@ export const DraggableChapter = ({
                   <FileText size={14} className={cn(itemIsSelected ? "text-orange-500" : "text-zinc-600")} />
                   <span className="text-xs font-medium">{prob.title}</span>
                   <div className="ml-auto flex items-center gap-2">
-                      <span className={cn(
-                          "text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold",
-                          prob.difficulty === 'EASY' ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" :
-                          prob.difficulty === 'MEDIUM' ? "border-orange-500/30 text-orange-500 bg-orange-500/5" :
-                          "border-rose-500/30 text-rose-500 bg-rose-500/5"
-                      )}>
-                          {prob.difficulty}
-                      </span>
+                       <button 
+                           onClick={(e) => {
+                               e.stopPropagation();
+                               onAddQuiz(prob, -1); // Use -1 to indicate Problem assignment
+                           }}
+                           className="opacity-0 group-hover:opacity-100 p-1 hover:text-orange-500 text-zinc-500 transition-all"
+                           title="Add Quiz to Problem"
+                       >
+                           <Brain size={12} />
+                       </button>
+                       <span className={cn(
+                           "text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold",
+                           prob.difficulty === 'EASY' ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" :
+                           prob.difficulty === 'MEDIUM' ? "border-orange-500/30 text-orange-500 bg-orange-500/5" :
+                           "border-rose-500/30 text-rose-500 bg-rose-500/5"
+                       )}>
+                           {prob.difficulty}
+                       </span>
                   </div>
                 </div>
               </div>
@@ -340,7 +348,12 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     passingScore: 70, 
     questionCount: 10 
   });
-  const [targetChapterId, setTargetChapterId] = useState<string | null>(null);
+  const [quizContext, setQuizContext] = useState<{
+    chapterId: string | null;
+    subChapterId: string | null;
+    topicId: string | null;
+    problemId: string | null;
+  }>({ chapterId: null, subChapterId: null, topicId: null, problemId: null });
 
   useEffect(() => {
     fetchCourses();
@@ -504,8 +517,6 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
         console.log('Payload:', { title: chapterForm.title, description: chapterForm.description });
 
         await api.admin.updateChapter(safeId, { 
-          _id: safeId, // Payload mirror
-          id: safeId,  // Payload mirror
           title: chapterForm.title, 
           description: chapterForm.description 
         });
@@ -529,12 +540,15 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
   }, [selectedCourseId, editingChapterId, chapterForm, fetchChapters]);
 
   const handleCreateQuiz = React.useCallback(async () => {
-    if (!selectedCourseId || !targetChapterId) return;
+    if (!selectedCourseId || !quizContext.chapterId) return;
     try {
       await api.admin.createQuiz({
         ...quizForm,
         courseId: selectedCourseId,
-        chapterId: targetChapterId
+        chapterId: quizContext.chapterId,
+        subChapterId: quizContext.subChapterId,
+        topicId: quizContext.topicId,
+        problemId: quizContext.problemId
       });
       toast.success('Quiz created');
       setShowQuizModal(false);
@@ -542,7 +556,7 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     } catch (err: any) {
       toast.error(err.message || 'Failed to create quiz');
     }
-  }, [selectedCourseId, targetChapterId, quizForm, fetchChapters]);
+  }, [selectedCourseId, quizContext, quizForm, fetchChapters]);
 
   const handleDeleteChapter = React.useCallback(async (chapterId: any) => {
     if (!window.confirm('Are you sure you want to delete this folder and all its contents?')) return;
@@ -596,7 +610,7 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
 
   const handleAddSubFolder = React.useCallback((parentId: any) => {
     const id = String(parentId._id || parentId);
-    setChapterForm({ title: '', description: '', parentId: id });
+    setChapterForm({ id: null, title: '', description: '', parentId: id });
     setShowChapterModal(true);
   }, []);
 
@@ -611,9 +625,27 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
     else toast.info('Navigate to Problem Authoring to add problems');
   }, [selectedCourseId, onCreateProblem]);
 
-  const handleAddQuiz = React.useCallback((chapterId: string) => {
-    setTargetChapterId(chapterId);
-    setQuizForm({ title: '', description: '', timeLimit: 15, passingScore: 70, questionCount: 10 });
+  const handleAddQuiz = React.useCallback((ch: any, level: number) => {
+    let context;
+    if (level === -1) {
+        // Problem level
+        context = {
+            chapterId: ch.chapterId?._id || ch.chapterId,
+            subChapterId: null,
+            topicId: null,
+            problemId: ch._id
+        };
+    } else {
+        // Folder level
+        context = {
+            chapterId: level === 0 ? ch._id : (ch.parentId?._id || ch.parentId),
+            subChapterId: level === 1 ? ch._id : (level > 1 ? (ch.parentId?._id || ch.parentId) : null),
+            topicId: level >= 2 ? ch._id : null,
+            problemId: null
+        };
+    }
+    setQuizContext(context);
+    setQuizForm({ title: level === -1 ? `Quiz: ${ch.title}` : '', description: '', timeLimit: 15, passingScore: 70, questionCount: 10 });
     setShowQuizModal(true);
   }, []);
 
@@ -690,7 +722,7 @@ export const CurriculumManager: React.FC<CurriculumManagerProps> = ({ onBack, on
                     {selectedCourseId && (
                         <button 
                             onClick={() => {
-                                setChapterForm({ title: '', description: '', parentId: null });
+                                setChapterForm({ id: null, title: '', description: '', parentId: null });
                                 setShowChapterModal(true);
                             }}
                             className="text-[10px] font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1.5 transition-colors"

@@ -11,6 +11,7 @@ interface QuestionAssignmentHubProps {
   adminSelectedQuiz: Quiz;
   adminSelectedChapter: Chapter | null;
   adminSelectedCourse: Course | null;
+  adminSelectedSubFolder: Chapter | null;
   courses: Course[];
   courseChapters: Record<string, Chapter[]>;
   questions: Question[];
@@ -19,6 +20,7 @@ interface QuestionAssignmentHubProps {
   setAdminSelectedQuiz: (val: any) => void;
   setAdminSelectedCourse: (val: Course | null) => void;
   setAdminSelectedChapter: (val: Chapter | null) => void;
+  setAdminSelectedSubFolder: (val: Chapter | null) => void;
   setAdminView: (val: any) => void;
   setQuestions: (val: Question[]) => void;
   fetchQuizzesForChapter: (id: string) => void;
@@ -29,15 +31,16 @@ interface QuestionAssignmentHubProps {
 }
 
 export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
-  adminSelectedQuiz, adminSelectedChapter, adminSelectedCourse,
+  adminSelectedQuiz, adminSelectedChapter, adminSelectedCourse, adminSelectedSubFolder,
   courses, courseChapters, questions,
   previewQuestion, setPreviewQuestion, setAdminSelectedQuiz,
-  setAdminSelectedCourse, setAdminSelectedChapter, setAdminView, setQuestions,
+  setAdminSelectedCourse, setAdminSelectedChapter, setAdminSelectedSubFolder, setAdminView, setQuestions,
   fetchQuizzesForChapter, pushToast, updateToast, publishQuiz,
   setIsCodeFullscreen
 }) => {
   const [showCourseDrop, setShowCourseDrop] = React.useState(false);
   const [showChapterDrop, setShowChapterDrop] = React.useState(false);
+  const [showSubFolderDrop, setShowSubFolderDrop] = React.useState(false);
   const [poolChapterFilter, setPoolChapterFilter] = React.useState<string>('all');
   const [showPoolFilter, setShowPoolFilter] = React.useState(false);
   const [formError, setFormError] = React.useState('');
@@ -82,7 +85,8 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
         result = await api.createQuiz({
           ...payload,
           courseId: adminSelectedCourse!._id,
-          chapterId: adminSelectedChapter._id
+          chapterId: adminSelectedChapter._id,
+          subChapterId: adminSelectedSubFolder?._id || null
         });
       } else {
         result = await api.updateQuiz(adminSelectedQuiz._id, payload);
@@ -148,22 +152,22 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
       <div className="bg-[#1a1a1a] border border-white/5 rounded-[2.5rem] p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Target Destination</h4>
-            <p className="text-xs text-gray-400 mt-1">Assign this quiz to a specific chapter</p>
+            <h4 className="text-[10px] font-semibold text-zinc-500 tracking-tight">Target Destination</h4>
+            <p className="text-xs text-zinc-400 mt-1">Assign this quiz to a specific chapter</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
               <button
                 onClick={() => setShowCourseDrop(!showCourseDrop)}
-                className={`bg-white/5 border border-white/10 rounded-2xl px-6 py-3.5 text-xs font-black text-white hover:bg-white/10 transition-all flex items-center gap-4 min-w-[240px] justify-between group ${adminSelectedCourse ? 'border-orange-500/20 bg-orange-500/5' : ''}`}
+                className={`bg-white/5 border border-white/10 rounded-2xl px-6 py-3.5 text-xs font-semibold text-white hover:bg-white/10 transition-all flex items-center gap-4 min-w-[240px] justify-between group ${adminSelectedCourse ? 'border-orange-500/20 bg-orange-500/5' : ''}`}
               >
                 <div className="flex items-center gap-3">
-                  <BookOpen size={16} className={adminSelectedCourse ? 'text-orange-500' : 'text-gray-500'} />
-                  <span className="uppercase tracking-widest truncate max-w-[150px]">
+                  <BookOpen size={16} className={adminSelectedCourse ? 'text-orange-500' : 'text-zinc-500'} />
+                  <span className="tracking-tight truncate max-w-[150px]">
                     {adminSelectedCourse?.title || 'Select Course'}
                   </span>
                 </div>
-                <ChevronDown size={14} className={`transition-transform duration-300 ${showCourseDrop ? 'rotate-180 text-orange-500' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                <ChevronDown size={14} className={`transition-transform duration-300 ${showCourseDrop ? 'rotate-180 text-orange-500' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
               </button>
               
               <AnimatePresence>
@@ -185,10 +189,10 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                               setAdminSelectedChapter(null);
                               setShowCourseDrop(false);
                             }}
-                            className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group/item ${
+                            className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-semibold tracking-tight transition-all flex items-center justify-between group/item ${
                               adminSelectedCourse?._id === course._id 
                                 ? 'bg-orange-500/10 text-orange-500' 
-                                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                             }`}
                           >
                             {course.title}
@@ -208,15 +212,15 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               <button
                 disabled={!adminSelectedCourse}
                 onClick={() => setShowChapterDrop(!showChapterDrop)}
-                className={`bg-white/5 border border-white/10 rounded-2xl px-6 py-3.5 text-xs font-black text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-all flex items-center gap-4 min-w-[240px] justify-between group ${adminSelectedChapter ? 'border-blue-500/20 bg-blue-500/5' : ''}`}
+                className={`bg-white/5 border border-white/10 rounded-2xl px-6 py-3.5 text-xs font-semibold text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-all flex items-center gap-4 min-w-[240px] justify-between group ${adminSelectedChapter ? 'border-blue-500/20 bg-blue-500/5' : ''}`}
               >
                 <div className="flex items-center gap-3">
-                  <Layers size={16} className={adminSelectedChapter ? 'text-blue-500' : 'text-gray-500'} />
-                  <span className="uppercase tracking-widest truncate max-w-[150px]">
+                  <Layers size={16} className={adminSelectedChapter ? 'text-blue-500' : 'text-zinc-500'} />
+                  <span className="tracking-tight truncate max-w-[150px]">
                     {adminSelectedChapter?.title || 'Select Chapter'}
                   </span>
                 </div>
-                <ChevronDown size={14} className={`transition-transform duration-300 ${showChapterDrop ? 'rotate-180 text-blue-500' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                <ChevronDown size={14} className={`transition-transform duration-300 ${showChapterDrop ? 'rotate-180 text-blue-500' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
               </button>
 
               <AnimatePresence>
@@ -230,21 +234,89 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                       className="absolute z-[101] top-full right-0 mt-4 bg-[#1a1a1a] border border-white/10 rounded-3xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[300px] backdrop-blur-xl overflow-hidden"
                     >
                       <div className="max-h-[350px] overflow-y-auto custom-scrollbar-orange pr-2 space-y-1">
-                        {(courseChapters[adminSelectedCourse?._id || ''] || []).map(ch => (
+                        {(courseChapters[adminSelectedCourse?._id || ''] || [])
+                          .filter(ch => !ch.parentId) // Only root level
+                          .map(ch => (
                           <button
                             key={ch._id}
                             onClick={() => {
                               setAdminSelectedChapter(ch);
+                              setAdminSelectedSubFolder(null); // Reset sub-folder when chapter changes
                               setShowChapterDrop(false);
                             }}
-                            className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group/item ${
+                            className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-semibold tracking-tight transition-all flex items-center justify-between group/item ${
                               adminSelectedChapter?._id === ch._id 
                                 ? 'bg-blue-500/10 text-blue-500' 
-                                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                             }`}
                           >
                             {ch.title}
                             {adminSelectedChapter?._id === ch._id && <CheckCircle2 size={14} />}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <ChevronRight size={16} className="text-gray-800" />
+
+            <div className="relative">
+              <button
+                disabled={!adminSelectedChapter}
+                onClick={() => setShowSubFolderDrop(!showSubFolderDrop)}
+                className={`bg-white/5 border border-white/10 rounded-2xl px-6 py-3.5 text-xs font-semibold text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-all flex items-center gap-4 min-w-[240px] justify-between group ${adminSelectedSubFolder ? 'border-amber-500/20 bg-amber-500/5' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Layers size={16} className={adminSelectedSubFolder ? 'text-amber-500' : 'text-zinc-500'} />
+                  <span className="tracking-tight truncate max-w-[150px]">
+                    {adminSelectedSubFolder?.title || 'Select Sub-folder'}
+                  </span>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 ${showSubFolderDrop ? 'rotate-180 text-amber-500' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
+              </button>
+
+              <AnimatePresence>
+                {showSubFolderDrop && (
+                  <>
+                    <div className="fixed inset-0 z-[100]" onClick={() => setShowSubFolderDrop(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                      className="absolute z-[101] top-full right-0 mt-4 bg-[#1a1a1a] border border-white/10 rounded-3xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[300px] backdrop-blur-xl overflow-hidden"
+                    >
+                      <div className="max-h-[350px] overflow-y-auto custom-scrollbar-orange pr-2 space-y-1">
+                        <button
+                          onClick={() => {
+                            setAdminSelectedSubFolder(null);
+                            setShowSubFolderDrop(false);
+                          }}
+                          className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-semibold tracking-tight transition-all ${
+                            !adminSelectedSubFolder ? 'bg-amber-500/10 text-amber-500' : 'text-zinc-500 hover:text-white'
+                          }`}
+                        >
+                          None (Root Chapter)
+                        </button>
+                        {(courseChapters[adminSelectedCourse?._id || ''] || [])
+                          .filter(ch => String(ch.parentId?._id || ch.parentId) === String(adminSelectedChapter?._id))
+                          .map(sub => (
+                          <button
+                            key={sub._id}
+                            onClick={() => {
+                              setAdminSelectedSubFolder(sub);
+                              setShowSubFolderDrop(false);
+                            }}
+                            className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-semibold tracking-tight transition-all flex items-center justify-between group/item ${
+                              adminSelectedSubFolder?._id === sub._id 
+                                ? 'bg-amber-500/10 text-amber-500' 
+                                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            {sub.title}
+                            {adminSelectedSubFolder?._id === sub._id && <CheckCircle2 size={14} />}
                           </button>
                         ))}
                       </div>
@@ -271,25 +343,25 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                   placeholder="Quiz Title"
                   value={adminSelectedQuiz.title}
                   onChange={(e) => setAdminSelectedQuiz({ ...adminSelectedQuiz, title: e.target.value })}
-                  className="w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder:text-gray-700"
+                  className="w-full bg-transparent text-2xl font-semibold text-white focus:outline-none placeholder:text-zinc-700"
                 />
                 <textarea 
                   placeholder="Enter quiz description..."
                   value={adminSelectedQuiz.description}
                   onChange={(e) => setAdminSelectedQuiz({ ...adminSelectedQuiz, description: e.target.value })}
-                  className="w-full bg-transparent text-[11px] font-bold text-gray-500 uppercase tracking-widest focus:outline-none placeholder:text-gray-800 resize-none h-6 overflow-hidden"
+                  className="w-full bg-transparent text-[11px] font-semibold text-zinc-500 tracking-tight focus:outline-none placeholder:text-zinc-800 resize-none h-6 overflow-hidden"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-3 px-6 py-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                <div className="p-2.5 bg-white/5 rounded-xl text-gray-400 font-black text-xs">
+                <div className="p-2.5 bg-white/5 rounded-xl text-zinc-400 font-semibold text-xs">
                   {adminSelectedQuiz.questions?.length || 0}
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">Lineup</p>
-                  <p className="text-[11px] font-black text-white uppercase tracking-widest">Questions</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold tracking-tight">Lineup</p>
+                  <p className="text-[11px] font-semibold text-white tracking-tight">Questions</p>
                 </div>
               </div>
 
@@ -298,7 +370,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                   <Clock size={18} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">Timer</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold tracking-tight">Timer</p>
                   <div className="flex items-center gap-1">
                     <input 
                       type="text" 
@@ -307,9 +379,9 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                         const val = e.target.value.replace(/\D/g, '');
                         setAdminSelectedQuiz({ ...adminSelectedQuiz, timeLimit: parseInt(val || '0', 10) });
                       }}
-                      className="w-8 bg-transparent text-xs font-black text-white focus:outline-none text-center"
+                      className="w-8 bg-transparent text-xs font-semibold text-white focus:outline-none text-center"
                     />
-                    <span className="text-[10px] font-black text-gray-600 uppercase">min</span>
+                    <span className="text-[10px] font-semibold text-zinc-600">min</span>
                   </div>
                 </div>
               </div>
@@ -319,7 +391,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                   <CheckCircle2 size={18} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">Pass %</p>
+                  <p className="text-[10px] text-zinc-500 font-semibold tracking-tight">Pass %</p>
                   <div className="flex items-center gap-1">
                     <input 
                       type="text" 
@@ -328,9 +400,9 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                         const val = e.target.value.replace(/\D/g, '');
                         setAdminSelectedQuiz({ ...adminSelectedQuiz, passingScore: Math.min(100, parseInt(val || '0', 10)) });
                       }}
-                      className="w-8 bg-transparent text-xs font-black text-white focus:outline-none text-center"
+                      className="w-8 bg-transparent text-xs font-semibold text-white focus:outline-none text-center"
                     />
-                    <span className="text-[10px] font-black text-gray-600 uppercase">%</span>
+                    <span className="text-[10px] font-semibold text-zinc-600">%</span>
                   </div>
                 </div>
               </div>
@@ -338,7 +410,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               <div className="flex items-center gap-3 ml-4">
                 <button
                   onClick={() => handleCreateOrUpdate(false)}
-                  className="px-8 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3 border border-emerald-500/30 backdrop-blur-md"
+                  className="px-8 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-[1.5rem] text-xs font-semibold tracking-tight transition-all active:scale-95 flex items-center gap-3 border border-emerald-500/30 backdrop-blur-md"
                 >
                   <Save size={18} />
                   {isCreationMode ? 'Create & Sync' : 'Apply & Sync'}
@@ -346,7 +418,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                 {!isCreationMode && (
                   <button
                     onClick={() => handleCreateOrUpdate(true)}
-                    className={`px-8 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all backdrop-blur-md active:scale-95 border ${
+                    className={`px-8 py-4 rounded-[1.5rem] text-xs font-semibold tracking-tight transition-all backdrop-blur-md active:scale-95 border ${
                       adminSelectedQuiz.isPublished 
                         ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 border-red-500/30' 
                         : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 hover:text-orange-400 border-orange-500/30'
@@ -358,7 +430,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               </div>
             </div>
           </div>
-          {formError && <p className="text-red-400 text-xs font-black uppercase tracking-widest">{formError}</p>}
+          {formError && <p className="text-red-400 text-xs font-semibold tracking-tight">{formError}</p>}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -384,7 +456,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-white">Course Pool</h3>
-                  <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">
+                  <p className="text-zinc-500 text-[10px] font-semibold tracking-tight mt-1">
                     {filteredPool.length} Available
                   </p>
                 </div>
@@ -407,7 +479,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                         >
                           <button 
                             onClick={() => { setPoolChapterFilter('all'); setShowPoolFilter(false); }}
-                            className={`w-full text-left px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${poolChapterFilter === 'all' ? 'bg-orange-500/10 text-orange-500' : 'text-gray-400 hover:bg-white/5'}`}
+                            className={`w-full text-left px-4 py-2 rounded-xl text-[10px] font-semibold tracking-tight ${poolChapterFilter === 'all' ? 'bg-orange-500/10 text-orange-500' : 'text-zinc-400 hover:bg-white/5'}`}
                           >
                             All Chapters
                           </button>
@@ -415,7 +487,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                             <button 
                               key={ch._id}
                               onClick={() => { setPoolChapterFilter(ch._id); setShowPoolFilter(false); }}
-                              className={`w-full text-left px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest mt-1 truncate ${poolChapterFilter === ch._id ? 'bg-orange-500/10 text-orange-500' : 'text-gray-400 hover:bg-white/5'}`}
+                              className={`w-full text-left px-4 py-2 rounded-xl text-[10px] font-semibold tracking-tight mt-1 truncate ${poolChapterFilter === ch._id ? 'bg-orange-500/10 text-orange-500' : 'text-zinc-400 hover:bg-white/5'}`}
                             >
                               {ch.title}
                             </button>
@@ -440,9 +512,9 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     >
                       <p className="text-xs font-medium text-white line-clamp-2 leading-relaxed">{q.questionText}</p>
                       <div className="flex items-center justify-between mt-3">
-                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{q.options.length} Options</span>
+                        <span className="text-[9px] font-semibold text-zinc-500 tracking-tight">{q.options.length} Options</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold text-amber-500/60 uppercase">Pool</span>
+                          <span className="text-[9px] font-semibold text-amber-500/60">Pool</span>
                         </div>
                       </div>
                     </div>
@@ -490,7 +562,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     className={`p-5 rounded-[1.5rem] border transition-all cursor-pointer flex items-center justify-between group ${previewQuestion?._id === qData._id ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-[10px] text-gray-500 font-black">
+                      <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-[10px] text-zinc-500 font-semibold">
                         {idx + 1}
                       </div>
                       <p className="text-xs font-semibold text-white line-clamp-1 max-w-[240px]">{qData.questionText}</p>
@@ -529,7 +601,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/10">
                       <Eye size={16} />
                     </div>
-                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Question Preview</h4>
+                    <h4 className="text-xs font-semibold text-zinc-500 tracking-tight">Question Preview</h4>
                   </div>
                   
                   <div className="flex items-center gap-3">
@@ -540,7 +612,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     >
                       <Edit size={16} />
                     </button>
-                    <span className="px-4 py-2 bg-orange-500/10 text-orange-500 text-[10px] font-black uppercase rounded-xl border border-orange-500/10 shadow-sm">
+                    <span className="px-4 py-2 bg-orange-500/10 text-orange-500 text-[10px] font-semibold rounded-xl border border-orange-500/10 shadow-sm">
                       {previewQuestion.numberOfCorrectAnswers} Correct
                     </span>
                   </div>
@@ -553,13 +625,13 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     {previewQuestion.codeSnippet && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between px-2">
-                          <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 font-semibold tracking-tight flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
                             {previewQuestion.programmingLanguage || 'Source Code'}
                           </span>
                           <button
                             onClick={() => setIsCodeFullscreen(true)}
-                            className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter"
+                            className="p-1.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-lg transition-all flex items-center gap-1.5 text-[9px] font-semibold tracking-tight"
                           >
                             <Maximize2 size={12} />
                             Expand
@@ -592,7 +664,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                         key={oIdx}
                         className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${option.isCorrect ? 'bg-emerald-500/5 border-emerald-500/40 text-emerald-400' : 'bg-white/[0.02] border-white/5 text-gray-400'}`}
                       >
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] ${option.isCorrect ? 'bg-emerald-500 text-white' : 'bg-white/5'}`}>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-semibold text-[10px] ${option.isCorrect ? 'bg-emerald-500 text-white' : 'bg-white/5'}`}>
                           {String.fromCharCode(65 + oIdx)}
                         </div>
                         <span className="text-sm font-semibold">{option.text}</span>
@@ -604,8 +676,8 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
 
                 {previewQuestion.explanation && (
                   <div className="mt-8 p-6 bg-white/[0.02] rounded-3xl border border-white/5">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Explanation</p>
-                    <p className="text-xs text-gray-400 leading-relaxed italic">{previewQuestion.explanation}</p>
+                    <p className="text-[10px] font-semibold text-zinc-500 tracking-tight mb-2">Explanation</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed italic">{previewQuestion.explanation}</p>
                   </div>
                 )}
               </div>
@@ -646,8 +718,8 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                     <Edit size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-widest">Global Edit</h3>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Updating Pool Question Content</p>
+                    <h3 className="text-xl font-semibold text-white tracking-tight">Global Edit</h3>
+                    <p className="text-[10px] text-zinc-500 font-semibold tracking-tight mt-1">Updating Pool Question Content</p>
                   </div>
                 </div>
                 <button
@@ -662,7 +734,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar-orange">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                   <div className="space-y-4">
-                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-2 italic">
+                    <label className="text-[10px] text-zinc-500 font-semibold tracking-tight flex items-center gap-2 italic">
                       <AlertCircle size={12} className="text-orange-500" />
                       Question Context
                     </label>
@@ -675,7 +747,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Source Implementation (Monaco)</label>
+                    <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Source Implementation (Monaco)</label>
                     <div className="border border-white/10 rounded-3xl overflow-hidden h-48 bg-black/40 shadow-inner group focus-within:border-orange-500/40 transition-all">
                       <Editor
                         height="100%"
@@ -700,8 +772,8 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
 
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Response Grid Configuration</label>
-                    <p className="text-[10px] text-orange-500/50 font-black uppercase italic">Check box to set correct answer</p>
+                    <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Response Grid Configuration</label>
+                    <p className="text-[10px] text-orange-500/50 font-semibold italic">Check box to set correct answer</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                     {editingQuestion.options.map((option, idx) => (
@@ -725,7 +797,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                             <div className={`w-6 h-6 rounded-lg border transition-all flex items-center justify-center ${option.isCorrect ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' : 'border-white/20 group-hover:border-white/40'}`}>
                               {option.isCorrect && <CheckCircle2 size={16} className="text-white" />}
                             </div>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${option.isCorrect ? 'text-emerald-500' : 'text-gray-500'}`}>
+                            <span className={`text-[10px] font-semibold tracking-tight ${option.isCorrect ? 'text-emerald-500' : 'text-zinc-500'}`}>
                               Choice {idx + 1}
                             </span>
                           </label>
@@ -747,7 +819,7 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Global Explanation</label>
+                  <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Global Explanation</label>
                   <textarea
                     value={editingQuestion.explanation || ''}
                     onChange={(e) => setEditingQuestion({ ...editingQuestion, explanation: e.target.value })}
@@ -761,14 +833,14 @@ export const QuestionAssignmentHub: React.FC<QuestionAssignmentHubProps> = ({
               <div className="p-8 bg-white/[0.02] border-t border-white/5 flex items-center justify-end gap-4 shrink-0">
                 <button
                   onClick={() => setEditingQuestion(null)}
-                  className="px-8 py-4 text-gray-500 hover:text-white text-xs font-black uppercase tracking-widest transition-all"
+                  className="px-8 py-4 text-zinc-500 hover:text-white text-xs font-semibold tracking-tight transition-all"
                 >
                   Discard Changes
                 </button>
                 <button
                   disabled={isSavingQuestion}
                   onClick={handleUpdateQuestion}
-                  className="px-10 py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-orange-500/20 flex items-center gap-3 active:scale-95"
+                  className="px-10 py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-semibold tracking-tight rounded-2xl transition-all shadow-xl shadow-orange-500/20 flex items-center gap-3 active:scale-95"
                 >
                   {isSavingQuestion ? (
                     <motion.div 

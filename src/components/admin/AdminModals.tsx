@@ -75,10 +75,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">New Course</h4>
+              <h4 className="text-sm font-semibold text-white tracking-tight">New Course</h4>
               <button
                 onClick={() => { setShowAddCourse(false); setFormError(''); }}
-                className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-1.5 bg-white/5 text-zinc-400 font-semibold rounded-lg hover:bg-white/10 transition-all text-xs"
               >
                 Close
               </button>
@@ -125,13 +125,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     updateToast(toastId, message, 'error', 3400);
                   }
                 }}
-                className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-all text-sm"
+                className="flex-1 py-3 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transition-all text-sm"
               >
                 Create Course
               </button>
               <button
                 onClick={() => { setShowAddCourse(false); setFormError(''); }}
-                className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="px-5 py-3 bg-white/5 text-zinc-400 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -158,10 +158,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">Edit Course</h4>
+              <h4 className="text-sm font-semibold text-white tracking-tight">Edit Course</h4>
               <button
                 onClick={() => { setEditingCourseData(null); setFormError(''); }}
-                className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-1.5 bg-white/5 text-zinc-400 font-semibold rounded-lg hover:bg-white/10 transition-all text-xs"
               >
                 Close
               </button>
@@ -209,13 +209,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     updateToast(toastId, message, 'error', 3400);
                   }
                 }}
-                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all text-sm"
+                className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all text-sm"
               >
                 Save Changes
               </button>
               <button
                 onClick={() => { setEditingCourseData(null); setFormError(''); }}
-                className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="px-5 py-3 bg-white/5 text-zinc-400 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -242,10 +242,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">Edit Quiz Details</h4>
+              <h4 className="text-sm font-semibold text-white tracking-tight">Edit Quiz Details</h4>
               <button
                 onClick={closeEditQuizModal}
-                className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-1.5 bg-white/5 text-zinc-400 font-semibold rounded-lg hover:bg-white/10 transition-all text-xs"
               >
                 Close
               </button>
@@ -253,7 +253,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] text-gray-500 uppercase font-bold">Quiz Title</label>
+                <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Quiz Title</label>
                 <input
                   type="text"
                   value={editingQuizData.title}
@@ -263,7 +263,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] text-gray-500 uppercase font-bold">Description</label>
+                <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Description</label>
                 <textarea
                   value={editingQuizData.description}
                   onChange={(e) => setEditingQuizData({ ...editingQuizData, description: e.target.value })}
@@ -272,7 +272,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] text-gray-500 uppercase font-bold">No. of Questions</label>
+                <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">No. of Questions</label>
                 <input
                   type="number"
                   min={1}
@@ -283,7 +283,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] text-gray-500 uppercase font-bold">Duration (mins)</label>
+                <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Duration (mins)</label>
                 <input
                   type="number"
                   min={1}
@@ -294,7 +294,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] text-gray-500 uppercase font-bold">Passing %</label>
+                <label className="text-[10px] text-zinc-500 font-semibold tracking-tight">Passing %</label>
                 <input
                   type="number"
                   min={0}
@@ -335,13 +335,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     updateToast(toastId, message, 'error', 4200);
                   }
                 }}
-                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all text-sm"
+                className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all text-sm"
               >
                 Save Changes
               </button>
               <button
                 onClick={closeEditQuizModal}
-                className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="px-5 py-3 bg-white/5 text-zinc-400 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -368,12 +368,12 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">
+              <h4 className="text-sm font-semibold text-white tracking-tight">
                 {adminSelectedChapter ? `New Sub-folder in ${adminSelectedChapter.title}` : 'New Root Chapter'}
               </h4>
               <button
                 onClick={() => setShowAddChapter(false)}
-                className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-1.5 bg-white/5 text-zinc-400 font-semibold rounded-lg hover:bg-white/10 transition-all text-xs"
               >
                 Close
               </button>
@@ -425,14 +425,14 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     updateToast(toastId, message, 'error', 3400);
                   }
                 }}
-                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all text-sm"
+                className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all text-sm"
               >
                 Create Folder
               </button>
 
               <button
                 onClick={() => setShowAddChapter(false)}
-                className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="px-5 py-3 bg-white/5 text-zinc-400 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -459,10 +459,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">Edit Chapter</h4>
+              <h4 className="text-sm font-semibold text-white tracking-tight">Edit Chapter</h4>
               <button
                 onClick={() => { setEditingChapterData(null); setFormError(''); }}
-                className="px-3 py-1.5 bg-white/5 text-gray-400 font-bold rounded-lg hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-1.5 bg-white/5 text-zinc-400 font-semibold rounded-lg hover:bg-white/10 transition-all text-xs"
               >
                 Close
               </button>
@@ -510,13 +510,13 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     updateToast(toastId, message, 'error', 3400);
                   }
                 }}
-                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all text-sm"
+                className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all text-sm"
               >
                 Save Changes
               </button>
               <button
                 onClick={() => { setEditingChapterData(null); setFormError(''); }}
-                className="px-5 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="px-5 py-3 bg-white/5 text-zinc-400 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
               >
                 Cancel
               </button>

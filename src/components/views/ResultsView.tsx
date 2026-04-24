@@ -83,12 +83,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       className="max-w-4xl mx-auto text-center space-y-12 py-12"
     >
       <div className="space-y-4">
-        <div className={`mx-auto w-fit px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border mb-4 ${
+        <div className={`mx-auto w-fit px-4 py-1.5 rounded-full text-[10px] font-semibold tracking-normal border mb-4 ${
           quizMode === 'training'
             ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
             : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
         }`}>
-          {quizMode === 'training' ? 'Training Session Complete' : 'Test Session Complete'}
+          {quizMode === 'training' ? 'Training session complete' : 'Test session complete'}
         </div>
         <h2 className="text-5xl font-black text-white tracking-tight leading-tight">Quiz Results</h2>
         <p className="text-gray-400 text-xl">Here's a detailed breakdown of your performance.</p>
@@ -96,15 +96,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl space-y-2">
-          <p className="text-gray-500 font-semibold uppercase tracking-widest text-xs">Accuracy</p>
+          <p className="text-gray-500 font-semibold tracking-normal text-[11px]">Accuracy</p>
           <p className="text-5xl font-bold text-orange-500">{accuracy}%</p>
         </div>
         <div className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl space-y-2">
-          <p className="text-gray-500 font-semibold uppercase tracking-widest text-xs">Score</p>
+          <p className="text-gray-500 font-semibold tracking-normal text-[11px]">Score</p>
           <p className="text-5xl font-bold text-emerald-500">{calculateScore()} / {questionsLen}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-white/5 p-8 rounded-3xl space-y-2">
-          <p className="text-gray-500 font-semibold uppercase tracking-widest text-xs">Time Taken</p>
+          <p className="text-gray-500 font-semibold tracking-normal text-[11px]">Time taken</p>
           <p className="text-5xl font-bold text-blue-500">{formatTime(quizDuration - timeLeft)}</p>
         </div>
       </div>
@@ -206,17 +206,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                       <p className="text-white font-medium line-clamp-1">{q.questionText}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {status === 'correct' && (
-                          <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-emerald-500">
+                          <span className="flex items-center gap-1 text-[10px] font-semibold tracking-normal text-emerald-500">
                             <CheckCircle2 size={12} /> Correct
                           </span>
                         )}
                         {status === 'incorrect' && (
-                          <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-red-500">
+                          <span className="flex items-center gap-1 text-[10px] font-semibold tracking-normal text-red-500">
                             <XCircle size={12} /> Incorrect
                           </span>
                         )}
                         {status === 'skipped' && (
-                          <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-orange-500">
+                          <span className="flex items-center gap-1 text-[10px] font-semibold tracking-normal text-orange-500">
                             <AlertCircle size={12} /> Skipped
                           </span>
                         )}
@@ -234,9 +234,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                       {q.codeSnippet && (
                         <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0d0d0d]">
                           <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
-                            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 tracking-normal">
                               <Code size={14} />
-                              Source Snippet
+                              Source snippet
                             </div>
                           </div>
                           <div className="p-2">

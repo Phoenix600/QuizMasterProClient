@@ -31,7 +31,8 @@ import {
   PlusCircle,
   AlertCircle,
   UserPlus,
-  Flag
+  Flag,
+  Clock
 } from 'lucide-react';
 import * as api from './services/api';
 import { HomeView } from './components/views/HomeView';
@@ -46,7 +47,7 @@ import { AuthProvider } from './features/auth/context/AuthContext.jsx';
 import { User, Course, Chapter, Quiz, Question, Option, QuizResult, LeaderboardEntry, QuizMode } from './types';
 
 type View = 'home' | 'selection' | 'quiz' | 'admin' | 'results' | 'login' | 'dashboard' | 'coding';
-type AdminTab = 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans' | 'problems' | 'contests';
+type AdminTab = 'hierarchy' | 'quizzes' | 'questions' | 'questionBank' | 'leaderboard' | 'logs' | 'bans' | 'problems' | 'contests' | 'batches' | 'users';
 type ToastType = 'success' | 'error' | 'loading';
 
 interface ToastMessage {
@@ -248,6 +249,20 @@ function AppContent() {
   }, [currentUser?._id, currentUser?.violationCount]);
 
   const [quizQuestionCounts, setQuizQuestionCounts] = useState<Record<string, number>>({});
+
+  const isTrialExpired = () => {
+    if (!currentUser || currentUser.role === 'admin' || currentUser.membershipType === 'premium') return false;
+    const daysSinceCreation = Math.floor((new Date().getTime() - new Date(currentUser.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceCreation >= (currentUser.trialDurationDays || 10);
+  };
+
+  // Redirect expired users to dashboard
+  useEffect(() => {
+    if (isTrialExpired() && !['dashboard', 'login', 'home'].includes(view)) {
+      setView('dashboard');
+      pushToast('Your account is locked. Please switch to premium to continue.', 'error', 5000);
+    }
+  }, [view, currentUser]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [userStats, setUserStats] = useState<any>(null);
   const [pendingProblemId, setPendingProblemId] = useState<string | null>(null);
@@ -327,6 +342,12 @@ function AppContent() {
       const user = JSON.parse(savedUser);
       setCurrentUser(user);
       setIsAdmin(user.role === 'admin');
+      
+      // Proactively refresh profile to get latest trial/membership info
+      api.getProfile().then(updatedUser => {
+        setCurrentUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }).catch(err => console.error("Failed to refresh profile:", err));
     } else {
       // If either is missing, clear both to ensure clean state
       localStorage.removeItem('user');
@@ -833,6 +854,11 @@ function AppContent() {
     }
   };
 
+  const handleProfileUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
@@ -929,9 +955,9 @@ function AppContent() {
           
           <nav className="flex items-center gap-2">
             <button 
-              disabled={view === 'quiz' && !isSubmitted}
+              disabled={(view === 'quiz' && !isSubmitted) || isTrialExpired()}
               onClick={() => setView('home')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'home' || view === 'selection' || view === 'quiz' || view === 'results' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'home' || view === 'selection' || view === 'quiz' || view === 'results' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400'} ${(view === 'quiz' && !isSubmitted) || isTrialExpired() ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <PlayCircle size={18} />
               <span className="hidden sm:inline">Quiz</span>
@@ -948,9 +974,9 @@ function AppContent() {
             )}
             {currentUser && (
                <button 
-                disabled={view === 'quiz' && !isSubmitted}
+                disabled={(view === 'quiz' && !isSubmitted) || isTrialExpired()}
                 onClick={() => setView('coding')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'coding' ? 'bg-orange-500 text-white' : 'hover:bg-white/5 text-gray-400'} ${view === 'quiz' && !isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${view === 'coding' ? 'bg-orange-500 text-white' : 'hover:bg-white/5 text-gray-400'} ${(view === 'quiz' && !isSubmitted) || isTrialExpired() ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Code size={18} />
                 <span className="hidden sm:inline">Coding</span>
@@ -967,6 +993,19 @@ function AppContent() {
                     <Settings size={18} />
                     <span className="hidden sm:inline">Admin</span>
                   </button>
+                )}
+                {currentUser?.membershipType === 'enquiry' && currentUser?.role === 'student' && (
+                  <div className={`flex items-center gap-2 px-4 py-2 border rounded-xl mr-2 ${((currentUser.trialDurationDays || 10) - Math.floor((new Date().getTime() - new Date(currentUser.createdAt).getTime()) / (1000 * 60 * 60 * 24))) > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                    <Clock size={14} />
+                    <span className="text-[10px] font-bold tracking-[0.1em] hidden sm:inline">
+                      {Math.max(0, (currentUser.trialDurationDays || 10) - Math.floor((new Date().getTime() - new Date(currentUser.createdAt).getTime()) / (1000 * 60 * 60 * 24))) > 0 
+                        ? `Trial: ${(currentUser.trialDurationDays || 10) - Math.floor((new Date().getTime() - new Date(currentUser.createdAt).getTime()) / (1000 * 60 * 60 * 24))} Days Left` 
+                        : 'Access Expired'}
+                    </span>
+                    <span className="sm:hidden text-[10px] font-bold">
+                      {Math.max(0, (currentUser.trialDurationDays || 10) - Math.floor((new Date().getTime() - new Date(currentUser.createdAt).getTime()) / (1000 * 60 * 60 * 24)))}d
+                    </span>
+                  </div>
                 )}
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
                   <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
@@ -1036,6 +1075,9 @@ function AppContent() {
             <DashboardView 
               stats={userStats} 
               userName={currentUser.name} 
+              user={currentUser}
+              onUpdateUser={handleProfileUpdate}
+              pushToast={pushToast}
               setView={setView} 
             />
           )}

@@ -15,3 +15,8 @@ export const googleLogin = async (idToken) => {
   const response = await apiClient.post('/auth/google', { idToken });
   return response.data;
 };
+
+export const getProfile = async () => {
+  const response = await apiClient.get('/auth/profile');
+  return response.data;
+};

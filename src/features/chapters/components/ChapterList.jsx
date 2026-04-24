@@ -33,7 +33,7 @@ const ChapterList = ({
                   <Layers size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-2 group-hover:text-orange-500 transition-colors">
+                  <h3 className="text-2xl font-bold text-white tracking-tight mb-2 group-hover:text-orange-500 transition-colors">
                     {chapter.title}
                   </h3>
                   <p className="text-gray-400 text-sm leading-relaxed">
@@ -73,11 +73,11 @@ const ChapterList = ({
                             <div>
                               <h4 className="text-lg font-bold text-white mb-2">{quiz.title}</h4>
                               <div className="flex items-center gap-4">
-                                <span className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                <span className="flex items-center gap-2 text-xs font-bold text-zinc-500 tracking-tight">
                                   <Clock size={14} />
                                   {quiz.timeLimit} mins
                                 </span>
-                                <span className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                <span className="flex items-center gap-2 text-xs font-bold text-zinc-500 tracking-tight">
                                   <Trophy size={14} />
                                   Pass: {quiz.passingScore}%
                                 </span>
@@ -94,7 +94,7 @@ const ChapterList = ({
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500 font-bold uppercase tracking-widest text-sm">
+                      <div className="text-center py-8 text-zinc-500 font-bold text-sm tracking-tight">
                         No quizzes available for this chapter
                       </div>
                     )}

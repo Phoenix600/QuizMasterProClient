@@ -16,7 +16,7 @@ const Header = ({ onNavigate, currentView }) => {
           <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
             <Trophy className="text-white" size={20} />
           </div>
-          <h1 className="text-xl font-black tracking-tighter text-white uppercase italic">
+          <h1 className="text-2xl font-black tracking-tighter text-white uppercase italic">
             Brain<span className="text-orange-500">Teaser</span>
           </h1>
         </div>
@@ -24,7 +24,7 @@ const Header = ({ onNavigate, currentView }) => {
         <nav className="hidden md:flex items-center gap-2">
           <button 
             onClick={() => onNavigate('home')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${currentView === 'home' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            className={`px-6 py-2 rounded-xl text-[15px] font-semibold transition-all ${currentView === 'home' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
           >
             Home
           </button>
@@ -50,7 +50,7 @@ const Header = ({ onNavigate, currentView }) => {
           {currentUser ? (
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-bold text-white">{currentUser.name}</span>
+                <span className="text-base font-semibold text-white">{currentUser.name}</span>
                 <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{currentUser.role}</span>
               </div>
               <button 

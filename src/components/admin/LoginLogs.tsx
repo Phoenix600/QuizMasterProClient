@@ -74,8 +74,8 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
               <Clock size={28} />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-white">Login Sessions</h3>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Real-time security auditing</p>
+              <h3 className="text-2xl font-semibold text-white tracking-tight">Login Sessions</h3>
+              <p className="text-xs text-zinc-500 font-semibold tracking-tight mt-0.5">Real-time security auditing</p>
             </div>
           </div>
 
@@ -100,7 +100,7 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
             </div>
             <button
               onClick={handleDeleteSelectedLogs}
-              className="px-6 py-4 bg-red-500/10 text-red-500 hover:bg-red-500 text-white rounded-2xl text-sm font-black transition-all flex items-center gap-2 border border-red-500/20"
+              className="px-6 py-4 bg-red-500/10 text-red-500 hover:bg-red-500 text-white rounded-2xl text-sm font-semibold transition-all flex items-center gap-2 border border-red-500/20"
             >
               <Trash2 size={18} />
               Clear Results
@@ -111,7 +111,7 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-separate border-spacing-y-3">
             <thead>
-              <tr className="text-gray-600 text-[11px] font-black uppercase tracking-widest px-5">
+              <tr className="text-zinc-500 text-[11px] font-semibold tracking-tight px-5">
                 <th className="px-6 py-3">Device</th>
                 <th className="px-6 py-3">User</th>
                 <th className="px-6 py-3 text-center">Login Method</th>
@@ -135,24 +135,24 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
                          log.deviceType?.includes('Phone') ? <Smartphone size={18} /> : <Laptop size={18} />}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[13px] font-black text-gray-200 group-hover:text-white transition-all">{log.deviceType || 'Desktop Device'}</span>
-                        <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{new Date(log.createdAt).toLocaleDateString()}</span>
+                        <span className="text-[13px] font-semibold text-zinc-200 group-hover:text-white transition-all">{log.deviceType || 'Desktop Device'}</span>
+                        <span className="text-[10px] text-zinc-600 font-semibold tracking-tight">{new Date(log.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
                     <div className="flex flex-col">
-                      <span className="text-[13px] font-black text-white">{log.userName}</span>
+                      <span className="text-[13px] font-semibold text-white">{log.userName}</span>
                       <span className="text-[11px] text-gray-500 font-medium">{log.userEmail}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02] text-center">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${log.loginType === 'Google' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-tight ${log.loginType === 'Google' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
                       {log.loginType || 'Email'}
                     </span>
                   </td>
                   <td className="px-6 py-5 bg-white/[0.015] border-t border-b border-white/[0.02]">
-                    <span className="px-3 py-1 bg-white/5 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/5">
+                    <span className="px-3 py-1 bg-white/5 text-zinc-400 rounded-lg text-[10px] font-semibold tracking-tight border border-white/5">
                       {log.deviceOS || 'Unknown OS'}
                     </span>
                   </td>
@@ -202,7 +202,7 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
           <div className="flex items-center justify-between mt-12 px-4 py-6 border-t border-white/[0.03]">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+              <p className="text-zinc-500 text-xs font-semibold tracking-tight">
                 Showing <span className="text-white">{logs.length}</span> Active Logs
               </p>
             </div>
@@ -214,7 +214,7 @@ export const LoginLogs: React.FC<LoginLogsProps> = ({ pushToast, openConfirm }) 
               >
                 <ChevronLeft size={18} />
               </button>
-              <div className="px-6 py-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
+              <div className="px-6 py-2 text-[11px] font-semibold text-zinc-500 tracking-tight">
                 Page <span className="text-orange-500">{logsPage}</span> <span className="mx-2 opacity-30">|</span> Total {Math.max(1, logsTotalPages)}
               </div>
               <button

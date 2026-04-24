@@ -109,7 +109,15 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
   // Local cache for coding problems to prevent loss during rapid switching
   const [codeCache, setCodeCache] = useState<Record<string, string>>({});
   const [codingSubmissions, setCodingSubmissions] = useState<Record<string, any>>({});
-  const [internalQuizIndex, setInternalQuizIndex] = useState(0);
+  const [activeSection, setActiveSection] = useState<'mcq' | 'coding'>('mcq');
+  const [mcqIndex, setMcqIndex] = useState(0);
+  const [codingIndex, setCodingIndex] = useState(0);
+  const [attemptedCount, setAttemptedCount] = useState(0);
+
+  useEffect(() => {
+    const count = Object.keys(answers).length;
+    setAttemptedCount(count);
+  }, [answers]);
 
   const handleCodeChange = (problemId: string, code: string) => {
     setCodeCache(prev => ({ ...prev, [problemId]: code }));
@@ -316,21 +324,20 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
     }
   };
 
-  const questions = React.useMemo(() => {
-    if (!contest) return [];
+  const { mcqs, coding } = React.useMemo(() => {
+    if (!contest) return { mcqs: [], coding: [] };
     
-    if (contest.quizId) {
-      return [
-        { type: 'quiz', quiz: contest.quizId, questions: contest.mcqQuestions },
-        ...(contest.codingProblems || []).map((p: any) => ({ ...p, type: 'coding' }))
-      ];
-    }
+    const mcqPool = [...(contest.mcqQuestions || [])].map(q => ({ ...q, type: 'mcq' }));
+    const codingPool = [...(contest.codingProblems || [])].map(p => ({ ...p, type: 'coding' }));
 
-    return [
-      ...(contest.mcqQuestions || []).map((q: any) => ({ ...q, type: 'mcq' })),
-      ...(contest.codingProblems || []).map((p: any) => ({ ...p, type: 'coding' }))
-    ];
+    return { mcqs: mcqPool, coding: codingPool };
   }, [contest]);
+
+  // Sync section if one is empty
+  useEffect(() => {
+    if (mcqs.length === 0 && coding.length > 0) setActiveSection('coding');
+    if (coding.length === 0 && mcqs.length > 0) setActiveSection('mcq');
+  }, [mcqs.length, coding.length]);
 
   if (loading || !contest) return (
      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0A0A0A] space-y-4">
@@ -339,7 +346,7 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
      </div>
   );
 
-  const currentQuestion = questions[currentIndex];
+  const currentQuestion = activeSection === 'mcq' ? mcqs[mcqIndex] : coding[codingIndex];
 
   return (
     <div className="h-screen w-screen bg-[#0A0A0A] flex flex-col overflow-hidden">
@@ -358,19 +365,58 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
           
           <div className="h-6 w-px bg-zinc-800" />
 
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-md no-scrollbar">
-            {questions.map((_, i) => (
-               <button 
-                 key={i}
-                 onClick={() => setCurrentIndex(i)}
-                 className={cn(
-                   "w-8 h-8 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center shrink-0",
-                   currentIndex === i ? "bg-orange-600 text-white shadow-lg" : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
-                 )}
-               >
-                 {i + 1}
-               </button>
-            ))}
+          <div className="flex items-center gap-8">
+            {/* MCQ Section Nav */}
+            {mcqs.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">MCQs</span>
+                <div className="flex items-center gap-1.5">
+                  {mcqs.map((_, i) => (
+                    <button 
+                      key={`mcq-nav-${i}`}
+                      onClick={() => {
+                        setActiveSection('mcq');
+                        setMcqIndex(i);
+                      }}
+                      className={cn(
+                        "w-7 h-7 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center shrink-0 border",
+                        activeSection === 'mcq' && mcqIndex === i 
+                          ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]" 
+                          : "bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-300 hover:border-zinc-700"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Coding Section Nav */}
+            {coding.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">Coding</span>
+                <div className="flex items-center gap-1.5">
+                  {coding.map((_, i) => (
+                    <button 
+                      key={`coding-nav-${i}`}
+                      onClick={() => {
+                        setActiveSection('coding');
+                        setCodingIndex(i);
+                      }}
+                      className={cn(
+                        "w-7 h-7 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center shrink-0 border",
+                        activeSection === 'coding' && codingIndex === i 
+                          ? "bg-orange-600 border-orange-500 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)]" 
+                          : "bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-300 hover:border-zinc-700"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -450,31 +496,137 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
 
       {/* Workspace Content */}
       <main className="flex-1 overflow-hidden">
-        {currentQuestion.type === 'quiz' ? (
-           <div className="h-full w-full overflow-y-auto bg-[#0A0A0A] p-8 custom-scrollbar">
-              <QuizPlayer 
-                quiz={currentQuestion.quiz}
-                questions={currentQuestion.questions}
-                currentQuestionIndex={internalQuizIndex}
-                setCurrentQuestionIndex={setInternalQuizIndex}
-                answers={answers}
-                handleAnswer={(optIndex) => {
-                   const q = currentQuestion.questions[internalQuizIndex];
-                   setAnswers({ ...answers, [q._id]: optIndex });
-                }}
-                timeLeft={99999} // Use contest timer instead
-                formatTime={() => ""} 
-                onSubmit={() => setCurrentIndex(1)} // Go to first coding problem
-              />
-           </div>
-        ) : currentQuestion.type === 'mcq' ? (
-           <div className="h-full w-full flex items-center justify-center p-8 bg-[#0A0A0A]">
-              <div className="max-w-4xl w-full">
-                 <McqQuestion 
-                   question={currentQuestion}
-                   selectedOptionId={answers[currentQuestion._id] || null}
-                   onSelect={(optId) => setAnswers({ ...answers, [currentQuestion._id]: optId })}
-                 />
+        {activeSection === 'mcq' ? (
+           <div className="h-full w-full bg-[#0A0A0A] overflow-y-auto custom-scrollbar p-8">
+              <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                 {/* Left: Overview & Question */}
+                 <div className="lg:col-span-9 space-y-8">
+                    {/* Stats Dashboard */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-[2rem] space-y-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total Questions</p>
+                          <p className="text-3xl font-black text-white">{mcqs.length}</p>
+                       </div>
+                       <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-[2rem] space-y-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Attempted</p>
+                          <p className="text-3xl font-black text-emerald-500">{attemptedCount}</p>
+                       </div>
+                       <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-[2rem] space-y-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Remaining</p>
+                          <p className="text-3xl font-black text-zinc-400">{mcqs.length - attemptedCount}</p>
+                       </div>
+                       <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-[2rem] space-y-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Status</p>
+                          <p className="text-3xl font-black text-emerald-500 animate-pulse">Active</p>
+                       </div>
+                    </div>
+
+                    {/* Question Card */}
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-[3rem] p-10 space-y-10 min-h-[600px] flex flex-col">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             <span className="px-4 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-[10px] font-black text-orange-500 uppercase tracking-widest">
+                                Section A
+                             </span>
+                             <span className="text-zinc-600 text-xs font-bold">/</span>
+                             <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Conceptual Round</span>
+                          </div>
+                          <div className="px-5 py-2 bg-zinc-800/50 rounded-2xl text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                             Question {mcqIndex + 1}
+                          </div>
+                       </div>
+
+                       <div className="flex-1">
+                          <McqQuestion 
+                            question={currentQuestion}
+                            selectedOptionId={answers[currentQuestion._id] || null}
+                            onSelect={(optId) => setAnswers({ ...answers, [currentQuestion._id]: optId })}
+                          />
+                       </div>
+                       
+                       <div className="pt-10 border-t border-zinc-800 flex justify-between">
+                          <button 
+                            onClick={() => setMcqIndex(Math.max(0, mcqIndex - 1))}
+                            disabled={mcqIndex === 0}
+                            className="flex items-center gap-2 px-8 py-4 bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-30 active:scale-95"
+                          >
+                            <ChevronLeft size={16} />
+                            Prev
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (mcqIndex < mcqs.length - 1) {
+                                setMcqIndex(mcqIndex + 1);
+                              } else if (coding.length > 0) {
+                                setActiveSection('coding');
+                                setCodingIndex(0);
+                              }
+                            }}
+                            className="flex items-center gap-2 px-10 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-orange-900/20 active:scale-95"
+                          >
+                            {mcqIndex < mcqs.length - 1 ? 'Next Question' : 'Proceed to Coding Round'}
+                            <ChevronRight size={16} />
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Right: Palette */}
+                 <div className="lg:col-span-3 space-y-6">
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-[2.5rem] p-8 space-y-6">
+                       <div className="space-y-1">
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest">Question Palette</h3>
+                          <p className="text-[10px] text-zinc-600 font-bold tracking-wider">Quick Jump Navigation</p>
+                       </div>
+
+                       <div className="grid grid-cols-4 gap-3">
+                          {mcqs.map((_, i) => {
+                             const isAnswered = !!answers[mcqs[i]._id];
+                             const isActive = mcqIndex === i;
+                             return (
+                                <button
+                                   key={`palette-${i}`}
+                                   onClick={() => setMcqIndex(i)}
+                                   className={cn(
+                                      "w-full aspect-square rounded-xl text-[11px] font-black transition-all border flex items-center justify-center",
+                                      isActive 
+                                         ? "bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-900/40 scale-110 z-10" 
+                                         : isAnswered
+                                            ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-500"
+                                            : "bg-zinc-800/50 border-zinc-700/50 text-zinc-500 hover:border-zinc-500"
+                                   )}
+                                >
+                                   {i + 1}
+                                </button>
+                             );
+                          })}
+                       </div>
+
+                       <div className="pt-6 border-t border-zinc-800 space-y-3">
+                          <div className="flex items-center gap-3">
+                             <div className="w-3 h-3 rounded-md bg-orange-600" />
+                             <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Current</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className="w-3 h-3 rounded-md bg-emerald-500/20 border border-emerald-500/30" />
+                             <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Attempted</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className="w-3 h-3 rounded-md bg-zinc-800/50 border border-zinc-700/50" />
+                             <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Not Visited</span>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="p-6 bg-orange-500/5 border border-orange-500/10 rounded-3xl">
+                        <div className="flex items-start gap-3">
+                           <AlertCircle className="text-orange-500 mt-0.5" size={16} />
+                           <p className="text-[10px] text-orange-500/80 font-bold leading-relaxed tracking-wide uppercase">
+                              Conceptual Mode: Ensure all questions are answered before proceeding to Section B.
+                           </p>
+                        </div>
+                    </div>
+                 </div>
               </div>
            </div>
         ) : (
@@ -518,9 +670,18 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
       {/* Footer Nav */}
       <footer className="h-14 border-t border-zinc-800 bg-zinc-900/50 flex items-center justify-between px-8 shrink-0">
         <button 
-          onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
-          disabled={currentIndex === 0}
-          className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-200 disabled:opacity-30 tracking-wider transition-all"
+          onClick={() => {
+            if (activeSection === 'coding' && codingIndex === 0 && mcqs.length > 0) {
+               setActiveSection('mcq');
+               setMcqIndex(mcqs.length - 1);
+            } else if (activeSection === 'mcq') {
+               setMcqIndex(Math.max(0, mcqIndex - 1));
+            } else {
+               setCodingIndex(Math.max(0, codingIndex - 1));
+            }
+          }}
+          disabled={activeSection === 'mcq' && mcqIndex === 0}
+          className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-200 disabled:opacity-30 tracking-wider transition-all uppercase"
         >
           <ChevronLeft size={16} />
           Previous Question
@@ -530,18 +691,27 @@ export const ContestWorkspace: React.FC<ContestWorkspaceProps> = ({ contestId, o
            <div className="flex items-center gap-2 px-3 py-1 bg-zinc-950 rounded-lg border border-zinc-800">
               <div className={cn(
                 "w-2 h-2 rounded-full",
-                currentQuestion.type === 'mcq' ? "bg-emerald-500" : "bg-orange-500"
+                activeSection === 'mcq' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-orange-500 shadow-[0_0_8px_rgba(234,88,12,0.5)]"
               )} />
-              <span className="text-[10px] font-semibold text-zinc-500 tracking-wider">
-                {currentQuestion.type === 'mcq' ? 'MCQ Choice' : 'Coding Challenge'}
+              <span className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">
+                {activeSection === 'mcq' ? 'Section A: Conceptual' : 'Section B: Coding Round'}
               </span>
            </div>
         </div>
-
+ 
         <button 
-          onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
-          disabled={currentIndex === questions.length - 1}
-          className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-200 disabled:opacity-30 tracking-wider transition-all"
+          onClick={() => {
+            if (activeSection === 'mcq' && mcqIndex === mcqs.length - 1 && coding.length > 0) {
+               setActiveSection('coding');
+               setCodingIndex(0);
+            } else if (activeSection === 'mcq') {
+               setMcqIndex(Math.min(mcqs.length - 1, mcqIndex + 1));
+            } else {
+               setCodingIndex(Math.min(coding.length - 1, codingIndex + 1));
+            }
+          }}
+          disabled={activeSection === 'coding' && codingIndex === coding.length - 1}
+          className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-200 disabled:opacity-30 tracking-wider transition-all uppercase"
         >
           Next Question
           <ChevronRight size={16} />
