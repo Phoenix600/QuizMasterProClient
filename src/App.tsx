@@ -110,6 +110,7 @@ export default function App() {
 }
 
 function AppContent() {
+  console.log('DEBUG: AppContent Rendered');
   const [view, setView] = useState<View>(() => {
     const savedView = localStorage.getItem('view');
     return (savedView as View) || 'home';
@@ -854,9 +855,21 @@ function AppContent() {
     }
   };
 
-  const handleProfileUpdate = (updatedUser: User) => {
-    setCurrentUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+  const handleProfileUpdate = async (updatedUser: User) => {
+    const tid = pushToast('Synchronizing profile...', 'loading', 0);
+    try {
+      // Persist to server
+      const response = await api.updateProfile(updatedUser);
+      
+      // Update local state and storage
+      setCurrentUser(response);
+      localStorage.setItem('user', JSON.stringify(response));
+      
+      updateToast(tid, 'Profile updated successfully', 'success', 2000);
+    } catch (err: any) {
+      console.error("Failed to update profile:", err);
+      updateToast(tid, err.response?.data?.message || 'Failed to synchronize profile', 'error', 4000);
+    }
   };
 
   const handleLogout = () => {
@@ -1007,11 +1020,23 @@ function AppContent() {
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-                  <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                    {currentUser.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-semibold text-white/90 hidden sm:inline">{currentUser.name}</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-white/5 rounded-xl">
+                  {currentUser.avatarUrl ? (
+                    <img 
+                      src={currentUser.avatarUrl} 
+                      alt={currentUser.name}
+                      className="w-7 h-7 rounded-full object-cover border border-white/10"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=f97316&color=fff`;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm font-bold text-white/90 hidden sm:inline tracking-tight">{currentUser.name}</span>
                 </div>
                 <button 
                   disabled={view === 'quiz' && !isSubmitted}
@@ -1216,29 +1241,31 @@ function AppContent() {
         </AnimatePresence>
       </main>
 
-      <div className="fixed top-6 right-6 z-[70] space-y-3 pointer-events-none">
+      <div className="fixed bottom-8 right-8 z-[1000] space-y-4 pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, x: 24, y: -8 }}
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              exit={{ opacity: 0, x: 24, y: -8 }}
-              className={`min-w-[260px] max-w-[340px] px-4 py-3 rounded-2xl border backdrop-blur-xl shadow-xl pointer-events-auto ${
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 50, scale: 0.95 }}
+              className={`min-w-[320px] px-6 py-5 rounded-[2rem] border backdrop-blur-2xl shadow-2xl pointer-events-auto flex items-center gap-4 transition-all duration-300 ${
                 toast.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-emerald-500/10'
                   : toast.type === 'error'
-                    ? 'bg-red-500/10 border-red-500/30 text-red-200'
-                    : 'bg-orange-500/10 border-orange-500/30 text-orange-200'
+                    ? 'bg-red-500/15 border-red-500/30 text-red-400 shadow-red-500/10'
+                    : 'bg-orange-500/15 border-orange-500/30 text-orange-400 shadow-orange-500/10'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="mt-0.5">
-                  {toast.type === 'success' && <CheckCircle2 size={18} />}
-                  {toast.type === 'error' && <XCircle size={18} />}
-                  {toast.type === 'loading' && <RotateCcw size={18} className="animate-spin" />}
-                </div>
-                <p className="text-sm font-medium leading-5">{toast.text}</p>
+              <div className="flex-shrink-0">
+                {toast.type === 'success' && <CheckCircle2 size={24} className="animate-in zoom-in duration-300" />}
+                {toast.type === 'error' && <XCircle size={24} className="animate-in zoom-in duration-300" />}
+                {toast.type === 'loading' && <RotateCcw size={24} className="animate-spin" />}
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold tracking-tight leading-none">{toast.text}</p>
+                {toast.type === 'loading' && <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Processing</p>}
+                {toast.type === 'success' && <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Saved to Cloud</p>}
               </div>
             </motion.div>
           ))}

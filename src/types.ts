@@ -3,6 +3,8 @@ export type QuizMode = 'training' | 'test';
 export interface User {
   _id: string;
   name: string;
+  username?: string;
+  profileUrl?: string;
   email: string;
   role: 'admin' | 'student';
   membershipType?: 'enquiry' | 'premium';
@@ -12,6 +14,45 @@ export interface User {
   banReason?: string;
   violationCount?: number;
   createdAt: string;
+  
+  // Profile fields
+  phone?: string;
+  dob?: string;
+  avatarUrl?: string;
+  bio?: string;
+  location?: {
+    city: string;
+    pinCode: string;
+    state: string;
+    country: string;
+  };
+  education?: {
+    collegeName: string;
+    branch: string;
+    graduationYear: string;
+    degree?: string;
+  };
+  skills?: {
+    languages: string[];
+    frameworks: string[];
+    databases: string[];
+    tools: string[];
+  };
+  socialLinks?: {
+    github: string;
+    linkedin: string;
+    twitter: string;
+    others: string;
+    resume: string;
+  };
+  codingProfiles?: {
+    leetcode: string;
+    hackerrank: string;
+    codeforces: string;
+    geeksforgeeks: string;
+  };
+  workExperience?: any[];
+  projects?: any[];
 }
 
 export interface Course {

@@ -17,7 +17,7 @@ import {
   Layers
 } from 'lucide-react';
 import { StreakCalendar } from './StreakCalendar';
-import { UserProfileForm } from '../profile/UserProfileForm';
+import ProfileView from '../../features/codegraph/components/ProfileView';
 
 interface DashboardStats {
   totalQuizzes: number;
@@ -133,7 +133,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, u
             Overview
           </button>
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              console.log('DEBUG: Switching to Profile tab');
+              setActiveTab('profile');
+            }}
             className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'profile' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-zinc-500 hover:text-zinc-300'
             }`}
@@ -348,8 +351,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, u
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            className="fixed inset-0 z-[100] bg-[#050505]"
           >
-            <UserProfileForm user={user} onUpdate={onUpdateUser} pushToast={pushToast} />
+            <ProfileView 
+              user={user} 
+              onSave={onUpdateUser} 
+              onBack={() => setActiveTab('overview')} 
+            />
           </motion.div>
         )}
       </AnimatePresence>

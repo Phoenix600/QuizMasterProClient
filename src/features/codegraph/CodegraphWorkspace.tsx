@@ -38,6 +38,7 @@ const CustomResizeHandle = ({ direction }: { direction: 'horizontal' | 'vertical
 );
 
 export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack: () => void, user?: UserProfile, initialProblemId?: string }) {
+  console.log('DEBUG: CodegraphWorkspace Rendered');
   const [isSidebarVisible, setIsSidebarVisible] = React.useState(true);
   const [currentView, setCurrentView] = React.useState<'main' | 'profile' | 'profile-dashboard' | 'admin'>('main');
   const [adminTab, setAdminTab] = React.useState<'problems' | 'contests'>('problems');

@@ -21,9 +21,11 @@ export interface WorkExperience {
 
 export interface UserProfile {
   name: string;
-  username: string;
+  username?: string;
+  profileUrl?: string;
   email: string;
   phone?: string;
+  dob?: string;
   location: {
     city: string;
     pinCode: string;
@@ -62,7 +64,7 @@ export interface UserProfile {
   };
   workExperience: WorkExperience[];
   projects: Project[];
-  streak: number;
+  streak?: number;
   batchId?: string | { name: string };
 }
 

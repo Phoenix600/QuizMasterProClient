@@ -157,22 +157,22 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
         { label: "Full Name", value: user.name },
         { label: "Username", value: user.username },
         { label: "Email", value: user.email },
-        { label: "Location", value: user.location },
+        { label: "Location", value: `${user.location.city}, ${user.location.state}, ${user.location.country}` },
       ]
     },
     {
       title: "Skills & Expertise",
       items: [
-        { label: "Languages", value: user.skills.languages },
-        { label: "Frameworks", value: user.skills.frameworks },
-        { label: "Databases", value: user.skills.databases },
-        { label: "Tools", value: user.skills.tools },
+        { label: "Languages", value: user.skills.languages.join(', ') },
+        { label: "Frameworks", value: user.skills.frameworks.join(', ') },
+        { label: "Databases", value: user.skills.databases.join(', ') },
+        { label: "Tools", value: user.skills.tools.join(', ') },
       ]
     },
     {
       title: "Education & Experience",
       items: [
-        { label: "University", value: user.education.university },
+        { label: "University", value: user.education.collegeName },
         { label: "Degree", value: user.education.degree },
         { label: "Current Role", value: user.education.currentRole },
       ]
@@ -180,9 +180,9 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
     {
       title: "Social Presence",
       items: [
-        { label: "GitHub", value: user.social.github },
-        { label: "LinkedIn", value: user.social.linkedin },
-        { label: "Twitter", value: user.social.twitter },
+        { label: "GitHub", value: user.socialLinks.github },
+        { label: "LinkedIn", value: user.socialLinks.linkedin },
+        { label: "Twitter", value: user.socialLinks.twitter },
       ]
     }
   ];
@@ -252,7 +252,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
                 </div>
               </div>
               <div className="text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
-                {project.description}
+                {project.highlights}
               </div>
             </div>
           ))}
