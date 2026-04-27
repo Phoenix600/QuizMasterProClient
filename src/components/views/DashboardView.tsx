@@ -33,12 +33,13 @@ interface DashboardViewProps {
   stats: DashboardStats | null;
   userName: string;
   user: any;
+  isFirstLoginEver?: boolean;
   onUpdateUser: (updated: any) => void;
   pushToast: any;
   setView: (view: any) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, user, onUpdateUser, pushToast, setView }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, user, isFirstLoginEver, onUpdateUser, pushToast, setView }) => {
   const [activeTab, setActiveTab] = React.useState<'overview' | 'profile'>('overview');
 
   if (!stats) {
@@ -97,7 +98,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, userName, u
         <div>
           <h2 className="text-5xl font-bold text-white tracking-tight">
             {activeTab === 'overview' ? (
-              <>Welcome back, <span className="text-orange-500">{userName}</span>!</>
+              <>
+                {isFirstLoginEver ? "Welcome" : "Welcome back"}, <span className="text-orange-500">{userName}</span>!
+              </>
             ) : (
               <>Your <span className="text-orange-500">Profile</span> Settings</>
             )}

@@ -157,32 +157,33 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
         { label: "Full Name", value: user.name },
         { label: "Username", value: user.username },
         { label: "Email", value: user.email },
-        { label: "Location", value: `${user.location.city}, ${user.location.state}, ${user.location.country}` },
+        { label: "Profile URL", value: user.profileUrl || 'Not Specified' },
+        { label: "Location", value: user.location ? `${user.location.city}, ${user.location.state}, ${user.location.country}` : 'Not Specified' },
       ]
     },
     {
       title: "Skills & Expertise",
       items: [
-        { label: "Languages", value: user.skills.languages.join(', ') },
-        { label: "Frameworks", value: user.skills.frameworks.join(', ') },
-        { label: "Databases", value: user.skills.databases.join(', ') },
-        { label: "Tools", value: user.skills.tools.join(', ') },
+        { label: "Languages", value: user.skills?.languages?.join(', ') || 'Not Specified' },
+        { label: "Frameworks", value: user.skills?.frameworks?.join(', ') || 'Not Specified' },
+        { label: "Databases", value: user.skills?.databases?.join(', ') || 'Not Specified' },
+        { label: "Tools", value: user.skills?.tools?.join(', ') || 'Not Specified' },
       ]
     },
     {
       title: "Education & Experience",
       items: [
-        { label: "University", value: user.education.collegeName },
-        { label: "Degree", value: user.education.degree },
-        { label: "Current Role", value: user.education.currentRole },
+        { label: "University", value: user.education?.collegeName || 'Not Specified' },
+        { label: "Degree", value: user.education?.degree || 'Not Specified' },
+        { label: "Current Role", value: user.education?.currentRole || 'Not Specified' },
       ]
     },
     {
       title: "Social Presence",
       items: [
-        { label: "GitHub", value: user.socialLinks.github },
-        { label: "LinkedIn", value: user.socialLinks.linkedin },
-        { label: "Twitter", value: user.socialLinks.twitter },
+        { label: "GitHub", value: user.socialLinks?.github || 'Not Specified' },
+        { label: "LinkedIn", value: user.socialLinks?.linkedin || 'Not Specified' },
+        { label: "Twitter", value: user.socialLinks?.twitter || 'Not Specified' },
       ]
     }
   ];
@@ -207,7 +208,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
       <div className="md:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-zinc-200 border-b border-zinc-800/50 pb-2">About Me</h3>
         <p className="text-sm text-zinc-400 leading-relaxed">
-          {user.bio}
+          {user.bio || 'No bio provided.'}
         </p>
       </div>
 
@@ -215,7 +216,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
       <div className="md:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-6">
         <h3 className="text-sm font-bold text-zinc-200 border-b border-zinc-800/50 pb-2">Work Experience</h3>
         <div className="grid grid-cols-1 gap-6">
-          {user.workExperience.map((exp) => (
+          {(user.workExperience || []).map((exp) => (
             <div key={exp.id} className="space-y-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-orange-500/30 transition-all">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="space-y-1">
@@ -232,6 +233,9 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
               </div>
             </div>
           ))}
+          {(!user.workExperience || user.workExperience.length === 0) && (
+             <p className="text-xs text-zinc-600 font-bold text-center py-4 tracking-widest uppercase">No experience added yet</p>
+          )}
         </div>
       </div>
 
@@ -239,7 +243,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
       <div className="md:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-6">
         <h3 className="text-sm font-bold text-zinc-200 border-b border-zinc-800/50 pb-2">Projects</h3>
         <div className="grid grid-cols-1 gap-6">
-          {user.projects.map((project) => (
+          {(user.projects || []).map((project) => (
             <div key={project.id} className="space-y-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg group hover:border-orange-500/30 transition-all">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="space-y-1">
@@ -256,6 +260,9 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
               </div>
             </div>
           ))}
+          {(!user.projects || user.projects.length === 0) && (
+             <p className="text-xs text-zinc-600 font-bold text-center py-4 tracking-widest uppercase">No projects added yet</p>
+          )}
         </div>
       </div>
     </div>
@@ -309,7 +316,7 @@ export default function ProfileDashboard({ user, onBack, onEdit }: ProfileDashbo
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-400">
                 <Flame size={14} className="text-orange-500" />
-                {user.streak} Day Streak
+                {user.streak || 0} Day Streak
               </div>
             </div>
           </div>

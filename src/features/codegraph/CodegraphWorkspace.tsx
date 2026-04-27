@@ -37,7 +37,7 @@ const CustomResizeHandle = ({ direction }: { direction: 'horizontal' | 'vertical
   </Separator>
 );
 
-export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack: () => void, user?: UserProfile, initialProblemId?: string }) {
+export function CodegraphWorkspace({ onBack, user, initialProblemId, onProfileUpdate }: { onBack: () => void, user?: UserProfile, initialProblemId?: string, onProfileUpdate?: (user: UserProfile) => void }) {
   console.log('DEBUG: CodegraphWorkspace Rendered');
   const [isSidebarVisible, setIsSidebarVisible] = React.useState(true);
   const [currentView, setCurrentView] = React.useState<'main' | 'profile' | 'profile-dashboard' | 'admin'>('main');
@@ -328,6 +328,7 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId }: { onBack:
             try {
               const savedUser = await api.updateProfile(updatedUser);
               setUserProfile(savedUser);
+              if (onProfileUpdate) onProfileUpdate(savedUser);
               toast.success('Profile updated successfully!');
               setCurrentView('profile-dashboard');
             } catch (err) {

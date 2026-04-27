@@ -963,8 +963,8 @@ export default function ContentArea({
               {!selectedSubmission ? (
                 <>
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-black text-zinc-100 uppercase tracking-tight">Past Submissions</h2>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                    <h2 className="text-xl font-bold text-zinc-100 tracking-tight">Past Submissions</h2>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                       <CheckCircle2 size={12} />
                       {submissions.filter(s => s.status === 'ACCEPTED').length} Accepted
                     </div>
@@ -989,10 +989,10 @@ export default function ContentArea({
                           </div>
                           <div>
                             <p className={cn(
-                              "text-sm font-black uppercase tracking-tight",
+                              "text-sm font-bold tracking-tight",
                               sub.status === 'ACCEPTED' ? "text-emerald-500" : "text-red-500"
                             )}>
-                              {sub.status.replace('_', ' ')}
+                              {sub.status.charAt(0).toUpperCase() + sub.status.slice(1).toLowerCase().replace('_', ' ')}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-bold">{sub.language}</span>
@@ -1007,16 +1007,16 @@ export default function ContentArea({
                           <div className="text-right">
                             <div className="flex items-center justify-end gap-1.5 text-zinc-400">
                               <Clock size={12} className="text-zinc-600" />
-                              <span className="text-xs font-black">{sub.executionTimeMs}ms</span>
+                              <span className="text-xs font-bold">{sub.executionTimeMs}ms</span>
                             </div>
-                            <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Runtime</p>
+                            <p className="text-[9px] text-zinc-600 font-bold mt-0.5">Runtime</p>
                           </div>
                           <div className="text-right">
                             <div className="flex items-center justify-end gap-1.5 text-zinc-400">
                               <Database size={12} className="text-zinc-600" />
-                              <span className="text-xs font-black">{(sub.memoryKb / 1024).toFixed(1)}MB</span>
+                              <span className="text-xs font-bold">{(sub.memoryKb / 1024).toFixed(1)}MB</span>
                             </div>
-                            <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Memory</p>
+                            <p className="text-[9px] text-zinc-600 font-bold mt-0.5">Memory</p>
                           </div>
                           <button
                             onClick={(e) => handleDeleteSubmission(e, sub.id)}

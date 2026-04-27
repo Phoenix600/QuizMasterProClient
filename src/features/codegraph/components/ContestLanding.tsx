@@ -89,7 +89,7 @@ export const ContestLanding: React.FC<ContestLandingProps> = ({ contestId, onSta
             <ShieldCheck size={12} />
             Secure Competitive Environment
           </div>
-          <h1 className="text-5xl font-bold text-white tracking-tight leading-none underline decoration-orange-600 decoration-8 underline-offset-8">
+          <h1 className="text-5xl font-bold text-white tracking-tight leading-none">
             {contest.title}
           </h1>
           <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-semibold leading-relaxed">

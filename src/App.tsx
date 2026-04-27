@@ -116,6 +116,7 @@ function AppContent() {
     return (savedView as View) || 'home';
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isFirstLoginEver, setIsFirstLoginEver] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -810,7 +811,19 @@ function AppContent() {
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('token', token);
       
-      setCurrentUser(user);
+      // Fetch full profile to ensure we have all custom fields (avatar, etc.)
+      try {
+        const fullProfile = await api.getProfile();
+        setCurrentUser(fullProfile);
+        localStorage.setItem('user', JSON.stringify(fullProfile));
+      } catch (profileErr) {
+        console.error("Failed to fetch full profile after login:", profileErr);
+        setCurrentUser(user);
+      }
+      
+      const isFirstTime = new Date().getTime() - new Date(user.createdAt).getTime() < 1000 * 60 * 2; // 2 minute window
+      setIsFirstLoginEver(isFirstTime);
+      
       setIsAdmin(user.role === 'admin');
       await fetchInitialData();
       await fetchUserStats();
@@ -839,7 +852,19 @@ function AppContent() {
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('token', token);
       
-      setCurrentUser(user);
+      // Fetch full profile to ensure we have all custom fields (avatar, etc.)
+      try {
+        const fullProfile = await api.getProfile();
+        setCurrentUser(fullProfile);
+        localStorage.setItem('user', JSON.stringify(fullProfile));
+      } catch (profileErr) {
+        console.error("Failed to fetch full profile after Google login:", profileErr);
+        setCurrentUser(user);
+      }
+      
+      const isFirstTime = new Date().getTime() - new Date(user.createdAt).getTime() < 1000 * 60 * 2; // 2 minute window
+      setIsFirstLoginEver(isFirstTime);
+      
       setIsAdmin(user.role === 'admin');
       await fetchInitialData();
       await fetchUserStats();
@@ -947,6 +972,10 @@ function AppContent() {
           }} 
           user={currentUser} 
           initialProblemId={pendingProblemId || undefined}
+          onProfileUpdate={(updated) => {
+            setCurrentUser(updated as any);
+            localStorage.setItem('user', JSON.stringify(updated));
+          }}
         />
       </GoogleOAuthProvider>
     );
@@ -1101,6 +1130,7 @@ function AppContent() {
               stats={userStats} 
               userName={currentUser.name} 
               user={currentUser}
+              isFirstLoginEver={isFirstLoginEver}
               onUpdateUser={handleProfileUpdate}
               pushToast={pushToast}
               setView={setView} 

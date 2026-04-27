@@ -26,44 +26,44 @@ export interface UserProfile {
   email: string;
   phone?: string;
   dob?: string;
-  location: {
-    city: string;
-    pinCode: string;
-    state: string;
-    country: string;
-  };
-  avatarUrl: string;
+  avatarUrl?: string;
   profilePicture?: string;
-  bio: string;
-  skills: {
-    languages: string[];
-    frameworks: string[];
-    databases: string[];
-    tools: string[];
+  bio?: string;
+  location?: {
+    city?: string;
+    pinCode?: string;
+    state?: string;
+    country?: string;
   };
-  education: {
-    collegeName: string;
-    branch: string;
-    graduationYear: string;
+  skills?: {
+    languages?: string[];
+    frameworks?: string[];
+    databases?: string[];
+    tools?: string[];
+  };
+  education?: {
+    collegeName?: string;
+    branch?: string;
+    graduationYear?: string;
     degree?: string;
     currentRole?: string;
   };
-  socialLinks: {
-    github: string;
-    linkedin: string;
-    twitter: string;
-    others: string;
-    resume: string;
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+    others?: string;
+    resume?: string;
   };
-  codingProfiles: {
-    leetcode: string;
-    hackerrank: string;
-    codeforces: string;
-    geeksforgeeks: string;
-    others: string;
+  codingProfiles?: {
+    leetcode?: string;
+    hackerrank?: string;
+    codeforces?: string;
+    geeksforgeeks?: string;
+    others?: string;
   };
-  workExperience: WorkExperience[];
-  projects: Project[];
+  workExperience?: WorkExperience[];
+  projects?: Project[];
   streak?: number;
   batchId?: string | { name: string };
 }

@@ -579,6 +579,7 @@ export default function ProfileView({ user, onSave, onBack }: ProfileViewProps) 
                         <PreviewItem label="Full Name" value={profileData.name} />
                         <PreviewItem label="Username" value={profileData.username} />
                         <PreviewItem label="Email" value={profileData.email} />
+                        <PreviewItem label="Profile Link" value={profileData.profileUrl} />
                         <PreviewItem label="Location" value={profileData.location?.city ? `${profileData.location.city}, ${profileData.location.country || 'India'}` : undefined} />
                       </div>
                     </PreviewCard>
