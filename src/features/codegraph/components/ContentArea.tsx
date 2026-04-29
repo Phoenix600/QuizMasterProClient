@@ -498,7 +498,7 @@ export default function ContentArea({
                         </div>
                         <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-base" : "text-sm")}>
                           <span className="font-semibold text-zinc-500 text-[11px] tracking-wide">Output:</span>
-                          <span className="text-zinc-100 break-all whitespace-pre-wrap">{testCase.expectedOutput?.toString().trim().replace(/ +/g, '\n')}</span>
+                          <span className="text-zinc-100 break-all whitespace-normal">{testCase.expectedOutput?.toString().trim().replace(/\s+/g, ' ')}</span>
                         </div>
                         {testCase.explanation && (
                           <div className={cn("flex flex-col gap-1 transition-all pt-4 border-t border-zinc-800/50", isStudyMode ? "text-base" : "text-sm")}>
@@ -748,14 +748,14 @@ export default function ContentArea({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Input Data</label>
-                                    <pre className="flex-1 bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl text-zinc-200 font-mono text-xs ring-1 ring-white/5 shadow-inner min-h-[3.5rem] whitespace-pre-wrap overflow-y-auto custom-scrollbar">
-                                      {tc.input}
+                                    <pre className="flex-1 bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl text-zinc-200 font-mono text-xs ring-1 ring-white/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar">
+                                      {tc.input?.toString().trim().replace(/\s+/g, ' ')}
                                     </pre>
                                   </div>
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Expected Output</label>
-                                    <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-pre-wrap overflow-y-auto custom-scrollbar">
-                                      {tc.expectedOutput?.toString().trim().replace(/ +/g, '\n')}
+                                    <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar">
+                                      {tc.expectedOutput?.toString().trim().replace(/\s+/g, ' ')}
                                     </pre>
                                   </div>
                                 </div>
