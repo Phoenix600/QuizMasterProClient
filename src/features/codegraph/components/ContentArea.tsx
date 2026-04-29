@@ -752,13 +752,15 @@ export default function ContentArea({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Input Data</label>
-                                    <pre className="flex-1 bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl text-zinc-200 font-mono text-xs ring-1 ring-white/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar">
-                                      {tc.input?.toString().trim().replace(/\s+/g, ' ')}
+                                    <pre className="flex-1 bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl text-zinc-200 font-mono text-xs ring-1 ring-white/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar flex flex-wrap gap-x-1">
+                                      {tc.input?.toString().trim().split(/\s+/).map((word, i) => (
+                                        <span key={i}>{word}</span>
+                                      ))}
                                     </pre>
                                   </div>
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Expected Output</label>
-                                    <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar">
+                                    <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar flex flex-wrap gap-x-1">
                                       {tc.expectedOutput?.toString().trim().split(/\s+/).map((word, i) => (
                                         <span key={i}>{word}</span>
                                       ))}
