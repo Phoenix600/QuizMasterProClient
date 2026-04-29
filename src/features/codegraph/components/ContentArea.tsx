@@ -498,7 +498,11 @@ export default function ContentArea({
                         </div>
                         <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-base" : "text-sm")}>
                           <span className="font-semibold text-zinc-500 text-[11px] tracking-wide">Output:</span>
-                          <span className="text-zinc-100 break-all whitespace-normal">{testCase.expectedOutput?.toString().trim().replace(/\s+/g, ' ')}</span>
+                          <span className="text-zinc-100 break-all whitespace-normal flex flex-wrap gap-x-1">
+                            {testCase.expectedOutput?.toString().trim().split(/\s+/).map((word, i) => (
+                              <span key={i}>{word}</span>
+                            ))}
+                          </span>
                         </div>
                         {testCase.explanation && (
                           <div className={cn("flex flex-col gap-1 transition-all pt-4 border-t border-zinc-800/50", isStudyMode ? "text-base" : "text-sm")}>
@@ -755,7 +759,9 @@ export default function ContentArea({
                                   <div className="flex flex-col space-y-2">
                                     <label className="text-[10px] font-semibold text-zinc-500 px-1 tracking-wide uppercase">Expected Output</label>
                                     <pre className="flex-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-orange-400 font-mono text-xs ring-1 ring-orange-500/5 shadow-inner min-h-[3.5rem] whitespace-normal overflow-y-auto custom-scrollbar">
-                                      {tc.expectedOutput?.toString().trim().replace(/\s+/g, ' ')}
+                                      {tc.expectedOutput?.toString().trim().split(/\s+/).map((word, i) => (
+                                        <span key={i}>{word}</span>
+                                      ))}
                                     </pre>
                                   </div>
                                 </div>
