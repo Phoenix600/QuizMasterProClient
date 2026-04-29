@@ -835,18 +835,14 @@ const EditorArea = ({
                             Your Output
                           </div>
                           <div className={cn(
-                            "bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[12px] font-mono min-h-[46px] group-hover:border-zinc-700 transition-colors whitespace-normal",
+                            "bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[12px] font-mono min-h-[46px] group-hover:border-zinc-700 transition-colors whitespace-pre-wrap",
                             runResult?.results?.[activeTestCase] 
                               ? runResult.results[activeTestCase].passed 
                                 ? "text-emerald-400" 
                                 : "text-red-400"
                               : "text-zinc-400"
                           )}>
-                            <div className="flex flex-wrap gap-x-1.5">
-                              {((runResult?.results?.[activeTestCase]?.actualOutput || (activeTestCase === 0 && runResult?.actualOutput))?.toString().trim().split(/\s+/).map((word, i) => (
-                                <span key={i}>{word}</span>
-                              ))) || "—"}
-                            </div>
+                            {((runResult?.results?.[activeTestCase]?.actualOutput || (activeTestCase === 0 && runResult?.actualOutput))?.toString().trim()) || "—"}
                           </div>
                         </div>
 
@@ -855,12 +851,8 @@ const EditorArea = ({
                           <div className="absolute -top-2 left-2.5 px-2 bg-[#141414] text-[8px] font-bold text-zinc-600 uppercase tracking-widest z-10">
                             Expected Output
                           </div>
-                          <div className="bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[12px] font-mono text-zinc-400 min-h-[46px] group-hover:border-zinc-700 transition-colors whitespace-normal">
-                            <div className="flex flex-wrap gap-x-1.5">
-                              {(runResult?.results?.[activeTestCase]?.expectedOutput || testCases[activeTestCase]?.expectedOutput)?.toString().trim().split(/\s+/).map((word, i) => (
-                                <span key={i}>{word}</span>
-                              )) || "—"}
-                            </div>
+                          <div className="bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[12px] font-mono text-zinc-400 min-h-[46px] group-hover:border-zinc-700 transition-colors whitespace-pre-wrap">
+                            {(runResult?.results?.[activeTestCase]?.expectedOutput || testCases[activeTestCase]?.expectedOutput)?.toString().trim() || "—"}
                           </div>
                         </div>
                       </div>
