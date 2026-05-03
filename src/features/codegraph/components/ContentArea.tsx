@@ -134,7 +134,7 @@ export default function ContentArea({
     h2: ({ children }: any) => <h2 className={cn("font-bold text-zinc-100 mt-6 mb-4 tracking-tight", isStudyMode ? "text-2xl" : "text-xl")}>{children}</h2>,
     h3: ({ children }: any) => <h3 className={cn("font-bold text-orange-500/90 mt-5 mb-2", isStudyMode ? "text-xl" : "text-lg")}>{children}</h3>,
     h4: ({ children }: any) => <h4 className={cn("font-bold text-zinc-200 mt-4 mb-2", isStudyMode ? "text-lg" : "text-md")}>{children}</h4>,
-    p: ({ children }: any) => <p className={cn("mb-4 text-zinc-200 leading-relaxed", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</p>,
+    p: ({ children }: any) => <p className={cn("mb-4 text-zinc-200 leading-relaxed whitespace-pre-wrap", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</p>,
     ul: ({ children }: any) => <ul className={cn("list-disc pl-5 mb-6 space-y-2 text-zinc-200", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</ul>,
     ol: ({ children }: any) => <ol className={cn("list-decimal pl-5 mb-6 space-y-2 text-zinc-200", isStudyMode ? "text-[18px]" : "text-[16px]")}>{children}</ol>,
     strong: ({ children }: any) => <strong className="font-bold text-zinc-100">{children}</strong>,
@@ -494,7 +494,7 @@ export default function ContentArea({
                       <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-4 font-mono shadow-inner">
                         <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-base" : "text-sm")}>
                           <span className="font-semibold text-zinc-500 text-[11px] tracking-wide">Input:</span>
-                          <span className="text-zinc-100 break-all">{testCase.input}</span>
+                          <span className="text-zinc-100 break-all whitespace-pre-wrap">{testCase.input?.toString().trim().replace(/\\n/g, '\n')}</span>
                         </div>
                         <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-base" : "text-sm")}>
                           <span className="font-semibold text-zinc-500 text-[11px] tracking-wide">Output:</span>
@@ -502,7 +502,7 @@ export default function ContentArea({
                         </div>
                         {testCase.explanation && (
                           <div className={cn("flex flex-col gap-1 transition-all pt-4 border-t border-zinc-800/50", isStudyMode ? "text-base" : "text-sm")}>
-                            <span className="font-semibold text-zinc-500 text-[11px] tracking-wide font-sans">Explanation:</span>
+                            <span className="font-semibold text-zinc-500 text-[11px] tracking-wide font-sans block mb-1">Explanation:</span>
                             <div className="text-zinc-200 font-sans leading-relaxed">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
@@ -517,7 +517,7 @@ export default function ContentArea({
                                   },
                                 }}
                               >
-                                {testCase.explanation}
+                                {testCase.explanation?.toString().replace(/\\n/g, '\n') || ''}
                               </ReactMarkdown>
                             </div>
                           </div>
@@ -574,26 +574,26 @@ export default function ContentArea({
               {(() => {
                 const solution = (problem?.editorialSolutions || []).find((s: any) => s.type === activeEditorialType) ||
                   (problem?.editorialSolutions || [])[0];
+                const hasVideo = !!(solution?.videoUrl || problem?.editorialVideoUrl);
 
                 if (!solution && !problem?.editorialVideoUrl) {
                   return (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="h-80 flex flex-col items-center justify-center border border-zinc-800/50 rounded-3xl bg-gradient-to-b from-zinc-900/20 to-black/40 text-zinc-500 shadow-2xl relative overflow-hidden group"
+                      className="h-80 flex flex-col items-center justify-center text-zinc-500 relative overflow-hidden group"
                     >
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.05)_0%,transparent_70%)]" />
                       <div className="relative z-10 flex flex-col items-center text-center px-8">
                         <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-6 border border-orange-500/20 group-hover:scale-110 transition-transform duration-500">
                           <Sparkles size={32} className="text-orange-500" />
                         </div>
-                        <h3 className="text-lg font-bold text-zinc-200 mb-2 tracking-tight">Wisdom in the Works</h3>
-                        <p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
-                          Our master architects are currently crafting a deep-dive editorial for this challenge. Check back soon for the optimized path!
+                        <h3 className="text-xl font-bold text-zinc-100 mb-3 tracking-tight">Editorial Coming Soon</h3>
+                        <p className="text-sm text-zinc-400 max-w-sm leading-relaxed mb-8">
+                          Our curriculum experts are currently documenting the optimal approach for this challenge. Please check back later for a comprehensive deep-dive!
                         </p>
-                        <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full">
-                          <div className="w-1 h-1 rounded-full bg-orange-500 animate-pulse" />
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Coming Soon</span>
+                        <div className="flex items-center gap-3 px-5 py-2.5 bg-orange-500/10 border border-orange-500/20 rounded-full shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                          <span className="text-[11px] font-black text-orange-500 uppercase tracking-[0.2em]">Publishing in Progress</span>
                         </div>
                       </div>
                     </motion.div>
@@ -605,7 +605,12 @@ export default function ContentArea({
                     ref={studyGridRef}
                     className={cn(
                       "transition-all duration-500",
-                      isStudyMode ? "grid grid-cols-1 lg:grid-cols-2 gap-0 h-[calc(100vh-120px)] overflow-visible relative z-0" : "space-y-12"
+                      isStudyMode 
+                        ? cn(
+                            "grid grid-cols-1 gap-0 h-[calc(100vh-120px)] overflow-visible relative z-0",
+                            hasVideo && "lg:grid-cols-2"
+                          ) 
+                        : "space-y-12"
                     )}
                   >
                     {/* Hero Section: Video Tutorial (Left Column in Study Mode) */}
@@ -625,7 +630,7 @@ export default function ContentArea({
                             className="relative group h-fit"
                           >
                             {/* Premium Cinema-Grade Chassis Frame */}
-                            <div className="relative rounded-[40px] p-1.5 pb-10 bg-zinc-900 border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,1),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden transition-all duration-500 hover:border-orange-500/30">
+                            <div id="video-chassis" className="relative rounded-[40px] p-1.5 pb-10 bg-zinc-900 border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,1),0_0_40px_rgba(249,115,22,0.1)] overflow-hidden transition-all duration-500 hover:border-orange-500/30">
                               
                               {/* The Notch (Top Handle) */}
                               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-zinc-800 rounded-b-2xl border-x border-b border-white/5 flex items-center justify-center z-30">
@@ -636,7 +641,7 @@ export default function ContentArea({
                               <div className="absolute inset-0 bg-black rounded-[36px]" />
 
                               {/* Top Tagging Area (Floating) */}
-                              <div className="absolute top-8 left-8 z-20 pointer-events-none">
+                              <div className="absolute top-8 left-8 z-20 pointer-events-none transition-all duration-500 group-hover:opacity-0 group-hover:translate-y-[-10px]">
                                 <div className="flex items-center gap-2.5 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-orange-500/20 shadow-2xl">
                                   <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                                   <span className="text-[11px] font-bold text-zinc-100 tracking-wide">Live Tutorial</span>
@@ -647,15 +652,10 @@ export default function ContentArea({
                               <div className="relative aspect-video rounded-[32px] overflow-hidden border border-white/5 bg-black mt-4 mx-1.5">
                                 <VideoPlayer url={solution?.videoUrl || problem?.editorialVideoUrl} />
                                 
-                                {/* Center Play Button Overlay (Visual only) */}
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                                  <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(59,130,246,0.6)] border-4 border-white/20">
-                                    <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-white border-b-[12px] border-b-transparent ml-2" />
-                                  </div>
-                                </div>
+                                {/* Center Play Button Overlay removed as it obscures the video */}
 
-                                {/* Instructor Webcam Feed (PiP) */}
-                                <div className="absolute bottom-4 right-4 w-40 aspect-[4/5] rounded-2xl border-2 border-orange-500/40 overflow-hidden shadow-2xl z-20 group/cam transition-all duration-500 hover:scale-105 hover:border-orange-500/80">
+                                {/* Instructor Webcam Feed (PiP) - Moved to left and made click-through */}
+                                <div className="absolute bottom-4 left-4 w-32 aspect-[4/5] rounded-2xl border-2 border-orange-500/40 overflow-hidden shadow-2xl z-20 group/cam transition-all duration-700 hover:scale-105 hover:border-orange-500/80 group-hover:opacity-0 group-hover:translate-x-[-20px] group-hover:translate-y-[20px] pointer-events-none">
                                   <img 
                                     src="https://images.unsplash.com/photo-1552058544-f2b08422138a?auto=format&fit=crop&q=80&w=400" 
                                     alt="Instructor" 
@@ -671,9 +671,9 @@ export default function ContentArea({
                               {/* Reinforced Bottom Drag Handle Bar */}
                               <div
                                 onPointerDown={(e) => dragControls.start(e)}
-                                className="absolute bottom-0 left-0 right-0 h-10 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-orange-500/5 transition-all group/handle"
+                                className="absolute bottom-0 left-0 right-0 h-10 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-orange-500/5 transition-all group/handle pointer-events-none"
                               >
-                                <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/20 border border-transparent group-hover/handle:border-orange-500/20 transition-all">
+                                <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/20 border border-transparent group-hover/handle:border-orange-500/20 transition-all pointer-events-auto">
                                   <Activity size={14} className="text-orange-500" />
                                   <span className="text-[10px] font-semibold text-zinc-400 tracking-widest uppercase">Reposition Master</span>
                                 </div>
@@ -697,7 +697,12 @@ export default function ContentArea({
                     {/* Content Section (Right Column in Study Mode) */}
                     <div className={cn(
                       "space-y-16",
-                      isStudyMode ? "h-full overflow-y-auto custom-scrollbar p-6 lg:border-l border-zinc-800/50 bg-[#0A0A0A]" : ""
+                      isStudyMode 
+                        ? cn(
+                            "h-full overflow-y-auto custom-scrollbar p-6 bg-[#0A0A0A]",
+                            hasVideo && "lg:border-l border-zinc-800/50"
+                          ) 
+                        : ""
                     )}>
                       {isStudyMode && (
                         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -761,10 +766,10 @@ export default function ContentArea({
                                 </div>
                                 {tc.explanation && (
                                   <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl">
-                                    <div className={cn("text-zinc-200 leading-relaxed", isStudyMode ? "text-[18px]" : "text-sm")}>
-                                      <span className="text-orange-500 font-bold mr-2 tracking-wide uppercase text-[10px]">Explanation:</span>
+                                    <div className={cn("flex flex-col gap-1 transition-all", isStudyMode ? "text-[18px]" : "text-sm")}>
+                                      <span className="text-orange-500 font-bold tracking-wide uppercase text-[10px] block mb-1">Explanation:</span>
                                       <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                                        {tc.explanation}
+                                        {tc.explanation?.toString().replace(/\\n/g, '\n') || ''}
                                       </ReactMarkdown>
                                     </div>
                                   </div>
@@ -829,7 +834,7 @@ export default function ContentArea({
                       </div>
 
                       {/* 4. Implementation Code */}
-                      {(solution?.implementations && solution.implementations.length > 0) && (
+                      {(solution?.implementations && solution.implementations.length > 0 && solution.implementations.some((i: any) => i.code && i.code !== "// Implementation code will appear here")) && (
                         <section className="space-y-6">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -1162,10 +1167,10 @@ export default function ContentArea({
                         </div>
 
                         {selectedSubmission.failedTestCaseExplanation && (
-                          <div className="mt-6 pt-6 border-t border-red-500/10">
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Explanation</span>
-                            <p className="text-sm text-zinc-400 italic leading-relaxed">
-                              {selectedSubmission.failedTestCaseExplanation}
+                          <div className="mt-6 pt-6 border-t border-red-500/10 flex flex-col gap-1">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1 block">Explanation:</span>
+                            <p className="text-sm text-zinc-400 italic leading-relaxed whitespace-pre-wrap">
+                              {(selectedSubmission.failedTestCaseExplanation)?.toString().replace(/\\n/g, '\n')}
                             </p>
                           </div>
                         )}

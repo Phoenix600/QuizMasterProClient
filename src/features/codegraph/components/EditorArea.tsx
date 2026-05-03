@@ -823,7 +823,7 @@ const EditorArea = ({
                           Input
                         </div>
                         <div className="bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[12px] font-mono text-zinc-400 group-hover:border-zinc-700 transition-colors whitespace-pre-wrap">
-                          {runResult?.results?.[activeTestCase]?.input || runResult?.failedInput || testCases[activeTestCase]?.input}
+                          {(runResult?.results?.[activeTestCase]?.input || runResult?.failedInput || testCases[activeTestCase]?.input)?.toString().replace(/\\n/g, '\n')}
                         </div>
                       </div>
 
@@ -842,7 +842,7 @@ const EditorArea = ({
                                 : "text-red-400"
                               : "text-zinc-400"
                           )}>
-                            {((runResult?.results?.[activeTestCase]?.actualOutput || (activeTestCase === 0 && runResult?.actualOutput))?.toString().trim().replace(/\\n/g, '\n')) || "—"}
+                             {((runResult?.results?.[activeTestCase]?.actualOutput ?? (activeTestCase === 0 ? runResult?.actualOutput : undefined))?.toString().trim().replace(/\\n/g, '\n')) || "—"}
                           </div>
                         </div>
 
@@ -864,10 +864,10 @@ const EditorArea = ({
                             {runResult?.results?.[activeTestCase]?.error ? 'Runtime Error' : 'Note'}
                           </div>
                           <div className={cn(
-                            "bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[11px] group-hover:border-zinc-700 transition-colors",
+                            "bg-zinc-900/30 border border-zinc-800 rounded-md p-3 text-[11px] group-hover:border-zinc-700 transition-colors whitespace-pre-wrap",
                             runResult?.results?.[activeTestCase]?.error ? 'text-red-400 font-mono' : 'text-zinc-500 italic'
                           )}>
-                            {runResult?.results?.[activeTestCase]?.error || runResult?.failedTestCaseExplanation || testCases[activeTestCase]?.explanation}
+                            {(runResult?.results?.[activeTestCase]?.error || runResult?.failedTestCaseExplanation || testCases[activeTestCase]?.explanation)?.toString().replace(/\\n/g, '\n')}
                           </div>
                         </div>
                       )}

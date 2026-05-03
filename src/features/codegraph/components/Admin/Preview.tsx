@@ -65,7 +65,7 @@ export const Preview: React.FC<PreviewProps> = ({
     h2: ({ children }: any) => <h2 className="text-xl font-bold text-zinc-100 mt-6 mb-4 tracking-tight">{children}</h2>,
     h3: ({ children }: any) => <h3 className="text-lg font-bold text-orange-500/90 mt-5 mb-2">{children}</h3>,
     h4: ({ children }: any) => <h4 className="text-md font-bold text-zinc-200 mt-4 mb-2">{children}</h4>,
-    p: ({ children }: any) => <p className="mb-4 text-zinc-200 leading-relaxed text-[16px]">{children}</p>,
+    p: ({ children }: any) => <p className="mb-4 text-zinc-200 leading-relaxed text-[16px] whitespace-pre-wrap">{children}</p>,
     ul: ({ children }: any) => <ul className="list-disc pl-5 mb-6 space-y-2 text-zinc-200 text-[16px]">{children}</ul>,
     ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-6 space-y-2 text-zinc-200 text-[16px]">{children}</ol>,
     strong: ({ children }: any) => <strong className="font-bold text-zinc-100">{children}</strong>,
@@ -192,18 +192,18 @@ export const Preview: React.FC<PreviewProps> = ({
                     <div className="bg-zinc-900/30 border border-zinc-800/80 rounded-2xl p-6 space-y-6 font-mono text-[13px] leading-relaxed shadow-inner">
                       <div className="space-y-2">
                         <span className="text-zinc-500 font-bold block uppercase tracking-widest text-[10px]">Input</span>
-                        <div className="text-orange-100/90 bg-orange-500/5 p-3 rounded-lg border border-orange-500/10 whitespace-pre-wrap">{testCase.input}</div>
+                        <div className="text-orange-100/90 bg-orange-500/5 p-3 rounded-lg border border-orange-500/10 whitespace-pre-wrap">{testCase.input?.toString().replace(/\\n/g, '\n')}</div>
                       </div>
                       <div className="space-y-2">
                         <span className="text-zinc-500 font-bold block uppercase tracking-widest text-[10px]">Output</span>
-                        <div className="text-emerald-100/90 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10 whitespace-pre-wrap">{testCase.expectedOutput}</div>
+                        <div className="text-emerald-100/90 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10 whitespace-pre-wrap">{testCase.expectedOutput?.toString().replace(/\\n/g, '\n')}</div>
                       </div>
                       {testCase.explanation && (
-                        <div className="space-y-2 pt-4 border-t border-zinc-800/50">
-                          <span className="text-zinc-500 font-bold block uppercase tracking-widest text-[10px]">Explanation</span>
+                        <div className="space-y-2 pt-4 border-t border-zinc-800/50 flex flex-col gap-1">
+                          <span className="text-zinc-500 font-bold block uppercase tracking-widest text-[10px] mb-1">Explanation:</span>
                           <div className="text-zinc-300 italic px-1">
                             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={markdownComponents}>
-                              {testCase.explanation}
+                              {testCase.explanation?.toString().replace(/\\n/g, '\n')}
                             </ReactMarkdown>
                           </div>
                         </div>

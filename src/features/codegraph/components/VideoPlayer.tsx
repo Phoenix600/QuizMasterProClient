@@ -14,12 +14,23 @@ const VideoPlayer = ({ url }: VideoPlayerProps) => {
 
   const videoId = getYouTubeId(url);
 
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+
+  React.useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.setAttribute('allowfullscreen', 'true');
+      iframeRef.current.setAttribute('webkitallowfullscreen', 'true');
+      iframeRef.current.setAttribute('mozallowfullscreen', 'true');
+    }
+  }, []);
+
   return (
     <div className="relative aspect-video w-full h-full bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
       <iframe
-        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&autoplay=0`}
+        ref={iframeRef}
+        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&autoplay=0&fs=1`}
         className="absolute inset-0 w-full h-full border-0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowFullScreen
         title="YouTube Video Player"
       />
