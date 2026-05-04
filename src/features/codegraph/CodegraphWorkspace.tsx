@@ -10,6 +10,7 @@ import { ExecutionEngineStatus } from './components/ExecutionEngineStatus.tsx';
 import { DownloadCenter } from './components/DownloadCenter.tsx';
 import { ContestLanding } from './components/ContestLanding.tsx';
 import { ContestWorkspace } from './components/ContestWorkspace.tsx';
+import { LectureView } from './components/LectureView.tsx';
 import React from 'react';
 import { api } from './lib/api.ts';
 import { Toaster, toast } from 'sonner';
@@ -503,7 +504,15 @@ export function CodegraphWorkspace({ onBack, user, initialProblemId, onProfileUp
                 </div>
             </div>
           ) : selectedProblemId && containerWidth > 0 ? (
-            isStudyMode ? (
+            selectedProblemData?.type === 'LECTURE' ? (
+              <div className="h-full w-full animate-in fade-in zoom-in-95 duration-500">
+                <LectureView 
+                  problem={selectedProblemData}
+                  onPrev={handlePrevProblem}
+                  onNext={handleNextProblem}
+                />
+              </div>
+            ) : isStudyMode ? (
               <div className="h-full w-full animate-in fade-in zoom-in-95 duration-300">
                 <ContentArea 
                   key={`content-study-${selectedProblemId}`}

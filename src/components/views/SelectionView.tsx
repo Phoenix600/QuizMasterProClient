@@ -21,6 +21,49 @@ interface SelectionViewProps {
   fetchChaptersForCourse: (courseId: string) => void;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 260,
+      damping: 20
+    }
+  }
+} as const;
+
+const accordionVariants = {
+  hidden: { 
+    height: 0, 
+    opacity: 0,
+    transition: {
+      height: { duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] as const },
+      opacity: { duration: 0.2 }
+    }
+  },
+  visible: { 
+    height: 'auto', 
+    opacity: 1,
+    transition: {
+      height: { duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] as const },
+      opacity: { duration: 0.3, delay: 0.1 }
+    }
+  }
+} as const;
+
 export const SelectionView: React.FC<SelectionViewProps> = ({
   courses,
   courseChapters,
@@ -45,13 +88,165 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
     setPendingQuiz(null);
   };
 
+  const ChapterAccordion: React.FC<{ 
+    chapter: Chapter; 
+  }> = ({ chapter }) => {
+    const isExpanded = expandedChapters[chapter._id];
+    
+    // Function to recursively collect all quizzes from a chapter and its subchapters
+    const getAllQuizzesRecursive = (ch: Chapter): Quiz[] => {
+      let quizzes = [...(ch.quizzes || []), ...(chapterQuizzes[ch._id] || [])];
+      if (ch.subChapters) {
+        ch.subChapters.forEach(sub => {
+          quizzes = [...quizzes, ...getAllQuizzesRecursive(sub)];
+        });
+      }
+      return quizzes;
+    };
+
+    const allQuizzesFlattened = getAllQuizzesRecursive(chapter).filter(
+      (v, i, a) => a.findIndex(t => t._id === v._id) === i
+    );
+
+    const hasContent = allQuizzesFlattened.length > 0;
+
+    return (
+      <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl overflow-hidden mb-4">
+        <button
+          onClick={() => toggleChapterExpansion(chapter._id)}
+          className="w-full px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              chapter.isCompleted 
+                ? 'bg-emerald-500/10 text-emerald-500' 
+                : 'bg-blue-500/10 text-blue-500'
+            }`}>
+              <Layers size={20} />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-white text-xl">{chapter.title}</h3>
+                {chapter.isCompleted && (
+                  <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1.5">
+                    <span className="text-[9px] font-semibold text-emerald-500 tracking-tight mt-0.5">Chapter completed</span>
+                    <CheckCircle2 size={10} className="text-emerald-500" />
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1.5">
+                {allQuizzesFlattened.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold tracking-normal text-gray-500">
+                      {allQuizzesFlattened.length} {allQuizzesFlattened.length === 1 ? 'Quiz' : 'Quizzes'}
+                    </span>
+                    <div className="w-1 h-1 rounded-full bg-white/10" />
+                    <span className={`text-[11px] font-semibold tracking-tight ${chapter.completedQuizCount === chapter.quizCount ? 'text-emerald-500' : 'text-orange-500/80'}`}>
+                      {chapter.completedQuizCount || 0} completed
+                    </span>
+                  </div>
+                )}
+              </div>
+              {chapter.description && (
+                <p className="text-gray-500 text-sm mt-2 line-clamp-1">{chapter.description}</p>
+              )}
+            </div>
+          </div>
+          {hasContent && (
+            <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+              <ChevronDown size={20} className="text-gray-500" />
+            </div>
+          )}
+        </button>
+        
+        <AnimatePresence initial={false}>
+          {isExpanded && (
+            <motion.div
+              variants={accordionVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="overflow-hidden border-t border-white/5"
+            >
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="p-6 space-y-6"
+              >
+                {/* Quizzes Grid */}
+                {allQuizzesFlattened.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 opacity-60">Quizzes</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {allQuizzesFlattened.map((quiz) => (
+                        <motion.button
+                          key={quiz._id}
+                          variants={itemVariants}
+                          onClick={() => setPendingQuiz({ quiz, chapter })}
+                          className={cn(
+                            "flex items-center justify-between p-5 rounded-xl transition-all group relative overflow-hidden border",
+                            quiz.isCompleted 
+                              ? 'bg-emerald-500/[0.03] border-emerald-500/20' 
+                              : 'bg-white/5 border-white/5 hover:border-orange-500/30 hover:bg-white/[0.08]'
+                          )}
+                        >
+                          {/* Inner content */}
+                          <div className="flex items-center gap-4 flex-1 pr-6 pb-2 relative z-10">
+                            <div className={cn(
+                              "w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300 shrink-0",
+                              quiz.isCompleted ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/10 text-orange-500'
+                            )}>
+                              <Trophy size={18} />
+                            </div>
+                            <div className="text-left min-w-0">
+                              <h4 className={cn("font-bold transition-colors line-clamp-1", quiz.isCompleted ? 'text-emerald-400' : 'text-white')}>
+                                {quiz.title}
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1 font-medium">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
+                            </div>
+                          </div>
+
+                          <div className="relative z-10">
+                            {quiz.isCompleted ? (
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                <CheckCircle2 size={12} className="text-emerald-500" />
+                                <span className="text-[10px] font-bold text-emerald-500 tracking-tight">Passed</span>
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-orange-500/10 transition-colors">
+                                <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Hover background effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/0 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <>
     <motion.div
-      key="selection"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      key={selectedCourse ? `course-${selectedCourse._id}` : 'subject-selection'}
+      initial={{ opacity: 0, y: 30, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -30, scale: 0.98 }}
+      transition={{ 
+        type: "spring",
+        stiffness: 260,
+        damping: 25
+      }}
       className="space-y-12"
     >
       <div className="text-center space-y-4">
@@ -200,148 +395,7 @@ export const SelectionView: React.FC<SelectionViewProps> = ({
         ) : (
           <div className="space-y-4">
             {courseChapters[selectedCourse._id]?.map((chapter) => (
-              <div key={chapter._id} className="bg-[#1a1a1a] border border-white/5 rounded-2xl overflow-hidden">
-                <button
-                  onClick={() => toggleChapterExpansion(chapter._id)}
-                  className="w-full px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      chapter.quizCount! > 0 && chapter.completedQuizCount === chapter.quizCount 
-                        ? 'bg-emerald-500/10 text-emerald-500' 
-                        : 'bg-blue-500/10 text-blue-500'
-                    }`}>
-                      <Layers size={20} />
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-bold text-white">{chapter.title}</h3>
-                        {chapter.isCompleted && (
-                          <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1.5">
-                            <span className="text-[9px] font-semibold text-emerald-500 tracking-tight mt-0.5">Chapter completed</span>
-                            <CheckCircle2 size={10} className="text-emerald-500" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-[11px] font-semibold tracking-normal text-gray-500">
-                          {selectedCourse.type === 'PROGRAMMING' 
-                            ? `${chapter.problems?.length || 0} ${chapter.problems?.length === 1 ? 'Problem' : 'Problems'}`
-                            : `${chapter.quizCount || 0} ${chapter.quizCount === 1 ? 'Quiz' : 'Quizzes'}`}
-                        </span>
-                        {((selectedCourse.type === 'PROGRAMMING' ? chapter.problemCount : chapter.quizCount) || 0) > 0 && (
-                          <>
-                            <div className="w-1 h-1 rounded-full bg-white/10" />
-                            <span className={`text-[11px] font-semibold tracking-tight ${chapter.isCompleted ? 'text-emerald-500' : 'text-orange-500/80'}`}>
-                              {selectedCourse.type === 'PROGRAMMING' ? chapter.completedProblemCount || 0 : chapter.completedQuizCount || 0} completed
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-gray-500 text-sm mt-2 line-clamp-1">{chapter.description}</p>
-                    </div>
-                  </div>
-                  <div className={`transition-transform duration-300 ${expandedChapters[chapter._id] ? 'rotate-180' : ''}`}>
-                    <ChevronDown size={20} className="text-gray-500" />
-                  </div>
-                </button>
-                
-                <AnimatePresence>
-                  {expandedChapters[chapter._id] && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden border-t border-white/5"
-                    >
-                      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {selectedCourse.type === 'PROGRAMMING' ? (
-                          chapter.problems?.map((problem) => (
-                            <button
-                              key={problem._id}
-                              onClick={() => onSelectProblem(problem._id)}
-                              className="flex items-center justify-between p-5 rounded-xl transition-all group relative overflow-hidden bg-white/5 border border-white/5 hover:border-orange-500/30 hover:bg-white/[0.08]"
-                            >
-                              <div className="flex items-center gap-4 flex-1 pr-6 pb-2">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all shrink-0 bg-blue-500/10 text-blue-500">
-                                  <Code size={18} />
-                                </div>
-                                <div className="text-left min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="font-bold transition-colors line-clamp-2 text-white">
-                                      {problem.title}
-                                    </h4>
-                                    <span className={cn(
-                                      "text-[9px] font-semibold px-1.5 py-0.5 rounded border tracking-tight",
-                                      problem.difficulty === 'EASY' ? "border-emerald-500/20 text-emerald-500 bg-emerald-500/5" :
-                                      problem.difficulty === 'MEDIUM' ? "border-orange-500/20 text-orange-400 bg-orange-500/5" :
-                                      "border-red-500/20 text-red-500 bg-red-500/5"
-                                    )}>
-                                      {problem.difficulty === 'EASY' ? 'Easy' : problem.difficulty === 'MEDIUM' ? 'Medium' : 'Hard'}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-gray-500 mt-1 font-medium line-clamp-1">Coding Problem</p>
-                                </div>
-                              </div>
-                              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-orange-500/10 transition-colors">
-                                <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          chapterQuizzes[chapter._id]?.map((quiz) => (
-                            <button
-                              key={quiz._id}
-                              onClick={() => setPendingQuiz({ quiz, chapter })}
-                              className={`flex items-center justify-between p-5 rounded-xl transition-all group relative overflow-hidden ${
-                                quiz.isCompleted 
-                                  ? 'bg-emerald-500/[0.03] border-emerald-500/20' 
-                                  : 'bg-white/5 border-white/5 hover:border-orange-500/30 hover:bg-white/[0.08]'
-                              } border`}
-                            >
-                              <div className="flex items-center gap-4 flex-1 pr-6 pb-2">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all shrink-0 ${
-                                  quiz.isCompleted ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/10 text-orange-500'
-                                }`}>
-                                  <Trophy size={18} />
-                                </div>
-                                <div className="text-left min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className={`font-bold transition-colors line-clamp-2 ${quiz.isCompleted ? 'text-emerald-400' : 'text-white'}`}>
-                                      {quiz.title}
-                                    </h4>
-                                  </div>
-                                  <p className="text-xs text-gray-500 mt-1 font-medium">{quiz.timeLimit} mins • {quiz.passingScore}% to pass</p>
-                                </div>
-                              </div>
-  
-                              {quiz.isCompleted ? (
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                                    <CheckCircle2 size={12} className="text-emerald-500" />
-                                    <span className="text-[10px] font-bold text-emerald-500 tracking-tight">
-                                      Passed
-                                    </span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-orange-500/10 transition-colors">
-                                  <PlayCircle size={20} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
-                                </div>
-                              )}
-                            </button>
-                          ))
-                        )}
-                        {((selectedCourse.type === 'PROGRAMMING' ? (!chapter.problems || chapter.problems.length === 0) : (!chapterQuizzes[chapter._id] || chapterQuizzes[chapter._id].length === 0))) && (
-                          <div className="col-span-full py-8 text-center text-gray-600">
-                            No {selectedCourse.type === 'PROGRAMMING' ? 'problems' : 'quizzes'} available for this chapter yet.
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <ChapterAccordion key={chapter._id} chapter={chapter} />
             ))}
             {(!courseChapters[selectedCourse._id] || courseChapters[selectedCourse._id].length === 0) && (
               <div className="py-20 text-center text-gray-500">

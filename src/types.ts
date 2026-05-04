@@ -86,6 +86,24 @@ export interface Chapter {
   parentId?: string | any | null;
   subChapters?: Chapter[];
   quizzes?: Quiz[];
+  contests?: Contest[];
+}
+
+export interface Contest {
+  _id: string;
+  title: string;
+  description: string;
+  courseId: string;
+  chapterId: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  mcqQuestions: string[];
+  codingProblems: string[];
+  isPublished: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 
@@ -96,6 +114,16 @@ export interface Problem {
   description: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   active: boolean;
+  type?: 'CODING' | 'LECTURE';
+  videoUrl?: string;
+  image?: string;
+  tags?: { _id: string; name: string }[];
+  timeLimitMs?: number;
+  memoryLimitMb?: number;
+  driverCode?: string;
+  solutionTemplate?: string;
+  footer?: string;
+  imageScale?: number;
 }
 
 export interface Quiz {

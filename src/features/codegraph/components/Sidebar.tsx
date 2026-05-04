@@ -1,9 +1,9 @@
 import React from 'react';
-import { Code2, Search, ChevronRight, Loader2, Trophy, CheckCircle2, Folder, FolderCheck, Bookmark, Plus, PanelLeftClose } from 'lucide-react';
+import { Code2, Search, ChevronRight, Loader2, Trophy, CheckCircle2, Folder, FolderCheck, Bookmark, Plus, PanelLeftClose, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
-import { Chapter } from '../types';
+import { Chapter, Problem } from '../types';
 
 import { DUMMY_USER } from '../constants';
 
@@ -11,6 +11,7 @@ interface SidebarNodeData {
   id: string | number;
   label: string;
   type: 'folder' | 'item' | 'contest';
+  itemType?: 'CODING' | 'LECTURE';
   children?: SidebarNodeData[];
   completed?: boolean;
   active?: boolean;
@@ -96,7 +97,13 @@ const SidebarNode = ({ node, level, openNodes, onToggle, onItemClick, isLast = f
              </>
           ) : (
             <>
-              <div className="w-1" />
+              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                 {node.itemType === 'LECTURE' ? (
+                   <BookOpen size={14} className={cn(node.active ? "text-orange-500" : "text-zinc-500")} />
+                 ) : (
+                   <div className="w-1" />
+                 )}
+              </div>
               <span className={cn('text-[12.5px] whitespace-normal leading-tight text-left mt-0.5 transition-colors duration-200', node.active ? 'font-bold text-white' : 'text-zinc-400 group-hover:text-zinc-200')}>{node.label}</span>
             </>
           )}
@@ -246,13 +253,14 @@ export default function Sidebar({ isVisible, selectedProblemId, onToggle, onProf
     }
 
     if (chapter.problems?.length) {
-      children.push(...chapter.problems.map((problem): SidebarNodeData => ({
-        id: problem.id,
+      children.push(...chapter.problems.map((problem: Problem): SidebarNodeData => ({
+        id: problem._id || (problem as any).id,
         label: problem.title,
         type: 'item',
-        completed: solvedProblemIds.has(problem.id),
-        active: selectedProblemId === problem.id,
-        isOnActivePath: selectedProblemId === problem.id,
+        itemType: problem.type || 'CODING',
+        completed: solvedProblemIds.has(problem._id || (problem as any).id),
+        active: selectedProblemId === (problem._id || (problem as any).id),
+        isOnActivePath: selectedProblemId === (problem._id || (problem as any).id),
       })));
     }
 

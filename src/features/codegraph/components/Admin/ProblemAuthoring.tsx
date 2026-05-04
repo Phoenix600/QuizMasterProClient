@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { Editor } from './Editor';
-import { Preview } from './Preview';
 import { Problem, TestCase } from '../../types';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
@@ -9,6 +8,9 @@ import { Save, ArrowLeft, Loader2, Search, Filter, Layers, Plus, FileCode, Check
 import { PanelImperativeHandle } from 'react-resizable-panels';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LectureView } from '../LectureView';
+import ContentArea from '../ContentArea';
+import { Eye, EyeOff } from 'lucide-react';
 
 type AuthoringMetadata = Omit<Partial<Problem>, 'tags'> & { tags: any };
 
@@ -62,6 +64,7 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
   const [isSidebarLoading, setIsSidebarLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const sidebarRef = React.useRef<PanelImperativeHandle>(null);
  
   const toggleSidebar = () => {
@@ -267,8 +270,8 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0A0A0A]">
-      <header className="h-14 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between px-6 shrink-0">
+    <div className="flex flex-col h-full bg-[#141414]">
+      <header className="h-14 border-b border-zinc-800 bg-transparent flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -305,6 +308,19 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
               </div>
             )}
           </h2>
+          <div className="h-4 w-px bg-zinc-800" />
+          <button
+            onClick={() => setIsPreviewMode(!isPreviewMode)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border",
+              isPreviewMode 
+                ? "bg-orange-500 text-white border-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]" 
+                : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200"
+            )}
+          >
+            {isPreviewMode ? <EyeOff size={14} /> : <Eye size={14} />}
+            {isPreviewMode ? 'Exit Preview' : 'Live User View'}
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -348,7 +364,7 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
             <AnimatePresence mode="wait">
               {!isSidebarCollapsed && (
                 <motion.div 
-                  className="h-full flex flex-col bg-zinc-900/30 border-r border-zinc-800/50"
+                  className="h-full flex flex-col bg-transparent border-r border-zinc-800/50"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
@@ -462,8 +478,8 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
             )} 
           />
 
-          <Panel id="editor-panel" defaultSize={40} minSize={30} className="transition-all duration-300 ease-in-out">
-            <div className="h-full overflow-y-auto custom-scrollbar bg-zinc-950/20">
+          <Panel id="editor-panel" defaultSize={80} minSize={30} className="transition-all duration-300 ease-in-out">
+            <div className="h-full overflow-y-auto custom-scrollbar bg-transparent">
               <Editor 
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -495,24 +511,49 @@ export const ProblemAuthoring: React.FC<ProblemAuthoringProps> = ({ onBack, prob
               />
             </div>
           </Panel>
-
-          <Separator className="bg-zinc-800 w-px" />
-
-          <Panel id="preview-panel" defaultSize={40} minSize={30} className="transition-all duration-300 ease-in-out">
-            <div className="h-full overflow-y-auto custom-scrollbar">
-              <Preview 
-                activeTab={activeTab}
-                activeEditorialType={activeEditorialType}
-                setActiveEditorialType={setActiveEditorialType}
-                metadata={metadata}
-                description={description}
-                footer={footer}
-                testCases={testCases}
-                onTestCasesChange={setTestCases}
-              />
-            </div>
-          </Panel>
         </Group>
+
+        {/* Live User Preview Overlay */}
+        <AnimatePresence>
+          {isPreviewMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="absolute inset-0 z-50 bg-[#141414] border-t border-zinc-800 shadow-2xl overflow-hidden"
+            >
+              {metadata.type === 'LECTURE' ? (
+                <LectureView 
+                  problem={{
+                    ...metadata,
+                    description: description,
+                    videoUrl: metadata.videoUrl
+                  } as any}
+                />
+              ) : (
+                <ContentArea 
+                  problemId={String(problemId || 'preview')}
+                  problemData={{
+                    ...metadata,
+                    description: description,
+                    footer: footer,
+                    testCases: testCases
+                  }}
+                  isStudyMode={false}
+                  onToggleStudyMode={() => {}}
+                />
+              )}
+              
+              {/* Floating Exit Button for extra convenience */}
+              <button 
+                onClick={() => setIsPreviewMode(false)}
+                className="absolute top-4 right-4 z-[60] px-4 py-2 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-2xl hover:bg-orange-500 transition-all active:scale-95 border border-orange-400/50"
+              >
+                Close Preview
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       <style>{`
         .sidebar-animate {

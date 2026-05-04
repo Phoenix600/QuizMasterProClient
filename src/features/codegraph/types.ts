@@ -95,9 +95,12 @@ export interface Chapter {
 
 export interface Problem {
   id: string;
+  _id?: string;
   title: string;
   description: string;
   difficulty: Difficulty;
+  type?: 'CODING' | 'LECTURE';
+  videoUrl?: string;
   tags: Tag[];
   timeLimitMs: number;
   memoryLimitMb: number;

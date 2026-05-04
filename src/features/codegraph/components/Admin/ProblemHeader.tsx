@@ -1,7 +1,7 @@
 import React from 'react';
 import { Problem, Difficulty } from '../../types';
 import { cn } from '../../lib/utils';
-import { Type, Layers, Tag as TagIcon, Hash, Clock } from 'lucide-react';
+import { Type, Layers, Tag as TagIcon, Hash, Clock, Video } from 'lucide-react';
 
 interface ProblemHeaderProps {
   metadata: any;
@@ -58,7 +58,7 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
           />
         </label>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-zinc-500" />
@@ -87,6 +87,30 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-zinc-500" />
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Type</span>
+            </div>
+            <div className="flex gap-2">
+              {(['CODING', 'LECTURE'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleUpdate('type', type)}
+                  disabled={!editable}
+                  className={cn(
+                    "flex-1 py-1.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all",
+                    (metadata.type || 'CODING') === type 
+                      ? "bg-orange-500/10 border-orange-500/50 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                      : "bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+                  )}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
                 <TagIcon className="w-3.5 h-3.5 text-zinc-500" />
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tags (Comma Sep)</span>
             </div>
@@ -100,6 +124,25 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
             />
           </div>
         </div>
+
+        {metadata.type === 'LECTURE' && (
+          <div className="pt-4 border-t border-zinc-800/50 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                  <Video className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-[10px] font-bold text-zinc-100 uppercase tracking-widest">Lecture Video URL (YouTube)</span>
+              </div>
+              <input
+                type="text"
+                value={metadata.videoUrl || ''}
+                onChange={(e) => handleUpdate('videoUrl', e.target.value)}
+                disabled={!editable}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all placeholder-zinc-700 shadow-inner"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-zinc-800/50">
           <div className="space-y-2">
@@ -157,34 +200,36 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/50">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Time Limit (ms)</span>
+        {metadata.type !== 'LECTURE' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/50">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Time Limit (ms)</span>
+              </div>
+              <input
+                type="number"
+                value={metadata.timeLimitMs || 2000}
+                onChange={(e) => handleUpdate('timeLimitMs', parseInt(e.target.value))}
+                disabled={!editable}
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all"
+              />
             </div>
-            <input
-              type="number"
-              value={metadata.timeLimitMs || 2000}
-              onChange={(e) => handleUpdate('timeLimitMs', parseInt(e.target.value))}
-              disabled={!editable}
-              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-                <Hash className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Memory Limit (MB)</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                  <Hash className="w-3.5 h-3.5 text-zinc-500" />
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Memory Limit (MB)</span>
+              </div>
+              <input
+                type="number"
+                value={metadata.memoryLimitMb || 256}
+                onChange={(e) => handleUpdate('memoryLimitMb', parseInt(e.target.value))}
+                disabled={!editable}
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all"
+              />
             </div>
-            <input
-              type="number"
-              value={metadata.memoryLimitMb || 256}
-              onChange={(e) => handleUpdate('memoryLimitMb', parseInt(e.target.value))}
-              disabled={!editable}
-              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all"
-            />
           </div>
-        </div>
+        )}
       </div>
       
       <div className="h-px bg-gradient-to-r from-zinc-800 via-zinc-800 to-transparent" />

@@ -138,10 +138,12 @@ export const Editor: React.FC<EditorProps> = ({
   };
 
 
+  const isLecture = metadata.type === 'LECTURE';
+
   return (
-    <div className="h-full bg-[#0A0A0A] overflow-y-auto custom-scrollbar border-r border-zinc-800 transition-colors duration-200">
+    <div className="h-full bg-transparent overflow-y-auto custom-scrollbar border-r border-zinc-800 transition-colors duration-200">
       {/* Exact UI Navigation System (Matches Problem View) */}
-      <div className="sticky top-0 z-50 bg-[#0A0A0A] border-b border-zinc-800/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-50 bg-[#141414]/80 border-b border-zinc-800/80 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-6 flex items-center gap-8">
           <button
             onClick={() => setActiveTab('description')}
@@ -153,7 +155,7 @@ export const Editor: React.FC<EditorProps> = ({
             )}
           >
             <FileText className={cn("w-3.5 h-3.5", activeTab === 'description' ? "text-orange-500" : "text-zinc-500")} />
-            Description
+            {isLecture ? 'Theory' : 'Description'}
             {activeTab === 'description' && (
               <motion.div 
                 layoutId="activeTabUnderline"
@@ -162,24 +164,26 @@ export const Editor: React.FC<EditorProps> = ({
             )}
           </button>
 
-          <button
-            onClick={() => setActiveTab('editorial')}
-            className={cn(
-              "flex items-center gap-2.5 py-4 text-[11px] font-black uppercase tracking-[0.15em] transition-all relative",
-              activeTab === 'editorial' 
-                ? "text-zinc-100" 
-                : "text-zinc-500 hover:text-zinc-300"
-            )}
-          >
-            <BookOpen className={cn("w-3.5 h-3.5", activeTab === 'editorial' ? "text-orange-500" : "text-zinc-500")} />
-            Editorial
-            {activeTab === 'editorial' && (
-              <motion.div 
-                layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-[2px] bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.4)]"
-              />
-            )}
-          </button>
+          {!isLecture && (
+            <button
+              onClick={() => setActiveTab('editorial')}
+              className={cn(
+                "flex items-center gap-2.5 py-4 text-[11px] font-black uppercase tracking-[0.15em] transition-all relative",
+                activeTab === 'editorial' 
+                  ? "text-zinc-100" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <BookOpen className={cn("w-3.5 h-3.5", activeTab === 'editorial' ? "text-orange-500" : "text-zinc-500")} />
+              Editorial
+              {activeTab === 'editorial' && (
+                <motion.div 
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-orange-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.4)]"
+                />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -203,7 +207,7 @@ export const Editor: React.FC<EditorProps> = ({
 
             <div className="flex items-center justify-between mb-3 mt-8">
               <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] flex items-center gap-2">
-                <Edit2 size={12} className="text-orange-500" /> Problem Description
+                <Edit2 size={12} className="text-orange-500" /> {isLecture ? 'Lecture Theory' : 'Problem Description'}
               </span>
               <button 
                 onClick={() => setFullscreenType('description')}
@@ -315,275 +319,279 @@ export const Editor: React.FC<EditorProps> = ({
               />
             </div>
 
-            <div className="space-y-8 mb-8">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Test Cases</span>
-              </div>
-              {testCases.map((testCase, index) => (
-                <div key={index} className="group relative border border-zinc-800/50 bg-zinc-900/20 hover:border-zinc-700 rounded-xl p-4 transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-xs text-zinc-100 tracking-tight">Example {index + 1}</h3>
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-2 cursor-pointer group/toggle">
-                        <span className="text-[10px] font-medium text-zinc-500 group-hover/toggle:text-zinc-400 transition-colors">Sample</span>
-                        <input
-                          type="checkbox"
-                          checked={testCase.isSample}
-                          onChange={(e) => handleUpdateTestCase(index, 'isSample', e.target.checked)}
-                          className="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-800 text-orange-600 focus:ring-orange-500/20"
-                        />
-                      </label>
-                      <button
-                        onClick={() => handleDeleteTestCase(index)}
-                        className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all ml-2"
-                        title="Remove Example"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            {!isLecture && (
+              <>
+                <div className="space-y-8 mb-8">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Test Cases</span>
                   </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="w-3.5 h-3.5 text-zinc-500" />
-                        <span className="text-[10px] font-medium text-zinc-500">Visual Context (Optional)</span>
-                      </div>
-                      {testCase.image && (
-                        <div className="flex items-center gap-2 bg-zinc-800/50 px-2 py-1 rounded-md border border-zinc-700/50">
-                          <span className="text-[10px] text-zinc-500 font-medium tracking-tight">Scale</span>
-                          <input
-                            type="number"
-                            min="10"
-                            max="100"
-                            value={testCase.imageScale ?? 40}
-                            onChange={(e) => handleUpdateTestCase(index, 'imageScale', parseInt(e.target.value))}
-                            className="w-10 text-[10px] p-0.5 border-none bg-transparent text-zinc-100 text-center focus:ring-0 outline-none font-mono"
-                          />
-                          <span className="text-[10px] text-zinc-500">%</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          className="w-full text-xs p-2.5 pr-8 border border-zinc-800 rounded-lg bg-zinc-900/50 text-zinc-100 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all placeholder-zinc-700"
-                          placeholder="Image URL or upload"
-                          value={testCase.image || ''}
-                          onChange={(e) => handleUpdateTestCase(index, 'image', e.target.value)}
-                        />
-                        {testCase.image && (
+                  {testCases.map((testCase, index) => (
+                    <div key={index} className="group relative border border-zinc-800/50 bg-zinc-900/20 hover:border-zinc-700 rounded-xl p-4 transition-all">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-xs text-zinc-100 tracking-tight">Example {index + 1}</h3>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer group/toggle">
+                            <span className="text-[10px] font-medium text-zinc-500 group-hover/toggle:text-zinc-400 transition-colors">Sample</span>
+                            <input
+                              type="checkbox"
+                              checked={testCase.isSample}
+                              onChange={(e) => handleUpdateTestCase(index, 'isSample', e.target.checked)}
+                              className="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-800 text-orange-600 focus:ring-orange-500/20"
+                            />
+                          </label>
                           <button
-                            onClick={() => handleUpdateTestCase(index, 'image', '')}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                            onClick={() => handleDeleteTestCase(index)}
+                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all ml-2"
+                            title="Remove Example"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <ImageIcon className="w-3.5 h-3.5 text-zinc-500" />
+                            <span className="text-[10px] font-medium text-zinc-500">Visual Context (Optional)</span>
+                          </div>
+                          {testCase.image && (
+                            <div className="flex items-center gap-2 bg-zinc-800/50 px-2 py-1 rounded-md border border-zinc-700/50">
+                              <span className="text-[10px] text-zinc-500 font-medium tracking-tight">Scale</span>
+                              <input
+                                type="number"
+                                min="10"
+                                max="100"
+                                value={testCase.imageScale ?? 40}
+                                onChange={(e) => handleUpdateTestCase(index, 'imageScale', parseInt(e.target.value))}
+                                className="w-10 text-[10px] p-0.5 border-none bg-transparent text-zinc-100 text-center focus:ring-0 outline-none font-mono"
+                              />
+                              <span className="text-[10px] text-zinc-500">%</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              className="w-full text-xs p-2.5 pr-8 border border-zinc-800 rounded-lg bg-zinc-900/50 text-zinc-100 focus:ring-1 focus:ring-orange-500/30 outline-none transition-all placeholder-zinc-700"
+                              placeholder="Image URL or upload"
+                              value={testCase.image || ''}
+                              onChange={(e) => handleUpdateTestCase(index, 'image', e.target.value)}
+                            />
+                            {testCase.image && (
+                              <button
+                                onClick={() => handleUpdateTestCase(index, 'image', '')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            id={`file-upload-${index}`}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileUpload(index, e)}
+                          />
+                          <button
+                            onClick={() => document.getElementById(`file-upload-${index}`)?.click()}
+                            className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-600 text-zinc-400 hover:text-zinc-200 transition-all"
+                            title="Upload Local Image"
+                          >
+                            <Paperclip className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {testCase.image && (
+                          <div className="mt-3 overflow-hidden flex justify-center">
+                            <img
+                              src={testCase.image}
+                              alt="Preview"
+                              style={{ width: `${testCase.imageScale || 40}%` }}
+                              className="object-contain max-w-full cursor-zoom-in active:scale-[0.98] transition-all"
+                              onDoubleClick={() => setOverlayImage(testCase.image!)}
+                            />
+                          </div>
                         )}
                       </div>
-                      <input
-                        type="file"
-                        id={`file-upload-${index}`}
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(index, e)}
-                      />
-                      <button
-                        onClick={() => document.getElementById(`file-upload-${index}`)?.click()}
-                        className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-600 text-zinc-400 hover:text-zinc-200 transition-all"
-                        title="Upload Local Image"
-                      >
-                        <Paperclip className="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    {testCase.image && (
-                      <div className="mt-3 overflow-hidden flex justify-center">
-                        <img
-                          src={testCase.image}
-                          alt="Preview"
-                          style={{ width: `${testCase.imageScale || 40}%` }}
-                          className="object-contain max-w-full cursor-zoom-in active:scale-[0.98] transition-all"
-                          onDoubleClick={() => setOverlayImage(testCase.image!)}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="font-bold text-zinc-500 uppercase tracking-tighter">Input</span>
+                            <button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleMarkdownHighlight(`input-${index}`, testCase.input || '', (v) => handleUpdateTestCase(index, 'input', v));
+                              }}
+                              className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
+                            >
+                              <Code className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <textarea
+                            id={`input-${index}`}
+                            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[60px] custom-scrollbar"
+                            value={testCase.input}
+                            onChange={(e) => handleUpdateTestCase(index, 'input', e.target.value)}
+                            placeholder="test_input = ..."
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="font-bold text-zinc-500 uppercase tracking-tighter">Expected Output</span>
+                            <button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleMarkdownHighlight(`output-${index}`, testCase.expectedOutput || '', (v) => handleUpdateTestCase(index, 'expectedOutput', v));
+                              }}
+                              className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
+                            >
+                              <Code className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <textarea
+                            id={`output-${index}`}
+                            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[60px] custom-scrollbar"
+                            value={testCase.expectedOutput}
+                            onChange={(e) => handleUpdateTestCase(index, 'expectedOutput', e.target.value)}
+                            placeholder="output = ..."
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-1.5">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="font-bold text-zinc-500 uppercase tracking-tighter">Explanation (Optional)</span>
+                            <button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleMarkdownHighlight(`explanation-${index}`, testCase.explanation || '', (v) => handleUpdateTestCase(index, 'explanation', v));
+                              }}
+                              className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
+                            >
+                              <Code className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <textarea
+                            id={`explanation-${index}`}
+                            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[50px] custom-scrollbar"
+                            value={testCase.explanation || ''}
+                            onChange={(e) => handleUpdateTestCase(index, 'explanation', e.target.value)}
+                            placeholder="Briefly explain why this is the correct output..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={handleAddTestCase}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-orange-500 hover:text-orange-400 font-bold py-4 rounded-xl border-2 border-dashed border-zinc-800 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all group"
+                  >
+                    <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    Add Example Case
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Edit2 size={12} className="text-orange-500" /> Constraints & Follow-up
+                  </span>
+                  <button 
+                    onClick={() => setFullscreenType('footer')}
+                    className="text-[10px] font-bold text-zinc-500 hover:text-orange-500 transition-colors flex items-center gap-1.5"
+                  >
+                    <Plus size={12} className="rotate-45" /> Fullscreen
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-zinc-800 overflow-hidden bg-zinc-900/50 mb-12 shadow-inner" data-color-mode="dark">
+                  <MDEditor
+                    value={footer}
+                    onChange={(val) => onFooterChange(val || '')}
+                    preview="edit"
+                    height={200}
+                    className="!bg-transparent !border-none custom-md-editor"
+                    previewOptions={{
+                      rehypePlugins: [[rehypeRaw as any, { allowDangerousHtml: true }]],
+                    }}
+                  />
+                </div>
+
+                {/* Technical Architecture Section */}
+                <section className="space-y-6 mb-12 pt-8 border-t border-zinc-800/50">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-orange-500" />
+                    <span className="text-[10px] font-bold text-zinc-100 uppercase tracking-widest">Technical Architecture</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Code (Java)</span>
+                        <button
+                          onClick={toggleTheme}
+                          className="flex items-center gap-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold text-zinc-400 hover:text-orange-500 transition-all"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: THEME_OPTIONS.find(t => t.id === editorTheme)?.color }} />
+                          {currentThemeLabel}
+                        </button>
+                      </div>
+                      <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950">
+                        <MonacoEditor
+                          height="300px"
+                          defaultLanguage="java"
+                          theme={editorTheme}
+                          value={metadata.driverCode || "// Driver code here\n{{SOLUTION}}\n"}
+                          onChange={(val) => onMetadataChange({ ...metadata, driverCode: val })}
+                          beforeMount={registerCustomThemes}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 12,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            padding: { top: 16, bottom: 16 }
+                          }}
                         />
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="font-bold text-zinc-500 uppercase tracking-tighter">Input</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Solution Template (Java)</span>
                         <button
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleMarkdownHighlight(`input-${index}`, testCase.input || '', (v) => handleUpdateTestCase(index, 'input', v));
-                          }}
-                          className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
+                          onClick={toggleTheme}
+                          className="flex items-center gap-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold text-zinc-400 hover:text-orange-500 transition-all"
                         >
-                          <Code className="w-3 h-3" />
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: THEME_OPTIONS.find(t => t.id === editorTheme)?.color }} />
+                          {currentThemeLabel}
                         </button>
                       </div>
-                      <textarea
-                        id={`input-${index}`}
-                        className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[60px] custom-scrollbar"
-                        value={testCase.input}
-                        onChange={(e) => handleUpdateTestCase(index, 'input', e.target.value)}
-                        placeholder="test_input = ..."
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="font-bold text-zinc-500 uppercase tracking-tighter">Expected Output</span>
-                        <button
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleMarkdownHighlight(`output-${index}`, testCase.expectedOutput || '', (v) => handleUpdateTestCase(index, 'expectedOutput', v));
+                      <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950">
+                        <MonacoEditor
+                          height="200px"
+                          defaultLanguage="java"
+                          theme={editorTheme}
+                          value={metadata.solutionTemplate || "class Solution {\n    public void solve() {\n        \n    }\n}"}
+                          onChange={(val) => onMetadataChange({ ...metadata, solutionTemplate: val })}
+                          beforeMount={registerCustomThemes}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 12,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            padding: { top: 16, bottom: 16 }
                           }}
-                          className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
-                        >
-                          <Code className="w-3 h-3" />
-                        </button>
+                        />
                       </div>
-                      <textarea
-                        id={`output-${index}`}
-                        className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[60px] custom-scrollbar"
-                        value={testCase.expectedOutput}
-                        onChange={(e) => handleUpdateTestCase(index, 'expectedOutput', e.target.value)}
-                        placeholder="output = ..."
-                      />
-                    </div>
-                    <div className="md:col-span-2 space-y-1.5">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="font-bold text-zinc-500 uppercase tracking-tighter">Explanation (Optional)</span>
-                        <button
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleMarkdownHighlight(`explanation-${index}`, testCase.explanation || '', (v) => handleUpdateTestCase(index, 'explanation', v));
-                          }}
-                          className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
-                        >
-                          <Code className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <textarea
-                        id={`explanation-${index}`}
-                        className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-zinc-300 resize-y focus:ring-1 focus:ring-orange-500/30 outline-none min-h-[50px] custom-scrollbar"
-                        value={testCase.explanation || ''}
-                        onChange={(e) => handleUpdateTestCase(index, 'explanation', e.target.value)}
-                        placeholder="Briefly explain why this is the correct output..."
-                      />
                     </div>
                   </div>
-                </div>
-              ))}
-
-              <button
-                onClick={handleAddTestCase}
-                className="w-full flex items-center justify-center gap-2 text-xs text-orange-500 hover:text-orange-400 font-bold py-4 rounded-xl border-2 border-dashed border-zinc-800 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all group"
-              >
-                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                Add Example Case
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] flex items-center gap-2">
-                <Edit2 size={12} className="text-orange-500" /> Constraints & Follow-up
-              </span>
-              <button 
-                onClick={() => setFullscreenType('footer')}
-                className="text-[10px] font-bold text-zinc-500 hover:text-orange-500 transition-colors flex items-center gap-1.5"
-              >
-                <Plus size={12} className="rotate-45" /> Fullscreen
-              </button>
-            </div>
-            <div className="rounded-2xl border border-zinc-800 overflow-hidden bg-zinc-900/50 mb-12 shadow-inner" data-color-mode="dark">
-              <MDEditor
-                value={footer}
-                onChange={(val) => onFooterChange(val || '')}
-                preview="edit"
-                height={200}
-                className="!bg-transparent !border-none custom-md-editor"
-                previewOptions={{
-                  rehypePlugins: [[rehypeRaw as any, { allowDangerousHtml: true }]],
-                }}
-              />
-            </div>
-
-            {/* Technical Architecture Section */}
-            <section className="space-y-6 mb-12 pt-8 border-t border-zinc-800/50">
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-orange-500" />
-                <span className="text-[10px] font-bold text-zinc-100 uppercase tracking-widest">Technical Architecture</span>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Driver Code (Java)</span>
-                    <button
-                      onClick={toggleTheme}
-                      className="flex items-center gap-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold text-zinc-400 hover:text-orange-500 transition-all"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: THEME_OPTIONS.find(t => t.id === editorTheme)?.color }} />
-                      {currentThemeLabel}
-                    </button>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950">
-                    <MonacoEditor
-                      height="300px"
-                      defaultLanguage="java"
-                      theme={editorTheme}
-                      value={metadata.driverCode || "// Driver code here\n{{SOLUTION}}\n"}
-                      onChange={(val) => onMetadataChange({ ...metadata, driverCode: val })}
-                      beforeMount={registerCustomThemes}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 12,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        padding: { top: 16, bottom: 16 }
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Solution Template (Java)</span>
-                    <button
-                      onClick={toggleTheme}
-                      className="flex items-center gap-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold text-zinc-400 hover:text-orange-500 transition-all"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: THEME_OPTIONS.find(t => t.id === editorTheme)?.color }} />
-                      {currentThemeLabel}
-                    </button>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950">
-                    <MonacoEditor
-                      height="200px"
-                      defaultLanguage="java"
-                      theme={editorTheme}
-                      value={metadata.solutionTemplate || "class Solution {\n    public void solve() {\n        \n    }\n}"}
-                      onChange={(val) => onMetadataChange({ ...metadata, solutionTemplate: val })}
-                      beforeMount={registerCustomThemes}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 12,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        padding: { top: 16, bottom: 16 }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
+                </section>
+              </>
+            )}
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
